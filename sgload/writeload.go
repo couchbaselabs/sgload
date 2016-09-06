@@ -1,15 +1,30 @@
 package sgload
 
-import "log"
+import (
+	"fmt"
+	"log"
+)
 
 type WriteLoadSpec struct {
 	LoadSpec
-	NumWriters int
+	NumWriters               int
+	NumChannels              int
+	DocSizeBytes             int
+	MaxConcurrentHttpClients int
+}
+
+func (wls WriteLoadSpec) Validate() error {
+	if wls.NumWriters <= 0 {
+		return fmt.Errorf("NumWriters must be greater than zero")
+	}
+	return nil
 }
 
 // Validate this spec or panic
 func (wls WriteLoadSpec) MustValidate() {
-	// TODO
+	if err := wls.Validate(); err != nil {
+		log.Panic("Invalid WriteLoadSpec: %+v. Error: %v", wls, err)
+	}
 }
 
 type WriteLoadRunner struct {

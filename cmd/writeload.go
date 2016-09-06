@@ -30,12 +30,17 @@ var writeloadCmd = &cobra.Command{
 			LoadSpec: sgload.LoadSpec{
 				SyncGatewayUrl: *sgUrl,
 			},
-			NumWriters: *numWriters,
+			NumWriters:               *numWriters,
+			NumChannels:              *numChannels,
+			DocSizeBytes:             *docSizeBytes,
+			MaxConcurrentHttpClients: *maxConcurrentHttpClients,
 		}
-		writeLoadSpec.MustValidate()
+		if err := writeLoadSpec.Validate(); err != nil {
+			log.Fatalf("Invalid parameters: %+v. Error: %v", writeLoadSpec, err)
+		}
 		writeLoadRunner := sgload.NewWriteLoadRunner(writeLoadSpec)
 		if err := writeLoadRunner.Run(); err != nil {
-			log.Fatal("Writeload runner failed with: %v", err)
+			log.Fatalf("Writeload runner failed with: %v", err)
 		}
 
 		log.Printf("Finished")
