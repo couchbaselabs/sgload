@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/couchbaselabs/sgload/sgload"
@@ -23,12 +22,11 @@ var writeloadCmd = &cobra.Command{
 	Long:  `Generate a write load`,
 	Run: func(cmd *cobra.Command, args []string) {
 
-		// TODO: Work your own magic here
-		fmt.Printf("writeload called.  sgUrl: %v, numWriters: %d.  createUsers: %t, userCreds: %+v\n", *sgUrl, *numWriters, *createUsers, *userCreds)
-
 		writeLoadSpec := sgload.WriteLoadSpec{
 			LoadSpec: sgload.LoadSpec{
 				SyncGatewayUrl: *sgUrl,
+				CreateUsers:    *createUsers,
+				UserCreds:      *userCreds,
 			},
 			NumWriters:               *numWriters,
 			NumChannels:              *numChannels,

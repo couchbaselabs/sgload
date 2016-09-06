@@ -56,7 +56,7 @@ func init() {
 	userCreds = RootCmd.PersistentFlags().String(
 		"usercreds",
 		"{\"foo\":\"passw0rd\"}",
-		"The usernames/passwords of the users to use for testing.  Must be equal to numbrer of writers",
+		"The usernames/passwords of the users to use for testing if createusers set to false.  Must be equal to numbrer of writers",
 	)
 
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.sgload.yaml)")

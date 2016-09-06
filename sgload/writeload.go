@@ -17,6 +17,9 @@ func (wls WriteLoadSpec) Validate() error {
 	if wls.NumWriters <= 0 {
 		return fmt.Errorf("NumWriters must be greater than zero")
 	}
+	if err := wls.LoadSpec.Validate(); err != nil {
+		return err
+	}
 	return nil
 }
 
