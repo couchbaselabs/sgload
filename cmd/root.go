@@ -8,7 +8,11 @@ import (
 	"github.com/spf13/viper"
 )
 
-var cfgFile string
+var (
+	cfgFile    string
+	sgUrl      *string
+	sgAdminUrl *string
+)
 
 // This represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
@@ -35,6 +39,18 @@ func init() {
 	cobra.OnInitialize(initConfig)
 	// Here you will define your flags and configuration settings
 	// Cobra supports Persistent Flags which if defined here will be global for your application
+
+	sgUrl = RootCmd.PersistentFlags().String(
+		"sg-url",
+		"http://localhost:4984/db",
+		"The public Sync Gateway URL including port and database, eg: http://localhost:4984/db",
+	)
+
+	sgAdminUrl = RootCmd.PersistentFlags().String(
+		"sg-admin-url",
+		"http://localhost:4985/db",
+		"The public Sync Gateway Admin URL including port and database, eg: http://localhost:4985/db",
+	)
 
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.sgload.yaml)")
 

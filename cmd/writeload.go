@@ -7,8 +7,6 @@ import (
 )
 
 var (
-	sgUrl      *string
-	sgAdminUrl *string
 	numWriters *int
 )
 
@@ -26,18 +24,6 @@ var writeloadCmd = &cobra.Command{
 func init() {
 
 	RootCmd.AddCommand(writeloadCmd)
-
-	sgUrl = writeloadCmd.PersistentFlags().String(
-		"sg-url",
-		"http://localhost:4984/db",
-		"The public Sync Gateway URL including port and database, eg: http://localhost:4984/db",
-	)
-
-	sgAdminUrl = writeloadCmd.PersistentFlags().String(
-		"sg-admin-url",
-		"http://localhost:4985/db",
-		"The public Sync Gateway Admin URL including port and database, eg: http://localhost:4985/db",
-	)
 
 	numWriters = writeloadCmd.PersistentFlags().Int(
 		"numwriters",
