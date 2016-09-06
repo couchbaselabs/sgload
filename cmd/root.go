@@ -11,7 +11,6 @@ import (
 var (
 	cfgFile     string
 	sgUrl       *string
-	sgAdminUrl  *string
 	createUsers *bool
 	userCreds   *string
 )
@@ -46,12 +45,6 @@ func init() {
 		"sg-url",
 		"http://localhost:4984/db",
 		"The public Sync Gateway URL including port and database, eg: http://localhost:4984/db",
-	)
-
-	sgAdminUrl = RootCmd.PersistentFlags().String(
-		"sg-admin-url",
-		"http://localhost:4985/db",
-		"The public Sync Gateway Admin URL including port and database, eg: http://localhost:4985/db",
 	)
 
 	createUsers = RootCmd.PersistentFlags().Bool(
