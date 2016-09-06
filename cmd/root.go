@@ -9,9 +9,11 @@ import (
 )
 
 var (
-	cfgFile    string
-	sgUrl      *string
-	sgAdminUrl *string
+	cfgFile     string
+	sgUrl       *string
+	sgAdminUrl  *string
+	createUsers *bool
+	userCreds   *string
 )
 
 // This represents the base command when called without any subcommands
@@ -50,6 +52,18 @@ func init() {
 		"sg-admin-url",
 		"http://localhost:4985/db",
 		"The public Sync Gateway Admin URL including port and database, eg: http://localhost:4985/db",
+	)
+
+	createUsers = RootCmd.PersistentFlags().Bool(
+		"createusers",
+		true,
+		"Whether or not to create users.  Set to false if the users already exist",
+	)
+
+	userCreds = RootCmd.PersistentFlags().String(
+		"usercreds",
+		"{\"foo\":\"passw0rd\"}",
+		"The usernames/passwords of the users to use for testing.  Must be equal to numbrer of writers",
 	)
 
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.sgload.yaml)")
