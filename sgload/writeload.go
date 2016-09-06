@@ -23,7 +23,7 @@ func (wls WriteLoadSpec) Validate() error {
 // Validate this spec or panic
 func (wls WriteLoadSpec) MustValidate() {
 	if err := wls.Validate(); err != nil {
-		log.Panic("Invalid WriteLoadSpec: %+v. Error: %v", wls, err)
+		log.Panicf("Invalid WriteLoadSpec: %+v. Error: %v", wls, err)
 	}
 }
 
