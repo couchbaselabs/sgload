@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"time"
+
+	"github.com/satori/go.uuid"
 )
 
 type WriteLoadSpec struct {
@@ -126,10 +128,10 @@ func (wlr WriteLoadRunner) createWriters() ([]*Writer, error) {
 func (wlr WriteLoadRunner) generateUserCreds() []UserCred {
 	userCreds := []UserCred{}
 	for userId := 0; userId < wlr.WriteLoadSpec.NumWriters; userId++ {
+		uuid := NewUuid()
 		userCred := UserCred{
-			// TODO: needs to uuids so runs don't interfere!!
-			Username: fmt.Sprintf("writeload-user-%d", userId),
-			Password: fmt.Sprintf("writeload-passw0rd-%d", userId),
+			Username: fmt.Sprintf("writeload-user-%d-%s", userId, uuid),
+			Password: fmt.Sprintf("writeload-passw0rd-%d-%s", userId, uuid),
 		}
 		userCreds = append(userCreds, userCred)
 
@@ -182,8 +184,6 @@ func (wlr WriteLoadRunner) generateChannelNames() []string {
 
 func (wlr WriteLoadRunner) createDocsToWrite() []Document {
 
-	// TODO: this needs to (approximately) match the doc size
-
 	var d Document
 	docs := []Document{}
 
@@ -227,4 +227,9 @@ func createBodyContentWithSize(docSizeBytes int) string {
 		buf.WriteString("a")
 	}
 	return buf.String()
+}
+
+func NewUuid() string {
+	u4 := uuid.NewV4()
+	return fmt.Sprintf("%s", u4)
 }

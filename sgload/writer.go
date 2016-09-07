@@ -12,9 +12,6 @@ type Writer struct {
 
 func NewWriter(ID int, u UserCred, d DataStore) *Writer {
 
-	// TODO: create a channel that will be used by AddToQueue to
-	// add actions (DocCreate or other actions)
-
 	outboundDocs := make(chan Document, 100)
 
 	return &Writer{
