@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"time"
+	"sync"
 
 	"github.com/satori/go.uuid"
 )
@@ -69,8 +69,10 @@ func NewWriteLoadRunner(wls WriteLoadSpec) *WriteLoadRunner {
 
 func (wlr WriteLoadRunner) Run() error {
 
+	var wg sync.WaitGroup
+
 	// Create writers
-	writers, err := wlr.createWriters()
+	writers, err := wlr.createWriters(&wg)
 	if err != nil {
 		return err
 	}
@@ -82,9 +84,13 @@ func (wlr WriteLoadRunner) Run() error {
 
 	// wait until all writers are finished
 	// TODO: make this non-lame
-	log.Printf("Waiting a few mins")
-	<-time.After(time.Second * 120)
-	log.Printf("Done waiting -- should be all done by now")
+	// log.Printf("Waiting a few mins")
+	// <-time.After(time.Second * 120)
+	// log.Printf("Done waiting -- should be all done by now")
+
+	log.Printf("Waiting for writers to finish")
+	wg.Wait()
+	log.Printf("Writers finished")
 
 	return nil
 }
@@ -95,7 +101,7 @@ func (wlr WriteLoadRunner) dataStore() DataStore {
 
 }
 
-func (wlr WriteLoadRunner) createWriters() ([]*Writer, error) {
+func (wlr WriteLoadRunner) createWriters(wg *sync.WaitGroup) ([]*Writer, error) {
 
 	writers := []*Writer{}
 	var userCreds []UserCred
@@ -116,9 +122,10 @@ func (wlr WriteLoadRunner) createWriters() ([]*Writer, error) {
 
 	for userId := 0; userId < wlr.WriteLoadSpec.NumWriters; userId++ {
 		userCred := userCreds[userId]
-		writer := NewWriter(userId, userCred, wlr.dataStore())
+		writer := NewWriter(wg, userId, userCred, wlr.dataStore())
 		writer.CreateDataStoreUser = wlr.WriteLoadSpec.CreateUsers
 		writers = append(writers, writer)
+		wg.Add(1)
 	}
 
 	return writers, nil

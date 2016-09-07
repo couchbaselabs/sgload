@@ -1,6 +1,9 @@
 package sgload
 
-import "log"
+import (
+	"log"
+	"sync"
+)
 
 type Writer struct {
 	UserCred
@@ -8,9 +11,10 @@ type Writer struct {
 	CreateDataStoreUser bool      // Whether this writer must first create a user on the DataStore service, ot just assume it already exists
 	DataStore           DataStore // The target data store where docs will be written
 	OutboundDocs        chan Document
+	WaitGroup           *sync.WaitGroup
 }
 
-func NewWriter(ID int, u UserCred, d DataStore) *Writer {
+func NewWriter(wg *sync.WaitGroup, ID int, u UserCred, d DataStore) *Writer {
 
 	outboundDocs := make(chan Document, 100)
 
@@ -19,12 +23,14 @@ func NewWriter(ID int, u UserCred, d DataStore) *Writer {
 		ID:           ID,
 		DataStore:    d,
 		OutboundDocs: outboundDocs,
+		WaitGroup:    wg,
 	}
 }
 
 func (w *Writer) Run() {
 
 	defer log.Printf("Goroutine writer %+v finished", w)
+	defer w.WaitGroup.Done()
 
 	if w.CreateDataStoreUser == true {
 		if err := w.DataStore.CreateUser(w.UserCred); err != nil {
