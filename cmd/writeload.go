@@ -39,7 +39,7 @@ var writeloadCmd = &cobra.Command{
 		}
 		writeLoadRunner := sgload.NewWriteLoadRunner(writeLoadSpec)
 		if err := writeLoadRunner.Run(); err != nil {
-			log.Fatalf("Writeload runner failed with: %v", err)
+			log.Fatalf("Writeload.Run() failed with: %v", err)
 		}
 
 		log.Printf("Finished")

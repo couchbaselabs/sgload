@@ -26,7 +26,15 @@ func NewWriter(ID int, u UserCred, d DataStore) *Writer {
 }
 
 func (w *Writer) Run() {
+
+	if w.CreateDataStoreUser == true {
+		if err := w.DataStore.CreateUser(w.UserCred); err != nil {
+			log.Fatalf("Error creating user in datastore.  User: %v, Err: %v", w.UserCred, err)
+		}
+	}
+
 	for {
+
 		doc := <-w.OutboundDocs
 		if err := w.DataStore.CreateDocument(doc); err != nil {
 			log.Fatalf("Error creating doc in datastore.  Doc: %v, Err: %v", doc, err)

@@ -20,6 +20,17 @@ func (wls WriteLoadSpec) Validate() error {
 	if wls.NumWriters <= 0 {
 		return fmt.Errorf("NumWriters must be greater than zero")
 	}
+
+	if !wls.CreateUsers {
+		userCreds, err := wls.loadUserCredsFromArgs()
+		if err != nil {
+			return err
+		}
+		if len(userCreds) != wls.NumWriters {
+			return fmt.Errorf("You only provided %d user credentials, but specified %d writers", len(userCreds), wls.NumWriters)
+		}
+	}
+
 	if err := wls.LoadSpec.Validate(); err != nil {
 		return err
 	}
@@ -86,12 +97,15 @@ func (wlr WriteLoadRunner) createWriters() ([]*Writer, error) {
 
 	switch wlr.WriteLoadSpec.CreateUsers {
 	case true:
+		log.Printf("CreateUsers = true, calling generateUserCreds()")
+		userCreds = wlr.generateUserCreds()
+	default:
+		log.Printf("CreateUsers = true, calling loadUserCredsFromArgs()")
 		userCreds, err = wlr.WriteLoadSpec.loadUserCredsFromArgs()
+		log.Printf("userCreds: %v", userCreds)
 		if err != nil {
 			return writers, err
 		}
-	default:
-		userCreds = wlr.generateUserCreds()
 	}
 
 	for userId := 0; userId < wlr.WriteLoadSpec.NumWriters; userId++ {
@@ -133,6 +147,9 @@ func (wlr WriteLoadRunner) feedDocsToWriters(writers []*Writer) error {
 }
 
 func (wlr WriteLoadRunner) createDocsToWrite() []Document {
+
+	// TODO: this needs to distribute docs among the channels
+	// TODO: this needs to (approximately) match the doc size
 
 	var d Document
 	docs := []Document{}
