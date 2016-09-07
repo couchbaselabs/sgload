@@ -24,6 +24,8 @@ func NewWriter(ID int, u UserCred, d DataStore) *Writer {
 
 func (w *Writer) Run() {
 
+	defer log.Printf("Goroutine writer %+v finished", w)
+
 	if w.CreateDataStoreUser == true {
 		if err := w.DataStore.CreateUser(w.UserCred); err != nil {
 			log.Fatalf("Error creating user in datastore.  User: %v, Err: %v", w.UserCred, err)
@@ -32,10 +34,20 @@ func (w *Writer) Run() {
 
 	for {
 
-		doc := <-w.OutboundDocs
-		if err := w.DataStore.CreateDocument(doc); err != nil {
-			log.Fatalf("Error creating doc in datastore.  Doc: %v, Err: %v", doc, err)
+		select {
+		case doc := <-w.OutboundDocs:
+
+			_, ok := doc["_terminal"]
+			if ok {
+				log.Printf("Received doc with _terminal field, exiting goroutine")
+				return
+			}
+
+			if err := w.DataStore.CreateDocument(doc); err != nil {
+				log.Fatalf("Error creating doc in datastore.  Doc: %v, Err: %v", doc, err)
+			}
 		}
+
 	}
 
 }

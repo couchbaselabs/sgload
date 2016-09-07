@@ -150,6 +150,12 @@ func (wlr WriteLoadRunner) feedDocsToWriters(writers []*Writer) error {
 		writer.AddToDataStore(docsToWrite)
 	}
 
+	for _, writer := range writers {
+		d := Document{}
+		d["_terminal"] = true
+		writer.AddToDataStore([]Document{d})
+	}
+
 	return nil
 
 }
