@@ -49,14 +49,14 @@ func init() {
 
 	createUsers = RootCmd.PersistentFlags().Bool(
 		"createusers",
-		true,
-		"Whether or not to create users.  Set to false if the users already exist",
+		false,
+		"Add this flag if you need the test to create users.  Otherwise you'll need to specify usercreds",
 	)
 
 	userCreds = RootCmd.PersistentFlags().String(
 		"usercreds",
 		"{\"foo\":\"passw0rd\"}",
-		"The usernames/passwords of the users to use for testing if createusers set to false.  Must be equal to numbrer of writers",
+		"The usernames/passwords of the users to use for testing.  Must be equal to number of writers.  Leave this flag off if using the createusers flag to create users",
 	)
 
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.sgload.yaml)")
