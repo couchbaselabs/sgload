@@ -123,6 +123,7 @@ func (wlr WriteLoadRunner) generateUserCreds() []UserCred {
 	userCreds := []UserCred{}
 	for userId := 0; userId < wlr.WriteLoadSpec.NumWriters; userId++ {
 		userCred := UserCred{
+			// TODO: needs to uuids so runs don't interfere!!
 			Username: fmt.Sprintf("writeload-user-%d", userId),
 			Password: fmt.Sprintf("writeload-passw0rd-%d", userId),
 		}
