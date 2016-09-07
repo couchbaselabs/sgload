@@ -60,7 +60,7 @@ func init() {
 	numChannels = writeloadCmd.PersistentFlags().Int(
 		"numchannels",
 		100,
-		"The number of unique channels that docs will be distributed to.  Must be greater than total number of docs.",
+		"The number of unique channels that docs will be distributed to.  Must be less than or equal to total number of docs.  If less than, then multiple docs will be assigned to the same channel.  If equal to, then each doc will get its own channel",
 	)
 
 	// NOTE: could also be numDocsPerWriter and total docs would be numWriters * numDocsPerWriter

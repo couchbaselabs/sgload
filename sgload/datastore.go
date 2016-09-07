@@ -10,4 +10,4 @@ type UserCred struct {
 	Password string `json:"password"` // Password part of basicauth credentials for this writer to use
 }
 
-type Document interface{}
+type Document map[string]interface{}

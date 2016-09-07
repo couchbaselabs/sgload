@@ -1,7 +1,7 @@
 package sgload
 
 import (
-	"encoding/json"
+	"bytes"
 	"fmt"
 	"log"
 	"time"
@@ -29,6 +29,10 @@ func (wls WriteLoadSpec) Validate() error {
 		if len(userCreds) != wls.NumWriters {
 			return fmt.Errorf("You only provided %d user credentials, but specified %d writers", len(userCreds), wls.NumWriters)
 		}
+	}
+
+	if wls.NumChannels > wls.NumDocs {
+		return fmt.Errorf("Number of channels must be less than or equal to number of docs")
 	}
 
 	if err := wls.LoadSpec.Validate(); err != nil {
@@ -137,6 +141,7 @@ func (wlr WriteLoadRunner) generateUserCreds() []UserCred {
 func (wlr WriteLoadRunner) feedDocsToWriters(writers []*Writer) error {
 
 	docsToWrite := wlr.createDocsToWrite()
+	docsToWrite = wlr.assignDocsToChannels(docsToWrite)
 	docAssignmentMapping := wlr.assignDocsToWriters(docsToWrite, writers)
 
 	for writer, docsToWrite := range docAssignmentMapping {
@@ -147,18 +152,45 @@ func (wlr WriteLoadRunner) feedDocsToWriters(writers []*Writer) error {
 
 }
 
+func (wlr WriteLoadRunner) assignDocsToChannels(inputDocs []Document) []Document {
+
+	docs := []Document{}
+	channelNames := wlr.generateChannelNames()
+
+	if len(channelNames) > len(inputDocs) {
+		log.Panicf("Number of channels must be less than or equal to number of docs")
+	}
+
+	for docNum, inputDoc := range inputDocs {
+		chanIndex := docNum % len(channelNames)
+		channelName := channelNames[chanIndex]
+		inputDoc["channels"] = []string{channelName}
+		docs = append(docs, inputDoc)
+	}
+
+	return docs
+
+}
+
+func (wlr WriteLoadRunner) generateChannelNames() []string {
+	channelNames := []string{}
+	for i := 0; i < wlr.WriteLoadSpec.NumChannels; i++ {
+		channelNames = append(channelNames, fmt.Sprintf("%d", i))
+	}
+	return channelNames
+}
+
 func (wlr WriteLoadRunner) createDocsToWrite() []Document {
 
-	// TODO: this needs to distribute docs among the channels
 	// TODO: this needs to (approximately) match the doc size
 
 	var d Document
 	docs := []Document{}
 
 	for docNum := 0; docNum < wlr.WriteLoadSpec.NumDocs; docNum++ {
-		if err := json.Unmarshal([]byte(`{"foo": "bar"}`), &d); err != nil {
-			log.Panicf("Could not unmarshal json")
-		}
+		d = map[string]interface{}{}
+		d["docNum"] = docNum
+		d["body"] = createBodyContentWithSize(wlr.WriteLoadSpec.DocSizeBytes)
 		docs = append(docs, d)
 	}
 	return docs
@@ -187,4 +219,12 @@ func (wlr WriteLoadRunner) assignDocsToWriters(d []Document, w []*Writer) map[*W
 
 	return docAssignmentMapping
 
+}
+
+func createBodyContentWithSize(docSizeBytes int) string {
+	buf := bytes.Buffer{}
+	for i := 0; i < docSizeBytes; i++ {
+		buf.WriteString("a")
+	}
+	return buf.String()
 }
