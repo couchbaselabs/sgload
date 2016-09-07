@@ -82,12 +82,6 @@ func (wlr WriteLoadRunner) Run() error {
 
 	go wlr.feedDocsToWriters(writers)
 
-	// wait until all writers are finished
-	// TODO: make this non-lame
-	// log.Printf("Waiting a few mins")
-	// <-time.After(time.Second * 120)
-	// log.Printf("Done waiting -- should be all done by now")
-
 	log.Printf("Waiting for writers to finish")
 	wg.Wait()
 	log.Printf("Writers finished")
@@ -97,7 +91,12 @@ func (wlr WriteLoadRunner) Run() error {
 
 func (wlr WriteLoadRunner) dataStore() DataStore {
 
-	return NewMockDataStore(wlr.MaxHttpClientSemaphore) // TODO: load data store based on url rather than hardcoding to MockDataStore
+	if wlr.WriteLoadSpec.MockDataStore {
+		return NewMockDataStore(wlr.MaxHttpClientSemaphore)
+	}
+
+	// return NewSyncGatewayDataStore(wlr.MaxHttpClientSemaphore)
+	return nil
 
 }
 

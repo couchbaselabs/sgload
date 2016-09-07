@@ -27,6 +27,7 @@ var writeloadCmd = &cobra.Command{
 				SyncGatewayUrl: *sgUrl,
 				CreateUsers:    *createUsers,
 				UserCreds:      *userCreds,
+				MockDataStore:  *mockDataStore,
 			},
 			NumWriters:               *numWriters,
 			NumChannels:              *numChannels,

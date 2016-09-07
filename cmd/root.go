@@ -9,10 +9,11 @@ import (
 )
 
 var (
-	cfgFile     string
-	sgUrl       *string
-	createUsers *bool
-	userCreds   *string
+	cfgFile       string
+	sgUrl         *string
+	createUsers   *bool
+	userCreds     *string
+	mockDataStore *bool
 )
 
 // This represents the base command when called without any subcommands
@@ -51,6 +52,12 @@ func init() {
 		"createusers",
 		false,
 		"Add this flag if you need the test to create users.  Otherwise you'll need to specify usercreds",
+	)
+
+	mockDataStore = RootCmd.PersistentFlags().Bool(
+		"mockdatastore",
+		false,
+		"Add this flag to use the Mock DataStore rather than hitting a real sync gateway instance",
 	)
 
 	userCreds = RootCmd.PersistentFlags().String(

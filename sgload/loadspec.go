@@ -12,6 +12,7 @@ type LoadSpec struct {
 	SyncGatewayUrl string // The Sync Gateway public URL with port and DB, eg "http://localhost:4984/db"
 	CreateUsers    bool   // Whether or not to create users
 	UserCreds      string // The usernames / passwords to use if CreateUsers is set to false
+	MockDataStore  bool   // If true, will use a MockDataStore instead of a real sync gateway
 }
 
 func (ls LoadSpec) Validate() error {
