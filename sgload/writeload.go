@@ -3,6 +3,7 @@ package sgload
 import (
 	"fmt"
 	"log"
+	"time"
 )
 
 type WriteLoadSpec struct {
@@ -31,17 +32,78 @@ func (wls WriteLoadSpec) MustValidate() {
 }
 
 type WriteLoadRunner struct {
-	WriteLoadSpec WriteLoadSpec
+	WriteLoadSpec          WriteLoadSpec
+	MaxHttpClientSemaphore chan struct{}
 }
 
-func NewWriteLoadRunner(WriteLoadSpec WriteLoadSpec) *WriteLoadRunner {
+func NewWriteLoadRunner(wls WriteLoadSpec) *WriteLoadRunner {
 	WriteLoadSpec.MustValidate()
+
+	// Create a count semaphore so that only MaxConcurrentHttpClients can be active at any given time
+	mhcs := make(chan struct{}, wls.MaxConcurrentHttpClients)
+
 	return &WriteLoadRunner{
-		WriteLoadSpec: WriteLoadSpec,
+		WriteLoadSpec:          wls,
+		MaxHttpClientSemaphore: mhc,
 	}
 }
 
 func (wlr WriteLoadRunner) Run() error {
-	log.Printf("Todo: Run() should do something")
+
+	// Create writers
+	writers := wlr.createWriters()
+	for _, writer := range writers {
+		writer.setMaxHttpClientSemaphore(maxHttpClientSemaphore)
+		go writer.Run()
+	}
+
+	go wlr.feedDocsToWriters()
+
+	// wait until all writers are finished
+	// TODO: make this non-lame
+	log.Printf("Waiting a few mins")
+	<-time.After(time.Second * 120)
+	log.Printf("Done waiting -- should be all done by now")
+
 	return nil
+}
+
+func (wlr WriteLoadRunner) dataStore() DataStore {
+
+	return NewMockDataStore(wlr.MaxHttpClientSemaphore) // TODO: load data store based on url rather than hardcoding to MockDataStore
+
+}
+
+func (wlr WriteLoadRunner) createWriters() []*Writer {
+
+	writers := []*Writer{}
+	userCreds := []UserCred{}
+
+	switch wlr.WriteLoadSpec.CreateUsers {
+	case true:
+		wlr.WriteLoadSpec.loadUserCreds(userCreds)
+	default:
+		userCreds = generateUserCreds(userCreds)
+	}
+
+	for userId := range wlr.WriteLoadSpec.NumWriters {
+		userCred := userCreds[userId]
+		writer := NewWriter(userId, userCred, wlr.dataStore())
+		writer.CreateDataStoreUser = wlr.WriteLoadSpec.CreateUsers
+		writers = append(writers, writer)
+	}
+
+	return writers
+
+}
+
+func (wlr WriteLoadRunner) feedDocsToWriters() error {
+
+	docsToWrite := wlr.createDocsToWrite()
+	docAssignmentMapping := wlr.assignDocsToWriters(docsToWrite, writers)
+	for _, docToWrite := range docsToWrite {
+		writer := docAssignmentMapping[docToWrite]
+		writer.AddToQueue(docToWrite)
+	}
+
 }
