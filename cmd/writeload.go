@@ -31,6 +31,7 @@ var writeloadCmd = &cobra.Command{
 			NumWriters:               *numWriters,
 			NumChannels:              *numChannels,
 			DocSizeBytes:             *docSizeBytes,
+			NumDocs:                  *numDocs,
 			MaxConcurrentHttpClients: *maxConcurrentHttpClients,
 		}
 		if err := writeLoadSpec.Validate(); err != nil {

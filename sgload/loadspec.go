@@ -1,10 +1,13 @@
 package sgload
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 )
 
+// This is the specification for this load test scenario.  The values contained
+// here are common to all load test scenarios.
 type LoadSpec struct {
 	SyncGatewayUrl string // The Sync Gateway public URL with port and DB, eg "http://localhost:4984/db"
 	CreateUsers    bool   // Whether or not to create users
@@ -24,4 +27,11 @@ func (ls LoadSpec) Validate() error {
 	}
 
 	return nil
+}
+
+func (ls LoadSpec) loadUserCredsFromArgs() ([]UserCred, error) {
+
+	userCreds := []UserCred{}
+	err := json.Unmarshal([]byte(ls.UserCreds), &userCreds)
+	return userCreds, err
 }

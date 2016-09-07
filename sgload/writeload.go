@@ -1,6 +1,7 @@
 package sgload
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -11,6 +12,7 @@ type WriteLoadSpec struct {
 	NumWriters               int
 	NumChannels              int
 	DocSizeBytes             int
+	NumDocs                  int
 	MaxConcurrentHttpClients int
 }
 
@@ -37,27 +39,29 @@ type WriteLoadRunner struct {
 }
 
 func NewWriteLoadRunner(wls WriteLoadSpec) *WriteLoadRunner {
-	WriteLoadSpec.MustValidate()
+	wls.MustValidate()
 
 	// Create a count semaphore so that only MaxConcurrentHttpClients can be active at any given time
 	mhcs := make(chan struct{}, wls.MaxConcurrentHttpClients)
 
 	return &WriteLoadRunner{
 		WriteLoadSpec:          wls,
-		MaxHttpClientSemaphore: mhc,
+		MaxHttpClientSemaphore: mhcs,
 	}
 }
 
 func (wlr WriteLoadRunner) Run() error {
 
 	// Create writers
-	writers := wlr.createWriters()
+	writers, err := wlr.createWriters()
+	if err != nil {
+		return err
+	}
 	for _, writer := range writers {
-		writer.setMaxHttpClientSemaphore(maxHttpClientSemaphore)
 		go writer.Run()
 	}
 
-	go wlr.feedDocsToWriters()
+	go wlr.feedDocsToWriters(writers)
 
 	// wait until all writers are finished
 	// TODO: make this non-lame
@@ -74,36 +78,95 @@ func (wlr WriteLoadRunner) dataStore() DataStore {
 
 }
 
-func (wlr WriteLoadRunner) createWriters() []*Writer {
+func (wlr WriteLoadRunner) createWriters() ([]*Writer, error) {
 
 	writers := []*Writer{}
-	userCreds := []UserCred{}
+	var userCreds []UserCred
+	var err error
 
 	switch wlr.WriteLoadSpec.CreateUsers {
 	case true:
-		wlr.WriteLoadSpec.loadUserCreds(userCreds)
+		userCreds, err = wlr.WriteLoadSpec.loadUserCredsFromArgs()
+		if err != nil {
+			return writers, err
+		}
 	default:
-		userCreds = generateUserCreds(userCreds)
+		userCreds = wlr.generateUserCreds()
 	}
 
-	for userId := range wlr.WriteLoadSpec.NumWriters {
+	for userId := 0; userId < wlr.WriteLoadSpec.NumWriters; userId++ {
 		userCred := userCreds[userId]
 		writer := NewWriter(userId, userCred, wlr.dataStore())
 		writer.CreateDataStoreUser = wlr.WriteLoadSpec.CreateUsers
 		writers = append(writers, writer)
 	}
 
-	return writers
+	return writers, nil
 
 }
 
-func (wlr WriteLoadRunner) feedDocsToWriters() error {
+func (wlr WriteLoadRunner) generateUserCreds() []UserCred {
+	userCreds := []UserCred{}
+	for userId := 0; userId < wlr.WriteLoadSpec.NumWriters; userId++ {
+		userCred := UserCred{
+			Username: fmt.Sprintf("writeload-user-%d", userId),
+			Password: fmt.Sprintf("writeload-passw0rd-%d", userId),
+		}
+		userCreds = append(userCreds, userCred)
+
+	}
+	return userCreds
+
+}
+
+func (wlr WriteLoadRunner) feedDocsToWriters(writers []*Writer) error {
 
 	docsToWrite := wlr.createDocsToWrite()
 	docAssignmentMapping := wlr.assignDocsToWriters(docsToWrite, writers)
-	for _, docToWrite := range docsToWrite {
-		writer := docAssignmentMapping[docToWrite]
-		writer.AddToQueue(docToWrite)
+
+	for writer, docsToWrite := range docAssignmentMapping {
+		writer.AddToDataStore(docsToWrite)
 	}
+
+	return nil
+
+}
+
+func (wlr WriteLoadRunner) createDocsToWrite() []Document {
+
+	var d Document
+	docs := []Document{}
+
+	for docNum := 0; docNum < wlr.WriteLoadSpec.NumDocs; docNum++ {
+		if err := json.Unmarshal([]byte(`{"foo": "bar"}`), &d); err != nil {
+			log.Panicf("Could not unmarshal json")
+		}
+		docs = append(docs, d)
+	}
+	return docs
+
+}
+
+func (wlr WriteLoadRunner) assignDocsToWriters(d []Document, w []*Writer) map[*Writer][]Document {
+
+	docAssignmentMapping := map[*Writer][]Document{}
+	for _, writer := range w {
+		docAssignmentMapping[writer] = []Document{}
+	}
+
+	for docNum, doc := range d {
+
+		// figure out which writer to assign this doc to
+		writerIndex := docNum % len(w)
+		writer := w[writerIndex]
+
+		// add doc to writer's list of docs
+		docsForWriter := docAssignmentMapping[writer]
+		docsForWriter = append(docsForWriter, doc)
+		docAssignmentMapping[writer] = docsForWriter
+
+	}
+
+	return docAssignmentMapping
 
 }
