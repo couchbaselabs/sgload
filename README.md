@@ -22,9 +22,6 @@ To view more options, run `sgload writeload --help`
 
 * [Write load](https://github.com/couchbaselabs/mobile-testkit/issues/607)
 
-## Features
-
-
 ## Design
 
 1. The docfeeder goroutine spreads the docs among the writers as evenly as possible.
