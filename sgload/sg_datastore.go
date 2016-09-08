@@ -3,6 +3,7 @@ package sgload
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -39,6 +40,10 @@ func (s SGDataStore) CreateDocument(d Document) error {
 	if err != nil {
 		return err
 	}
+	if resp.StatusCode < 200 || resp.StatusCode > 201 {
+		return fmt.Errorf("Unexpected response status for POST request: %d", resp.StatusCode)
+	}
+
 	io.Copy(ioutil.Discard, resp.Body)
 	resp.Body.Close()
 
