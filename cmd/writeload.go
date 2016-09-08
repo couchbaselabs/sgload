@@ -8,11 +8,10 @@ import (
 )
 
 var (
-	numWriters               *int
-	numChannels              *int
-	numDocs                  *int
-	docSizeBytes             *int
-	maxConcurrentHttpClients *int
+	numWriters   *int
+	numChannels  *int
+	numDocs      *int
+	docSizeBytes *int
 )
 
 // writeloadCmd respresents the writeload command
@@ -76,12 +75,6 @@ func init() {
 		"docsizebytes",
 		1024,
 		"The size of each doc, in bytes, that will be pushed up to sync gateway",
-	)
-
-	maxConcurrentHttpClients = writeloadCmd.PersistentFlags().Int(
-		"maxConcurrentHttpClients",
-		20,
-		"Caps the number of concurrent outstanding client requests to Sync Gateway.  For example if set to 20, and 20 simulated writers have outstanding requests waiting for responses, the next writer will block until one of those responses is returned",
 	)
 
 	// Cobra supports local flags which will only run when this command is called directly
