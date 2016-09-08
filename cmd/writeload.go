@@ -30,11 +30,10 @@ var writeloadCmd = &cobra.Command{
 				UserCreds:            *userCreds,
 				MockDataStore:        *mockDataStore,
 			},
-			NumWriters:               *numWriters,
-			NumChannels:              *numChannels,
-			DocSizeBytes:             *docSizeBytes,
-			NumDocs:                  *numDocs,
-			MaxConcurrentHttpClients: *maxConcurrentHttpClients,
+			NumWriters:   *numWriters,
+			NumChannels:  *numChannels,
+			DocSizeBytes: *docSizeBytes,
+			NumDocs:      *numDocs,
 		}
 		if err := writeLoadSpec.Validate(); err != nil {
 			log.Fatalf("Invalid parameters: %+v. Error: %v", writeLoadSpec, err)

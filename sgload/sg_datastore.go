@@ -16,17 +16,15 @@ import (
 )
 
 type SGDataStore struct {
-	MaxConcurrentHttpClients chan struct{} // TODO: currenty ignored.  TODO: REMOVE!
-	SyncGatewayUrl           string
-	SyncGatewayAdminPort     int
-	UserCreds                UserCred
+	SyncGatewayUrl       string
+	SyncGatewayAdminPort int
+	UserCreds            UserCred
 }
 
-func NewSGDataStore(sgUrl string, sgAdminPort int, maxConcurrentHttpClients chan struct{}) *SGDataStore {
+func NewSGDataStore(sgUrl string, sgAdminPort int) *SGDataStore {
 	return &SGDataStore{
-		MaxConcurrentHttpClients: maxConcurrentHttpClients,
-		SyncGatewayUrl:           sgUrl,
-		SyncGatewayAdminPort:     sgAdminPort,
+		SyncGatewayUrl:       sgUrl,
+		SyncGatewayAdminPort: sgAdminPort,
 	}
 }
 

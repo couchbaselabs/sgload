@@ -2,14 +2,10 @@ package sgload
 
 import "log"
 
-type MockDataStore struct {
-	MaxConcurrentHttpClients chan struct{} // TODO: currenty ignored
-}
+type MockDataStore struct{}
 
-func NewMockDataStore(maxConcurrentHttpClients chan struct{}) *MockDataStore {
-	return &MockDataStore{
-		MaxConcurrentHttpClients: maxConcurrentHttpClients,
-	}
+func NewMockDataStore() *MockDataStore {
+	return &MockDataStore{}
 }
 
 func (m MockDataStore) CreateUser(u UserCred) error {

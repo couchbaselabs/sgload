@@ -11,11 +11,10 @@ import (
 
 type WriteLoadSpec struct {
 	LoadSpec
-	NumWriters               int
-	NumChannels              int
-	DocSizeBytes             int
-	NumDocs                  int
-	MaxConcurrentHttpClients int
+	NumWriters   int
+	NumChannels  int
+	DocSizeBytes int
+	NumDocs      int
 }
 
 func (wls WriteLoadSpec) Validate() error {
@@ -51,19 +50,14 @@ func (wls WriteLoadSpec) MustValidate() {
 }
 
 type WriteLoadRunner struct {
-	WriteLoadSpec          WriteLoadSpec
-	MaxHttpClientSemaphore chan struct{}
+	WriteLoadSpec WriteLoadSpec
 }
 
 func NewWriteLoadRunner(wls WriteLoadSpec) *WriteLoadRunner {
 	wls.MustValidate()
 
-	// Create a count semaphore so that only MaxConcurrentHttpClients can be active at any given time
-	mhcs := make(chan struct{}, wls.MaxConcurrentHttpClients)
-
 	return &WriteLoadRunner{
-		WriteLoadSpec:          wls,
-		MaxHttpClientSemaphore: mhcs,
+		WriteLoadSpec: wls,
 	}
 }
 
@@ -92,13 +86,12 @@ func (wlr WriteLoadRunner) Run() error {
 func (wlr WriteLoadRunner) createDataStore() DataStore {
 
 	if wlr.WriteLoadSpec.MockDataStore {
-		return NewMockDataStore(wlr.MaxHttpClientSemaphore)
+		return NewMockDataStore()
 	}
 
 	sgDataStore := NewSGDataStore(
 		wlr.WriteLoadSpec.SyncGatewayUrl,
 		wlr.WriteLoadSpec.SyncGatewayAdminPort,
-		wlr.MaxHttpClientSemaphore,
 	)
 
 	return sgDataStore
