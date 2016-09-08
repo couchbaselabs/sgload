@@ -34,5 +34,10 @@ func (ls LoadSpec) loadUserCredsFromArgs() ([]UserCred, error) {
 
 	userCreds := []UserCred{}
 	err := json.Unmarshal([]byte(ls.UserCreds), &userCreds)
+	for _, userCred := range userCreds {
+		if userCred.Empty() {
+			return userCreds, fmt.Errorf("User credentials empty: %+v", userCred)
+		}
+	}
 	return userCreds, err
 }

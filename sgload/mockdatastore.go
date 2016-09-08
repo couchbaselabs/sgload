@@ -21,3 +21,7 @@ func (m MockDataStore) CreateDocument(d Document) error {
 	log.Printf("MockDataStore CreateDocument called with %+v", d)
 	return nil
 }
+
+func (m *MockDataStore) SetUserCreds(u UserCred) {
+	// ignore these
+}

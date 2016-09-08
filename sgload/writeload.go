@@ -95,10 +95,12 @@ func (wlr WriteLoadRunner) createDataStore() DataStore {
 		return NewMockDataStore(wlr.MaxHttpClientSemaphore)
 	}
 
-	return NewSGDataStore(
+	sgDataStore := NewSGDataStore(
 		wlr.WriteLoadSpec.SyncGatewayUrl,
 		wlr.MaxHttpClientSemaphore,
 	)
+
+	return sgDataStore
 
 }
 
@@ -118,10 +120,13 @@ func (wlr WriteLoadRunner) createWriters(wg *sync.WaitGroup) ([]*Writer, error) 
 		}
 	}
 
+	log.Printf("userCreds: %+v", userCreds)
+
 	for userId := 0; userId < wlr.WriteLoadSpec.NumWriters; userId++ {
 		userCred := userCreds[userId]
-
-		writer := NewWriter(wg, userId, userCred, wlr.createDataStore())
+		dataStore := wlr.createDataStore()
+		dataStore.SetUserCreds(userCred)
+		writer := NewWriter(wg, userId, userCred, dataStore)
 		writer.CreateDataStoreUser = wlr.WriteLoadSpec.CreateUsers
 		writers = append(writers, writer)
 		wg.Add(1)
