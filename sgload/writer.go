@@ -29,7 +29,6 @@ func NewWriter(wg *sync.WaitGroup, ID int, u UserCred, d DataStore) *Writer {
 
 func (w *Writer) Run() {
 
-	defer log.Printf("Goroutine writer %+v finished", w)
 	defer w.WaitGroup.Done()
 
 	if w.CreateDataStoreUser == true {
@@ -45,7 +44,6 @@ func (w *Writer) Run() {
 
 			_, ok := doc["_terminal"]
 			if ok {
-				log.Printf("Received doc with _terminal field, exiting goroutine")
 				return
 			}
 
@@ -60,7 +58,9 @@ func (w *Writer) Run() {
 
 func (w *Writer) AddToDataStore(docs []Document) {
 	for _, doc := range docs {
+		log.Printf("Writing doc to writer: %v", w)
 		w.OutboundDocs <- doc
+		log.Printf("/Writing doc to writer: %v", w)
 	}
 
 }

@@ -81,7 +81,6 @@ func (s SGDataStore) sgAdminURL() (string, error) {
 
 	sgAdminURL := s.SyncGatewayUrl
 
-	log.Printf("Parsing url: %v", s.SyncGatewayUrl)
 	parsedSgUrl, err := url.Parse(s.SyncGatewayUrl)
 	if err != nil {
 		log.Printf("Error parsing url: %v", err)
@@ -93,13 +92,11 @@ func (s SGDataStore) sgAdminURL() (string, error) {
 	if err != nil {
 		return sgAdminURL, err
 	}
-	log.Printf("host: %v port: %v", host, port)
 
 	if port != "" {
 		// is there a port?
 		// do a regex replace on :port on the original url
 		r := regexp.MustCompile(port)
-		log.Printf("Replace %v with %v in %v", port, s.SyncGatewayAdminPort, sgAdminURL)
 		sgAdminURL = r.ReplaceAllString(
 			sgAdminURL,
 			fmt.Sprintf("%d", s.SyncGatewayAdminPort),
@@ -110,7 +107,6 @@ func (s SGDataStore) sgAdminURL() (string, error) {
 		// do a regex replace of host with host:port
 		r := regexp.MustCompile(host)
 		hostWithAdminPort := fmt.Sprintf("%v:%v", host, s.SyncGatewayAdminPort)
-		log.Printf("Replace %v with %v in %v", host, hostWithAdminPort, sgAdminURL)
 		sgAdminURL = r.ReplaceAllString(
 			sgAdminURL,
 			hostWithAdminPort,
@@ -154,12 +150,8 @@ func (s SGDataStore) CreateDocument(d Document) error {
 
 // add BasicAuth header for user if needed
 func (s SGDataStore) addAuthIfNeeded(req *http.Request) {
-
 	if !s.UserCreds.Empty() {
-		log.Printf("set basic auth to %+v", s.UserCreds)
 		req.SetBasicAuth(s.UserCreds.Username, s.UserCreds.Password)
-	} else {
-		log.Printf("not adding basic auth header, no user creds: %+v", s)
 	}
 }
 

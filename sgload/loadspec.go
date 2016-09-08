@@ -3,7 +3,6 @@ package sgload
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 )
 
 // This is the specification for this load test scenario.  The values contained
@@ -19,8 +18,6 @@ type LoadSpec struct {
 func (ls LoadSpec) Validate() error {
 
 	// Todo: attempt to connect to SyncGateway URL -- if 404, throw invalid error
-
-	log.Printf("ls.Validate() called, ls: %+v", ls)
 
 	if len(ls.UserCreds) > 0 {
 		if ls.CreateUsers == true {

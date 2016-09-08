@@ -42,8 +42,6 @@ var writeloadCmd = &cobra.Command{
 			log.Fatalf("Writeload.Run() failed with: %v", err)
 		}
 
-		log.Printf("Finished")
-
 	},
 }
 

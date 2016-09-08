@@ -36,7 +36,7 @@ func (wlr WriteLoadRunner) Run() error {
 
 	go wlr.feedDocsToWriters(writers)
 
-	log.Printf("Waiting for writers to finish")
+	log.Printf("Waiting for %d writers to finish...", len(writers))
 	wg.Wait()
 	log.Printf("Writers finished")
 
@@ -73,8 +73,6 @@ func (wlr WriteLoadRunner) createWriters(wg *sync.WaitGroup) ([]*Writer, error) 
 			return writers, err
 		}
 	}
-
-	log.Printf("userCreds: %+v", userCreds)
 
 	for userId := 0; userId < wlr.WriteLoadSpec.NumWriters; userId++ {
 		userCred := userCreds[userId]
