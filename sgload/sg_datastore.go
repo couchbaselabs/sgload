@@ -34,10 +34,41 @@ func (s *SGDataStore) SetUserCreds(u UserCred) {
 }
 
 func (s SGDataStore) CreateUser(u UserCred) error {
-	// TODO:
-	// - Add CLI arg ask user for admin port
-	// - Generate SG admin url
-	// - Call SG endpoint to create user
+
+	adminUrl, err := s.sgAdminURL()
+	if err != nil {
+		return err
+	}
+	adminUrlUserEndpoint := fmt.Sprintf("%v/_user/", adminUrl)
+
+	userDoc := map[string]interface{}{}
+	userDoc["name"] = u.Username
+	userDoc["password"] = u.Password
+	userDoc["admin_channels"] = []string{"*"}
+
+	docBytes, err := json.Marshal(userDoc)
+	if err != nil {
+		return err
+	}
+	buf := bytes.NewBuffer(docBytes)
+
+	req, err := http.NewRequest("POST", adminUrlUserEndpoint, buf)
+
+	req.Header.Set("Content-Type", "application/json")
+
+	client := http.DefaultClient
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode > 201 {
+		return fmt.Errorf("Unexpected response status for POST request: %d", resp.StatusCode)
+	}
+
+	io.Copy(ioutil.Discard, resp.Body)
+	resp.Body.Close()
+
 	return nil
 }
 
