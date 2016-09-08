@@ -11,6 +11,7 @@ import (
 var (
 	cfgFile       string
 	sgUrl         *string
+	sgAdminPort   *int
 	createUsers   *bool
 	userCreds     *string
 	mockDataStore *bool
@@ -46,6 +47,12 @@ func init() {
 		"sg-url",
 		"http://localhost:4984/db",
 		"The public Sync Gateway URL including port and database, eg: http://localhost:4984/db",
+	)
+
+	sgAdminPort = RootCmd.PersistentFlags().Int(
+		"sg-admin-port",
+		4985,
+		"The Sync Gateway admin port.  NOTE: if SG is not on the same box you will need to setup SSH port forwarding, VPN, or configure SG to allow access",
 	)
 
 	createUsers = RootCmd.PersistentFlags().Bool(

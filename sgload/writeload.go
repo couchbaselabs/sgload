@@ -97,6 +97,7 @@ func (wlr WriteLoadRunner) createDataStore() DataStore {
 
 	sgDataStore := NewSGDataStore(
 		wlr.WriteLoadSpec.SyncGatewayUrl,
+		wlr.WriteLoadSpec.SyncGatewayAdminPort,
 		wlr.MaxHttpClientSemaphore,
 	)
 

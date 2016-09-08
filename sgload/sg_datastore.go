@@ -7,20 +7,25 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
+	"net/url"
+	"regexp"
+	"strings"
 )
 
 type SGDataStore struct {
-	MaxConcurrentHttpClients chan struct{} // TODO: currenty ignored
+	MaxConcurrentHttpClients chan struct{} // TODO: currenty ignored.  TODO: REMOVE!
 	SyncGatewayUrl           string
+	SyncGatewayAdminPort     int
 	UserCreds                UserCred
 }
 
-func NewSGDataStore(sgUrl string, maxConcurrentHttpClients chan struct{}) *SGDataStore {
-
+func NewSGDataStore(sgUrl string, sgAdminPort int, maxConcurrentHttpClients chan struct{}) *SGDataStore {
 	return &SGDataStore{
 		MaxConcurrentHttpClients: maxConcurrentHttpClients,
 		SyncGatewayUrl:           sgUrl,
+		SyncGatewayAdminPort:     sgAdminPort,
 	}
 }
 
@@ -29,8 +34,57 @@ func (s *SGDataStore) SetUserCreds(u UserCred) {
 }
 
 func (s SGDataStore) CreateUser(u UserCred) error {
-
+	// TODO:
+	// - Add CLI arg ask user for admin port
+	// - Generate SG admin url
+	// - Call SG endpoint to create user
 	return nil
+}
+
+func (s SGDataStore) sgAdminURL() (string, error) {
+
+	sgAdminURL := s.SyncGatewayUrl
+
+	log.Printf("Parsing url: %v", s.SyncGatewayUrl)
+	parsedSgUrl, err := url.Parse(s.SyncGatewayUrl)
+	if err != nil {
+		log.Printf("Error parsing url: %v", err)
+		return sgAdminURL, err
+	}
+
+	// find the port from the url
+	host, port, err := splitHostPortWrapper(parsedSgUrl.Host)
+	if err != nil {
+		return sgAdminURL, err
+	}
+	log.Printf("host: %v port: %v", host, port)
+
+	if port != "" {
+		// is there a port?
+		// do a regex replace on :port on the original url
+		r := regexp.MustCompile(port)
+		log.Printf("Replace %v with %v in %v", port, s.SyncGatewayAdminPort, sgAdminURL)
+		sgAdminURL = r.ReplaceAllString(
+			sgAdminURL,
+			fmt.Sprintf("%d", s.SyncGatewayAdminPort),
+		)
+
+	} else {
+		// is there no port?
+		// do a regex replace of host with host:port
+		r := regexp.MustCompile(host)
+		hostWithAdminPort := fmt.Sprintf("%v:%v", host, s.SyncGatewayAdminPort)
+		log.Printf("Replace %v with %v in %v", host, hostWithAdminPort, sgAdminURL)
+		sgAdminURL = r.ReplaceAllString(
+			sgAdminURL,
+			hostWithAdminPort,
+		)
+
+	}
+
+	// return it
+	return sgAdminURL, nil
+
 }
 
 func (s SGDataStore) CreateDocument(d Document) error {
@@ -71,4 +125,12 @@ func (s SGDataStore) addAuthIfNeeded(req *http.Request) {
 	} else {
 		log.Printf("not adding basic auth header, no user creds: %+v", s)
 	}
+}
+
+func splitHostPortWrapper(host string) (string, string, error) {
+	if !strings.Contains(host, ":") {
+		return host, "", nil
+	}
+
+	return net.SplitHostPort(host)
 }

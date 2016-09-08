@@ -24,10 +24,11 @@ var writeloadCmd = &cobra.Command{
 
 		writeLoadSpec := sgload.WriteLoadSpec{
 			LoadSpec: sgload.LoadSpec{
-				SyncGatewayUrl: *sgUrl,
-				CreateUsers:    *createUsers,
-				UserCreds:      *userCreds,
-				MockDataStore:  *mockDataStore,
+				SyncGatewayUrl:       *sgUrl,
+				SyncGatewayAdminPort: *sgAdminPort,
+				CreateUsers:          *createUsers,
+				UserCreds:            *userCreds,
+				MockDataStore:        *mockDataStore,
 			},
 			NumWriters:               *numWriters,
 			NumChannels:              *numChannels,
