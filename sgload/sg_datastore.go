@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"path"
 	"regexp"
 	"strings"
 )
@@ -39,7 +40,13 @@ func (s SGDataStore) CreateUser(u UserCred) error {
 	if err != nil {
 		return err
 	}
-	adminUrlUserEndpoint := fmt.Sprintf("%v/_user/", adminUrl)
+
+	adminUrlUserEndpoint, err := addEndpointToUrl(adminUrl, "_user")
+	if err != nil {
+		return err
+	}
+
+	adminUrlUserEndpoint = addTrailingSlash(adminUrlUserEndpoint)
 
 	userDoc := map[string]interface{}{}
 	userDoc["name"] = u.Username
@@ -164,4 +171,17 @@ func splitHostPortWrapper(host string) (string, string, error) {
 	}
 
 	return net.SplitHostPort(host)
+}
+
+func addEndpointToUrl(urlStr, endpoint string) (string, error) {
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return "", err
+	}
+	u.Path = path.Join(u.Path, endpoint)
+	return u.String(), nil
+}
+
+func addTrailingSlash(urlStr string) string {
+	return fmt.Sprintf("%v/", urlStr)
 }

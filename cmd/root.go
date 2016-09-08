@@ -45,8 +45,8 @@ func init() {
 
 	sgUrl = RootCmd.PersistentFlags().String(
 		"sg-url",
-		"http://localhost:4984/db",
-		"The public Sync Gateway URL including port and database, eg: http://localhost:4984/db",
+		"http://localhost:4984/db/",
+		"The public Sync Gateway URL including port and database and trailing slash, eg: http://localhost:4984/db/",
 	)
 
 	sgAdminPort = RootCmd.PersistentFlags().Int(
