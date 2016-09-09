@@ -18,6 +18,11 @@ func (m MockDataStore) CreateDocument(d Document) error {
 	return nil
 }
 
+func (m MockDataStore) BulkCreateDocuments(docs []Document) error {
+	log.Printf("MockDataStore BulkCreateDocuments called with %d docs", len(docs))
+	return nil
+}
+
 func (m *MockDataStore) SetUserCreds(u UserCred) {
 	// ignore these
 }

@@ -119,6 +119,7 @@ func (s SGDataStore) sgAdminURL() (string, error) {
 
 }
 
+// Create a single document in Sync Gateway
 func (s SGDataStore) CreateDocument(d Document) error {
 
 	docBytes, err := json.Marshal(d)
@@ -142,10 +143,63 @@ func (s SGDataStore) CreateDocument(d Document) error {
 		return fmt.Errorf("Unexpected response status for POST request: %d", resp.StatusCode)
 	}
 
+	defer resp.Body.Close()
 	io.Copy(ioutil.Discard, resp.Body)
-	resp.Body.Close()
 
 	return nil
+}
+
+// Bulk create a set of documents in Sync Gateway
+func (s SGDataStore) BulkCreateDocuments(docs []Document) error {
+
+	bulkDocsEndpoint, err := addEndpointToUrl(s.SyncGatewayUrl, "_bulk_docs")
+	if err != nil {
+		return err
+	}
+
+	bulkDocs := BulkDocs{
+		Documents: docs,
+		NewEdits:  false,
+	}
+	docBytes, err := json.Marshal(bulkDocs)
+	if err != nil {
+		return err
+	}
+	buf := bytes.NewBuffer(docBytes)
+
+	req, err := http.NewRequest("POST", bulkDocsEndpoint, buf)
+	s.addAuthIfNeeded(req)
+
+	req.Header.Set("Content-Type", "application/json")
+
+	client := http.DefaultClient
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode > 201 {
+		return fmt.Errorf("Unexpected response status for POST request: %d", resp.StatusCode)
+	}
+
+	defer resp.Body.Close()
+
+	bulkDocsResponse := []DocumentRevisionPair{}
+	decoder := json.NewDecoder(resp.Body)
+	if err = decoder.Decode(&bulkDocsResponse); err != nil {
+		return err
+	}
+
+	// If any of the bulk docs had errors, return an error
+	for _, docRevisionPair := range bulkDocsResponse {
+		if docRevisionPair.Error != "" {
+			return fmt.Errorf("%v", docRevisionPair.Error)
+		}
+
+	}
+
+	return nil
+
 }
 
 // add BasicAuth header for user if needed
