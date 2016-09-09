@@ -57,6 +57,9 @@ func (w *Writer) Run() {
 }
 
 func (w *Writer) AddToDataStore(docs []Document) {
+
+	// TODO: can easily batch up into bulk docs here
+
 	for _, doc := range docs {
 		log.Printf("Writing doc to writer: %v", w)
 		w.OutboundDocs <- doc

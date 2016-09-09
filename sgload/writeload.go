@@ -23,9 +23,10 @@ func NewWriteLoadRunner(wls WriteLoadSpec) *WriteLoadRunner {
 
 func (wlr WriteLoadRunner) Run() error {
 
+	// Create a wait group to see when all the writer goroutines have finished
 	var wg sync.WaitGroup
 
-	// Create writers
+	// Create writer goroutines
 	writers, err := wlr.createWriters(&wg)
 	if err != nil {
 		return err
@@ -34,13 +35,16 @@ func (wlr WriteLoadRunner) Run() error {
 		go writer.Run()
 	}
 
+	// Create doc feeder goroutine
 	go wlr.feedDocsToWriters(writers)
 
+	// Wait for writers to finish
 	log.Printf("Waiting for %d writers to finish...", len(writers))
 	wg.Wait()
 	log.Printf("Writers finished")
 
 	return nil
+
 }
 
 func (wlr WriteLoadRunner) createDataStore() DataStore {
@@ -107,12 +111,18 @@ func (wlr WriteLoadRunner) feedDocsToWriters(writers []*Writer) error {
 
 	docsToWrite := wlr.createDocsToWrite()
 	docsToWrite = wlr.assignDocsToChannels(docsToWrite)
+
+	// Assign docs to writers, this returns a map keyed on writer which points
+	// to doc slice for that writer
 	docAssignmentMapping := wlr.assignDocsToWriters(docsToWrite, writers)
 
+	// Loop over doc assignment map and tell each writer to push to data store
 	for writer, docsToWrite := range docAssignmentMapping {
 		writer.AddToDataStore(docsToWrite)
 	}
 
+	// Send terminal docs which will shutdown writers after they've
+	// processed all the normal docs
 	for _, writer := range writers {
 		d := Document{}
 		d["_terminal"] = true
@@ -166,6 +176,7 @@ func (wlr WriteLoadRunner) createDocsToWrite() []Document {
 
 }
 
+// Split the docs among the writers with an even distribution
 func (wlr WriteLoadRunner) assignDocsToWriters(d []Document, w []*Writer) map[*Writer][]Document {
 
 	docAssignmentMapping := map[*Writer][]Document{}
