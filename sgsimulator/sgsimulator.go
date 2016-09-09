@@ -12,10 +12,12 @@ import (
 type SGSimulator struct{}
 
 func HomeHandler(w http.ResponseWriter, req *http.Request) {
+	log.Printf("HomeHandler called with req: %+v", req)
 	w.Write([]byte("Sync Gateway Simulator\n"))
 }
 
 func DBHandler(w http.ResponseWriter, req *http.Request) {
+	log.Printf("DBHandler called with req: %+v", req)
 	w.Write([]byte("Sync Gateway Simulator DB\n"))
 }
 
@@ -32,6 +34,7 @@ func (sg *SGSimulator) Run() {
 	r := mux.NewRouter()
 	r.HandleFunc("/", HomeHandler)
 	r.HandleFunc(fmt.Sprintf("/%v", dbName), DBHandler)
+	r.HandleFunc(fmt.Sprintf("/%v/_user/", dbName), DBHandler)
 	http.Handle("/", r)
 
 	srv := &http.Server{
