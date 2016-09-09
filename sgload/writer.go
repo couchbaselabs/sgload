@@ -57,8 +57,9 @@ func (w *Writer) Run() {
 				}
 
 			default:
-				// TODO
-				log.Panicf("not handled")
+				if err := w.DataStore.BulkCreateDocuments(docs); err != nil {
+					log.Fatalf("Error creating docs in datastore.  Docs: %v, Err: %v", docs, err)
+				}
 
 			}
 		}
@@ -78,8 +79,6 @@ func (w *Writer) AddToDataStore(docs []Document) {
 		}
 
 	default:
-		// TODO: break up into batches, send to OutboundDocs or
-		// other channel
 		docBatches := breakIntoBatches(w.BatchSize, docs)
 		for _, docBatch := range docBatches {
 			w.OutboundDocs <- docBatch

@@ -12,7 +12,7 @@ var (
 	numChannels  *int
 	numDocs      *int
 	docSizeBytes *int
-	batchsize    *int
+	batchSize    *int
 )
 
 // writeloadCmd respresents the writeload command
@@ -29,12 +29,12 @@ var writeloadCmd = &cobra.Command{
 				CreateUsers:          *createUsers,
 				UserCreds:            *userCreds,
 				MockDataStore:        *mockDataStore,
-				BatchSize:            *batchsize,
 			},
 			NumWriters:   *numWriters,
 			NumChannels:  *numChannels,
 			DocSizeBytes: *docSizeBytes,
 			NumDocs:      *numDocs,
+			BatchSize:    *batchSize,
 		}
 		if err := writeLoadSpec.Validate(); err != nil {
 			log.Fatalf("Invalid parameters: %+v. Error: %v", writeLoadSpec, err)

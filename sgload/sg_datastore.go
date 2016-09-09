@@ -159,7 +159,7 @@ func (s SGDataStore) BulkCreateDocuments(docs []Document) error {
 
 	bulkDocs := BulkDocs{
 		Documents: docs,
-		NewEdits:  false,
+		NewEdits:  true,
 	}
 	docBytes, err := json.Marshal(bulkDocs)
 	if err != nil {
