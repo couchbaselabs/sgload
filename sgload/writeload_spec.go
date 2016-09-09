@@ -11,6 +11,7 @@ type WriteLoadSpec struct {
 	NumChannels  int
 	DocSizeBytes int
 	NumDocs      int
+	BatchSize    int
 }
 
 func (wls WriteLoadSpec) Validate() error {

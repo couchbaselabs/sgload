@@ -82,7 +82,13 @@ func (wlr WriteLoadRunner) createWriters(wg *sync.WaitGroup) ([]*Writer, error) 
 		userCred := userCreds[userId]
 		dataStore := wlr.createDataStore()
 		dataStore.SetUserCreds(userCred)
-		writer := NewWriter(wg, userId, userCred, dataStore)
+		writer := NewWriter(
+			wg,
+			userId,
+			userCred,
+			dataStore,
+			wlr.WriteLoadSpec.BatchSize,
+		)
 		writer.CreateDataStoreUser = wlr.WriteLoadSpec.CreateUsers
 		writers = append(writers, writer)
 		wg.Add(1)

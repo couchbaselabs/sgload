@@ -10,13 +10,14 @@ type Writer struct {
 	ID                  int       // The numeric ID of the writer (ephemeral, only stored in memory)
 	CreateDataStoreUser bool      // Whether this writer must first create a user on the DataStore service, ot just assume it already exists
 	DataStore           DataStore // The target data store where docs will be written
-	OutboundDocs        chan Document
+	OutboundDocs        chan []Document
 	WaitGroup           *sync.WaitGroup
+	BatchSize           int
 }
 
-func NewWriter(wg *sync.WaitGroup, ID int, u UserCred, d DataStore) *Writer {
+func NewWriter(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, batchsize int) *Writer {
 
-	outboundDocs := make(chan Document, 100)
+	outboundDocs := make(chan []Document, 100)
 
 	return &Writer{
 		UserCred:     u,
@@ -24,6 +25,7 @@ func NewWriter(wg *sync.WaitGroup, ID int, u UserCred, d DataStore) *Writer {
 		DataStore:    d,
 		OutboundDocs: outboundDocs,
 		WaitGroup:    wg,
+		BatchSize:    batchsize,
 	}
 }
 
@@ -40,15 +42,24 @@ func (w *Writer) Run() {
 	for {
 
 		select {
-		case doc := <-w.OutboundDocs:
+		case docs := <-w.OutboundDocs:
 
-			_, ok := doc["_terminal"]
-			if ok {
-				return
-			}
+			switch len(docs) {
+			case 1:
+				doc := docs[0]
+				_, ok := doc["_terminal"]
+				if ok {
+					return
+				}
 
-			if err := w.DataStore.CreateDocument(doc); err != nil {
-				log.Fatalf("Error creating doc in datastore.  Doc: %v, Err: %v", doc, err)
+				if err := w.DataStore.CreateDocument(doc); err != nil {
+					log.Fatalf("Error creating doc in datastore.  Doc: %v, Err: %v", doc, err)
+				}
+
+			default:
+				// TODO
+				log.Panicf("not handled")
+
 			}
 		}
 
@@ -58,12 +69,61 @@ func (w *Writer) Run() {
 
 func (w *Writer) AddToDataStore(docs []Document) {
 
-	// TODO: can easily batch up into bulk docs here
+	switch w.BatchSize {
+	case 1:
+		for _, doc := range docs {
+			log.Printf("Writing doc to writer: %v", w)
+			w.OutboundDocs <- []Document{doc}
+			log.Printf("/Writing doc to writer: %v", w)
+		}
 
-	for _, doc := range docs {
-		log.Printf("Writing doc to writer: %v", w)
-		w.OutboundDocs <- doc
-		log.Printf("/Writing doc to writer: %v", w)
+	default:
+		// TODO: break up into batches, send to OutboundDocs or
+		// other channel
+		docBatches := breakIntoBatches(w.BatchSize, docs)
+		for _, docBatch := range docBatches {
+			w.OutboundDocs <- docBatch
+		}
 	}
+
+}
+
+// Break things into batches, for example:
+//
+// batchSize: 3
+// things: [t1, t2, t3, t4, t5]
+//
+// result:
+//
+//   [
+//     [t1, t2, t3],  <-- batch 1
+//     [t4, t5],      <-- batch 2 (incomplete, not enough to fill batch)
+//
+//   ]
+func breakIntoBatches(batchSize int, docs []Document) [][]Document {
+
+	batches := [][]Document{}
+
+	numBatches := len(docs) / batchSize
+
+	// is there residue?  if so, add one more to batch
+	if len(docs)%batchSize != 0 {
+		numBatches += 1
+	}
+
+	for i := 0; i < numBatches; i++ {
+		batch := []Document{}
+		for j := 0; j < batchSize; j++ {
+			docIndex := i*batchSize + j
+			if docIndex >= len(docs) {
+				break
+			}
+			doc := docs[docIndex]
+			batch = append(batch, doc)
+		}
+		batches = append(batches, batch)
+	}
+
+	return batches
 
 }

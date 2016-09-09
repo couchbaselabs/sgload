@@ -12,6 +12,7 @@ var (
 	numChannels  *int
 	numDocs      *int
 	docSizeBytes *int
+	batchsize    *int
 )
 
 // writeloadCmd respresents the writeload command
@@ -28,6 +29,7 @@ var writeloadCmd = &cobra.Command{
 				CreateUsers:          *createUsers,
 				UserCreds:            *userCreds,
 				MockDataStore:        *mockDataStore,
+				BatchSize:            *batchsize,
 			},
 			NumWriters:   *numWriters,
 			NumChannels:  *numChannels,
@@ -73,6 +75,12 @@ func init() {
 		"docsizebytes",
 		1024,
 		"The size of each doc, in bytes, that will be pushed up to sync gateway",
+	)
+
+	batchSize = writeloadCmd.PersistentFlags().Int(
+		"batchsize",
+		1,
+		"The batch size that will be used for writing docs via bulk_docs endpoint",
 	)
 
 	// Cobra supports local flags which will only run when this command is called directly

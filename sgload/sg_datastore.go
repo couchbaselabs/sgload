@@ -195,7 +195,6 @@ func (s SGDataStore) BulkCreateDocuments(docs []Document) error {
 		if docRevisionPair.Error != "" {
 			return fmt.Errorf("%v", docRevisionPair.Error)
 		}
-
 	}
 
 	return nil
