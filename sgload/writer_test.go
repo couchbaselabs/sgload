@@ -28,3 +28,25 @@ func TestBreakIntoBatches(t *testing.T) {
 	}
 
 }
+
+func TestBreakIntoBatchesOversizedBatch(t *testing.T) {
+
+	batchSize := 10
+	things := []Document{
+		Document{},
+		Document{},
+		Document{},
+		Document{},
+		Document{},
+	}
+
+	batches := breakIntoBatches(batchSize, things)
+	if len(batches) != 1 {
+		t.Fatalf("Expecting 1 batches")
+	}
+	batch1 := batches[0]
+	if len(batch1) != len(things) {
+		t.Fatalf("Expecting batch1 to be len(things)")
+	}
+
+}
