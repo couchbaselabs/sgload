@@ -1,6 +1,7 @@
 package sgsimulator
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,13 +12,39 @@ import (
 
 type SGSimulator struct{}
 
+type BulkDocsResponse struct {
+	Name    string
+	Hobbies []string
+}
+
 func HomeHandler(w http.ResponseWriter, req *http.Request) {
 	log.Printf("HomeHandler called with req: %+v", req)
 	w.Write([]byte("Sync Gateway Simulator\n"))
 }
 
-func DBHandler(w http.ResponseWriter, req *http.Request) {
-	log.Printf("DBHandler called with req: %+v", req)
+func DoNothingHandler(w http.ResponseWriter, req *http.Request) {
+	log.Printf("DoNothingHandler called with req: %+v", req)
+	w.Write([]byte("Sync Gateway Simulator DB\n"))
+}
+
+func BulkDocsHandler(w http.ResponseWriter, req *http.Request) {
+	log.Printf("BulkDocsHandler called with req: %+v", req)
+
+	bulkDocsResponseSlice := []map[string]string{}
+	bulkDocResponse := map[string]string{
+		"id":  "1",
+		"rev": "1-34243",
+	}
+	bulkDocsResponseSlice = append(bulkDocsResponseSlice, bulkDocResponse)
+	js, err := json.Marshal(bulkDocsResponseSlice)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(js)
+
 	w.Write([]byte("Sync Gateway Simulator DB\n"))
 }
 
@@ -32,9 +59,11 @@ func (sg *SGSimulator) Run() {
 	port := 8000
 
 	r := mux.NewRouter()
-	r.HandleFunc("/", HomeHandler)
-	r.HandleFunc(fmt.Sprintf("/%v", dbName), DBHandler)
-	r.HandleFunc(fmt.Sprintf("/%v/_user/", dbName), DBHandler)
+	r.HandleFunc("/", DoNothingHandler)
+	dbRouter := r.PathPrefix(fmt.Sprintf("/%v", dbName)).Subrouter()
+	dbRouter.Path("/_user/").HandlerFunc(DoNothingHandler)
+	dbRouter.Path("/_bulk_docs").HandlerFunc(BulkDocsHandler)
+
 	http.Handle("/", r)
 
 	srv := &http.Server{
