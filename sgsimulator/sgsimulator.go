@@ -61,6 +61,7 @@ func (sg *SGSimulator) Run() {
 	r := mux.NewRouter()
 	r.HandleFunc("/", DoNothingHandler)
 	dbRouter := r.PathPrefix(fmt.Sprintf("/%v", dbName)).Subrouter()
+	dbRouter.Path("/").HandlerFunc(DoNothingHandler)
 	dbRouter.Path("/_user/").HandlerFunc(DoNothingHandler)
 	dbRouter.Path("/_bulk_docs").HandlerFunc(BulkDocsHandler)
 
