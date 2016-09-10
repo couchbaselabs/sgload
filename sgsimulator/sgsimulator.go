@@ -18,18 +18,14 @@ type BulkDocsResponse struct {
 }
 
 func HomeHandler(w http.ResponseWriter, req *http.Request) {
-	log.Printf("HomeHandler called with req: %+v", req)
 	w.Write([]byte("Sync Gateway Simulator\n"))
 }
 
 func DoNothingHandler(w http.ResponseWriter, req *http.Request) {
-	log.Printf("DoNothingHandler called with req: %+v", req)
 	w.Write([]byte("Sync Gateway Simulator DB\n"))
 }
 
 func BulkDocsHandler(w http.ResponseWriter, req *http.Request) {
-	log.Printf("BulkDocsHandler called with req: %+v", req)
-
 	bulkDocsResponseSlice := []map[string]string{}
 	bulkDocResponse := map[string]string{
 		"id":  "1",
