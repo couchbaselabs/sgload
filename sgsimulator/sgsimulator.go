@@ -10,7 +10,9 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type SGSimulator struct{}
+type SGSimulator struct {
+	Db string // the name of the database to serve
+}
 
 type BulkDocsResponse struct {
 	Name    string
@@ -44,19 +46,21 @@ func BulkDocsHandler(w http.ResponseWriter, req *http.Request) {
 	w.Write([]byte("Sync Gateway Simulator DB\n"))
 }
 
-func NewSGSimulator() *SGSimulator {
-	return &SGSimulator{}
+func NewSGSimulator(db string) *SGSimulator {
+	return &SGSimulator{
+		Db: db,
+	}
 }
 
 func (sg *SGSimulator) Run() {
 
 	// TODO: parameterize via CLI
-	dbName := "db"
 	port := 8000
+	listenIpAddress := "0.0.0.0"
 
 	r := mux.NewRouter()
 	r.HandleFunc("/", DoNothingHandler)
-	dbRouter := r.PathPrefix(fmt.Sprintf("/%v", dbName)).Subrouter()
+	dbRouter := r.PathPrefix(fmt.Sprintf("/%v", sg.Db)).Subrouter()
 	dbRouter.Path("/").HandlerFunc(DoNothingHandler)
 	dbRouter.Path("/_user/").HandlerFunc(DoNothingHandler)
 	dbRouter.Path("/_bulk_docs").HandlerFunc(BulkDocsHandler)
@@ -65,7 +69,7 @@ func (sg *SGSimulator) Run() {
 
 	srv := &http.Server{
 		Handler:      r,
-		Addr:         fmt.Sprintf("127.0.0.1:%d", port),
+		Addr:         fmt.Sprintf("%v:%d", listenIpAddress, port),
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
