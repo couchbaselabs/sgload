@@ -73,9 +73,7 @@ func (w *Writer) AddToDataStore(docs []Document) {
 	switch w.BatchSize {
 	case 1:
 		for _, doc := range docs {
-			log.Printf("Writing doc to writer: %v", w)
 			w.OutboundDocs <- []Document{doc}
-			log.Printf("/Writing doc to writer: %v", w)
 		}
 
 	default:
