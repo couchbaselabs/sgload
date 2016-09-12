@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/couchbaselabs/sgload/sgload"
+	"github.com/peterbourgon/g2s"
 	"github.com/spf13/cobra"
 )
 
@@ -21,6 +22,14 @@ var writeloadCmd = &cobra.Command{
 	Short: "Generate a write load",
 	Long:  `Generate a write load`,
 	Run: func(cmd *cobra.Command, args []string) {
+
+		statdsClient, err := g2s.Dial("udp", "localhost:8125")
+		if err != nil {
+			// do something
+			log.Printf("Error connecting to statsd: %v", err)
+		}
+
+		statdsClient.Counter(1.0, "test_key", 1)
 
 		writeLoadSpec := sgload.WriteLoadSpec{
 			LoadSpec: sgload.LoadSpec{
