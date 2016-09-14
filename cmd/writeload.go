@@ -107,9 +107,6 @@ func init() {
 		"The usernames/passwords of the SG users to use for writers in a JSON array form, eg: [{\"foo\":\"passw0rd\"}].  Must be equal to number of writers.  Leave this flag off if using the createwriters flag to create writers",
 	)
 
-	// Cobra supports local flags which will only run when this command is called directly
-	// writeloadCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle" )
-
 }
 
 func NewUuid() string {

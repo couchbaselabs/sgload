@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/peterbourgon/g2s"
-	"github.com/satori/go.uuid"
 )
 
 type WriteLoadRunner struct {
@@ -118,10 +117,19 @@ func (wlr WriteLoadRunner) createWriters(wg *sync.WaitGroup) ([]*Writer, error) 
 func (wlr WriteLoadRunner) generateUserCreds() []UserCred {
 	userCreds := []UserCred{}
 	for userId := 0; userId < wlr.WriteLoadSpec.NumWriters; userId++ {
-		uuid := NewUuid()
+		username := fmt.Sprintf(
+			"writeload-user-%d-%s",
+			userId,
+			wlr.WriteLoadSpec.TestSessionID,
+		)
+		password := fmt.Sprintf(
+			"writeload-passw0rd-%d-%s",
+			userId,
+			wlr.WriteLoadSpec.TestSessionID,
+		)
 		userCred := UserCred{
-			Username: fmt.Sprintf("writeload-user-%d-%s", userId, uuid),
-			Password: fmt.Sprintf("writeload-passw0rd-%d-%s", userId, uuid),
+			Username: username,
+			Password: password,
 		}
 		userCreds = append(userCreds, userCred)
 
@@ -234,9 +242,4 @@ func createBodyContentWithSize(docSizeBytes int) string {
 		buf.WriteString("a")
 	}
 	return buf.String()
-}
-
-func NewUuid() string {
-	u4 := uuid.NewV4()
-	return fmt.Sprintf("%s", u4)
 }
