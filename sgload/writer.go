@@ -6,13 +6,10 @@ import (
 )
 
 type Writer struct {
-	UserCred
-	ID                  int       // The numeric ID of the writer (ephemeral, only stored in memory)
-	CreateDataStoreUser bool      // Whether this writer must first create a user on the DataStore service, ot just assume it already exists
-	DataStore           DataStore // The target data store where docs will be written
-	OutboundDocs        chan []Document
-	WaitGroup           *sync.WaitGroup
-	BatchSize           int
+	Agent
+	OutboundDocs chan []Document
+	WaitGroup    *sync.WaitGroup
+	BatchSize    int
 }
 
 func NewWriter(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, batchsize int) *Writer {
@@ -20,9 +17,11 @@ func NewWriter(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, batchsize in
 	outboundDocs := make(chan []Document, 100)
 
 	return &Writer{
-		UserCred:     u,
-		ID:           ID,
-		DataStore:    d,
+		Agent: Agent{
+			UserCred:  u,
+			ID:        ID,
+			DataStore: d,
+		},
 		OutboundDocs: outboundDocs,
 		WaitGroup:    wg,
 		BatchSize:    batchsize,
