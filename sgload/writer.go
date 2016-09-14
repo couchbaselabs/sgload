@@ -9,7 +9,6 @@ type Writer struct {
 	Agent
 	OutboundDocs chan []Document
 	WaitGroup    *sync.WaitGroup
-	BatchSize    int
 }
 
 func NewWriter(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, batchsize int) *Writer {
@@ -21,10 +20,10 @@ func NewWriter(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, batchsize in
 			UserCred:  u,
 			ID:        ID,
 			DataStore: d,
+			BatchSize: batchsize,
 		},
 		OutboundDocs: outboundDocs,
 		WaitGroup:    wg,
-		BatchSize:    batchsize,
 	}
 }
 

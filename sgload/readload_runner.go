@@ -1,10 +1,6 @@
 package sgload
 
-import (
-	"log"
-
-	"github.com/peterbourgon/g2s"
-)
+import "github.com/peterbourgon/g2s"
 
 type ReadLoadRunner struct {
 	ReadLoadSpec ReadLoadSpec
@@ -35,8 +31,20 @@ func NewReadLoadRunner(rls ReadLoadSpec) *ReadLoadRunner {
 
 func (rlr ReadLoadRunner) Run() error {
 
-	log.Printf("TODO")
+	// Create writer goroutines
+	readers, err := rlr.createReaders()
+	if err != nil {
+		return err
+	}
+	for _, reader := range readers {
+		go reader.Run()
+	}
 
 	return nil
 
+}
+
+func (rlr ReadLoadRunner) createReaders() ([]*Reader, error) {
+	readers := []*Reader{}
+	return readers, nil
 }
