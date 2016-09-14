@@ -15,7 +15,6 @@ var (
 	numDocs       *int
 	docSizeBytes  *int
 	batchSize     *int
-	testSessionID *string
 	createWriters *bool
 	writerCreds   *string
 )
@@ -94,12 +93,6 @@ func init() {
 		"batchsize",
 		1,
 		"The batch size that will be used for writing docs via bulk_docs endpoint",
-	)
-
-	testSessionID = writeloadCmd.PersistentFlags().String(
-		"testsessionid",
-		"",
-		"A unique identifier for this test session, used for generating channel names.  If omitted, a UUID will be auto-generated",
 	)
 
 	createWriters = RootCmd.PersistentFlags().Bool(

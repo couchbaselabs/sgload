@@ -15,6 +15,7 @@ var (
 	mockDataStore  *bool
 	statsdEndpoint *string
 	statsdEnabled  *bool
+	testSessionID  *string
 )
 
 // This represents the base command when called without any subcommands
@@ -71,6 +72,12 @@ func init() {
 		"statsdenabled",
 		false,
 		"Add this flag to push stats to statsdendpoint",
+	)
+
+	testSessionID = writeloadCmd.PersistentFlags().String(
+		"testsessionid",
+		"",
+		"A unique identifier for this test session, used for generating channel names.  If omitted, a UUID will be auto-generated",
 	)
 
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.sgload.yaml)")
