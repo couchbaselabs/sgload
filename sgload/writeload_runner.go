@@ -5,34 +5,25 @@ import (
 	"fmt"
 	"log"
 	"sync"
-
-	"github.com/peterbourgon/g2s"
 )
 
 type WriteLoadRunner struct {
+	LoadRunner
 	WriteLoadSpec WriteLoadSpec
-	StatsdClient  *g2s.Statsd
 }
 
 func NewWriteLoadRunner(wls WriteLoadSpec) *WriteLoadRunner {
 
-	var statsdClient *g2s.Statsd
-	var err error
-
-	if wls.StatsdEnabled {
-		// statsClient *should* be safe to be shared among multiple
-		// goroutines, based on fact that connection returned from Dial
-		statsdClient, err = g2s.Dial("udp", wls.StatsdEndpoint)
-		if err != nil {
-			panic("Couldn't connect to statsd!")
-		}
-	}
-
 	wls.MustValidate()
 
+	loadRunner := LoadRunner{
+		LoadSpec: wls.LoadSpec,
+	}
+	loadRunner.CreateStatsdClient()
+
 	return &WriteLoadRunner{
+		LoadRunner:    loadRunner,
 		WriteLoadSpec: wls,
-		StatsdClient:  statsdClient,
 	}
 }
 
@@ -59,22 +50,6 @@ func (wlr WriteLoadRunner) Run() error {
 	log.Printf("Writers finished")
 
 	return nil
-
-}
-
-func (wlr WriteLoadRunner) createDataStore() DataStore {
-
-	if wlr.WriteLoadSpec.MockDataStore {
-		return NewMockDataStore()
-	}
-
-	sgDataStore := NewSGDataStore(
-		wlr.WriteLoadSpec.SyncGatewayUrl,
-		wlr.WriteLoadSpec.SyncGatewayAdminPort,
-		wlr.StatsdClient,
-	)
-
-	return sgDataStore
 
 }
 
