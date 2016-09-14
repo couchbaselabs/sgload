@@ -13,6 +13,8 @@ type LoadSpec struct {
 	CreateUsers          bool   // Whether or not to create users
 	UserCreds            string // The usernames / passwords to use if CreateUsers is set to false
 	MockDataStore        bool   // If true, will use a MockDataStore instead of a real sync gateway
+	StatsdEnabled        bool   // If true, will push stats to StatsdEndpoint
+	StatsdEndpoint       string // The endpoint of the statds server, eg localhost:8125
 }
 
 func (ls LoadSpec) Validate() error {

@@ -13,18 +13,31 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"time"
+
+	"github.com/peterbourgon/g2s"
+)
+
+var (
+	// The sample rate -- set this to 0.1 if you only want
+	// 10% of the samples to be pushed to statds, or .01 if you only
+	// want 1% of the samples pushed to statsd.  Useful for
+	// not overwhelming stats if you have too many samples.
+	statsdSampleRate float32 = 1.0
 )
 
 type SGDataStore struct {
 	SyncGatewayUrl       string
 	SyncGatewayAdminPort int
 	UserCreds            UserCred
+	StatsdClient         *g2s.Statsd
 }
 
-func NewSGDataStore(sgUrl string, sgAdminPort int) *SGDataStore {
+func NewSGDataStore(sgUrl string, sgAdminPort int, statsdClient *g2s.Statsd) *SGDataStore {
 	return &SGDataStore{
 		SyncGatewayUrl:       sgUrl,
 		SyncGatewayAdminPort: sgAdminPort,
+		StatsdClient:         statsdClient,
 	}
 }
 
@@ -63,10 +76,13 @@ func (s SGDataStore) CreateUser(u UserCred) error {
 
 	client := http.DefaultClient
 
+	startTime := time.Now()
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
+	s.pushTimingStat("create_user", time.Since(startTime))
+
 	if resp.StatusCode < 200 || resp.StatusCode > 201 {
 		return fmt.Errorf("Unexpected response status for POST request: %d", resp.StatusCode)
 	}
@@ -135,10 +151,12 @@ func (s SGDataStore) CreateDocument(d Document) error {
 
 	client := http.DefaultClient
 
+	startTime := time.Now()
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
+	s.pushTimingStat("create_document", time.Since(startTime))
 	if resp.StatusCode < 200 || resp.StatusCode > 201 {
 		return fmt.Errorf("Unexpected response status for POST request: %d", resp.StatusCode)
 	}
@@ -174,10 +192,12 @@ func (s SGDataStore) BulkCreateDocuments(docs []Document) error {
 
 	client := http.DefaultClient
 
+	startTime := time.Now()
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
+	s.pushTimingStat("create_document", timeDeltaPerDocument(len(docs), time.Since(startTime)))
 	if resp.StatusCode < 200 || resp.StatusCode > 201 {
 		return fmt.Errorf("Unexpected response status for POST request: %d", resp.StatusCode)
 	}
@@ -208,6 +228,17 @@ func (s SGDataStore) addAuthIfNeeded(req *http.Request) {
 	}
 }
 
+func (s SGDataStore) pushTimingStat(key string, delta time.Duration) {
+	if s.StatsdClient == nil {
+		return
+	}
+	s.StatsdClient.Timing(
+		statsdSampleRate,
+		key,
+		delta,
+	)
+}
+
 func splitHostPortWrapper(host string) (string, string, error) {
 	if !strings.Contains(host, ":") {
 		return host, "", nil
@@ -227,4 +258,8 @@ func addEndpointToUrl(urlStr, endpoint string) (string, error) {
 
 func addTrailingSlash(urlStr string) string {
 	return fmt.Sprintf("%v/", urlStr)
+}
+
+func timeDeltaPerDocument(numDocs int, timeDeltaAllDocs time.Duration) time.Duration {
+	return time.Duration(int64(timeDeltaAllDocs) / int64(numDocs))
 }

@@ -2,7 +2,7 @@ package sgload
 
 type DataStore interface {
 
-	// Creates a new user in the data store
+	// Creates a new user in the data store (admin port)
 	CreateUser(u UserCred) error
 
 	// Creates a document in the data store

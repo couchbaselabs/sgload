@@ -9,12 +9,14 @@ import (
 )
 
 var (
-	cfgFile       string
-	sgUrl         *string
-	sgAdminPort   *int
-	createUsers   *bool
-	userCreds     *string
-	mockDataStore *bool
+	cfgFile        string
+	sgUrl          *string
+	sgAdminPort    *int
+	createUsers    *bool
+	userCreds      *string
+	mockDataStore  *bool
+	statsdEndpoint *string
+	statsdEnabled  *bool
 )
 
 // This represents the base command when called without any subcommands
@@ -71,6 +73,18 @@ func init() {
 		"usercreds",
 		"",
 		"The usernames/passwords of the users to use for testing in a JSON array form, eg: [{\"foo\":\"passw0rd\"}].  Must be equal to number of writers.  Leave this flag off if using the createusers flag to create users",
+	)
+
+	statsdEndpoint = RootCmd.PersistentFlags().String(
+		"statsdendpoint",
+		"localhost:8125",
+		"The statds endpoint to push stats to via UDP.  If non-existent, will not break anything.",
+	)
+
+	statsdEnabled = RootCmd.PersistentFlags().Bool(
+		"statsdenabled",
+		false,
+		"Add this flag to push stats to statsdendpoint",
 	)
 
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.sgload.yaml)")
