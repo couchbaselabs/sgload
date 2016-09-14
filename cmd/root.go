@@ -12,8 +12,6 @@ var (
 	cfgFile        string
 	sgUrl          *string
 	sgAdminPort    *int
-	createUsers    *bool
-	userCreds      *string
 	mockDataStore  *bool
 	statsdEndpoint *string
 	statsdEnabled  *bool
@@ -57,22 +55,10 @@ func init() {
 		"The Sync Gateway admin port.  NOTE: if SG is not on the same box you will need to setup SSH port forwarding, VPN, or configure SG to allow access",
 	)
 
-	createUsers = RootCmd.PersistentFlags().Bool(
-		"createusers",
-		false,
-		"Add this flag if you need the test to create users.  Otherwise you'll need to specify usercreds",
-	)
-
 	mockDataStore = RootCmd.PersistentFlags().Bool(
 		"mockdatastore",
 		false,
 		"Add this flag to use the Mock DataStore rather than hitting a real sync gateway instance",
-	)
-
-	userCreds = RootCmd.PersistentFlags().String(
-		"usercreds",
-		"",
-		"The usernames/passwords of the users to use for testing in a JSON array form, eg: [{\"foo\":\"passw0rd\"}].  Must be equal to number of writers.  Leave this flag off if using the createusers flag to create users",
 	)
 
 	statsdEndpoint = RootCmd.PersistentFlags().String(

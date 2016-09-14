@@ -16,6 +16,8 @@ var (
 	docSizeBytes  *int
 	batchSize     *int
 	testSessionID *string
+	createWriters *bool
+	writerCreds   *string
 )
 
 // writeloadCmd respresents the writeload command
@@ -34,18 +36,18 @@ var writeloadCmd = &cobra.Command{
 			LoadSpec: sgload.LoadSpec{
 				SyncGatewayUrl:       *sgUrl,
 				SyncGatewayAdminPort: *sgAdminPort,
-				CreateUsers:          *createUsers,
-				UserCreds:            *userCreds,
 				MockDataStore:        *mockDataStore,
 				StatsdEnabled:        *statsdEnabled,
 				StatsdEndpoint:       *statsdEndpoint,
 				TestSessionID:        *testSessionID,
 			},
-			NumWriters:   *numWriters,
-			NumChannels:  *numChannels,
-			DocSizeBytes: *docSizeBytes,
-			NumDocs:      *numDocs,
-			BatchSize:    *batchSize,
+			NumWriters:    *numWriters,
+			NumChannels:   *numChannels,
+			DocSizeBytes:  *docSizeBytes,
+			NumDocs:       *numDocs,
+			BatchSize:     *batchSize,
+			CreateWriters: *createWriters,
+			WriterCreds:   *writerCreds,
 		}
 		if err := writeLoadSpec.Validate(); err != nil {
 			log.Fatalf("Invalid parameters: %+v. Error: %v", writeLoadSpec, err)
@@ -98,6 +100,18 @@ func init() {
 		"testsessionid",
 		"",
 		"A unique identifier for this test session, used for generating channel names.  If omitted, a UUID will be auto-generated",
+	)
+
+	createWriters = RootCmd.PersistentFlags().Bool(
+		"createwriters",
+		false,
+		"Add this flag if you need the test to create SG users for writers.  Otherwise you'll need to specify writercreds",
+	)
+
+	writerCreds = RootCmd.PersistentFlags().String(
+		"writercreds",
+		"",
+		"The usernames/passwords of the SG users to use for writers in a JSON array form, eg: [{\"foo\":\"passw0rd\"}].  Must be equal to number of writers.  Leave this flag off if using the createwriters flag to create writers",
 	)
 
 	// Cobra supports local flags which will only run when this command is called directly

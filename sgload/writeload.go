@@ -85,7 +85,7 @@ func (wlr WriteLoadRunner) createWriters(wg *sync.WaitGroup) ([]*Writer, error) 
 	var userCreds []UserCred
 	var err error
 
-	switch wlr.WriteLoadSpec.CreateUsers {
+	switch wlr.WriteLoadSpec.CreateWriters {
 	case true:
 		userCreds = wlr.generateUserCreds()
 	default:
@@ -106,7 +106,7 @@ func (wlr WriteLoadRunner) createWriters(wg *sync.WaitGroup) ([]*Writer, error) 
 			dataStore,
 			wlr.WriteLoadSpec.BatchSize,
 		)
-		writer.CreateDataStoreUser = wlr.WriteLoadSpec.CreateUsers
+		writer.CreateDataStoreUser = wlr.WriteLoadSpec.CreateWriters
 		writers = append(writers, writer)
 		wg.Add(1)
 	}
