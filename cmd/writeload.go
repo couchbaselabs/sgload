@@ -19,24 +19,14 @@ var writeloadCmd = &cobra.Command{
 	Short: "Generate a write load",
 	Long:  `Generate a write load`,
 	Run: func(cmd *cobra.Command, args []string) {
+
+		loadSpec := createLoadSpecFromArgs()
 		writeLoadSpec := sgload.WriteLoadSpec{
-			LoadSpec: sgload.LoadSpec{
-				SyncGatewayUrl:       *sgUrl,
-				SyncGatewayAdminPort: *sgAdminPort,
-				MockDataStore:        *mockDataStore,
-				StatsdEnabled:        *statsdEnabled,
-				StatsdEndpoint:       *statsdEndpoint,
-				TestSessionID:        *testSessionID,
-				BatchSize:            *batchSize,
-				NumChannels:          *numChannels,
-				DocSizeBytes:         *docSizeBytes,
-				NumDocs:              *numDocs,
-			},
+			LoadSpec:      loadSpec,
 			NumWriters:    *numWriters,
 			CreateWriters: *createWriters,
 			WriterCreds:   *writerCreds,
 		}
-		writeLoadSpec.GenerateTestSessionID()
 		if err := writeLoadSpec.Validate(); err != nil {
 			log.Fatalf("Invalid parameters: %+v. Error: %v", writeLoadSpec, err)
 		}

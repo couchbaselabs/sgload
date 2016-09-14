@@ -21,27 +21,23 @@ var readloadCmd = &cobra.Command{
 	Long:  `Generate a read load`,
 	Run: func(cmd *cobra.Command, args []string) {
 
+		loadSpec := createLoadSpecFromArgs()
+		loadSpec.GenerateTestSessionID()
+
+		// TODO: create a writeload spec and runner
+		// In meantime, try to run readload sepearately from writeload
+		// and get that to work
+
 		readLoadSpec := sgload.ReadLoadSpec{
-			LoadSpec: sgload.LoadSpec{
-				SyncGatewayUrl:       *sgUrl,
-				SyncGatewayAdminPort: *sgAdminPort,
-				MockDataStore:        *mockDataStore,
-				StatsdEnabled:        *statsdEnabled,
-				StatsdEndpoint:       *statsdEndpoint,
-				TestSessionID:        *testSessionID,
-				BatchSize:            *batchSize,
-			},
+			LoadSpec:          loadSpec,
 			NumReaders:        *numReaders,
 			NumChansPerReader: *numChansPerReader,
 			CreateReaders:     *createReaders,
 			ReaderCreds:       *readerCreds,
 		}
-		readLoadSpec.GenerateTestSessionID()
 		if err := readLoadSpec.Validate(); err != nil {
 			log.Fatalf("Invalid parameters: %+v. Error: %v", readLoadSpec, err)
 		}
-
-		// TODO: create a writeload spec and runner
 
 		readLoadRunner := sgload.NewReadLoadRunner(readLoadSpec)
 		if err := readLoadRunner.Run(); err != nil {
@@ -49,6 +45,25 @@ var readloadCmd = &cobra.Command{
 		}
 
 	},
+}
+
+func createLoadSpecFromArgs() sgload.LoadSpec {
+
+	loadSpec := sgload.LoadSpec{
+		SyncGatewayUrl:       *sgUrl,
+		SyncGatewayAdminPort: *sgAdminPort,
+		MockDataStore:        *mockDataStore,
+		StatsdEnabled:        *statsdEnabled,
+		StatsdEndpoint:       *statsdEndpoint,
+		TestSessionID:        *testSessionID,
+		BatchSize:            *batchSize,
+		NumChannels:          *numChannels,
+		DocSizeBytes:         *docSizeBytes,
+		NumDocs:              *numDocs,
+	}
+	loadSpec.GenerateTestSessionID()
+	return loadSpec
+
 }
 
 func init() {
