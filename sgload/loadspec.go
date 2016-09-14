@@ -15,6 +15,7 @@ type LoadSpec struct {
 	MockDataStore        bool   // If true, will use a MockDataStore instead of a real sync gateway
 	StatsdEnabled        bool   // If true, will push stats to StatsdEndpoint
 	StatsdEndpoint       string // The endpoint of the statds server, eg localhost:8125
+	TestSessionID        string // A unique identifier for this test session.  It's used for creating channel names and possibly more
 }
 
 func (ls LoadSpec) Validate() error {

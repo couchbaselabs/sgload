@@ -8,7 +8,7 @@ func NewMockDataStore() *MockDataStore {
 	return &MockDataStore{}
 }
 
-func (m MockDataStore) CreateUser(u UserCred) error {
+func (m MockDataStore) CreateUser(u UserCred, channelNames []string) error {
 	log.Printf("MockDataStore CreateUser called with %+v", u)
 	return nil
 }

@@ -179,7 +179,11 @@ func (wlr WriteLoadRunner) assignDocsToChannels(inputDocs []Document) []Document
 func (wlr WriteLoadRunner) generateChannelNames() []string {
 	channelNames := []string{}
 	for i := 0; i < wlr.WriteLoadSpec.NumChannels; i++ {
-		channelNames = append(channelNames, fmt.Sprintf("%d", i))
+		channelName := fmt.Sprintf("%d-%s", i, wlr.WriteLoadSpec.TestSessionID)
+		channelNames = append(
+			channelNames,
+			channelName,
+		)
 	}
 	return channelNames
 }

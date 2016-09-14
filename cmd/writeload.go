@@ -1,18 +1,21 @@
 package cmd
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/couchbaselabs/sgload/sgload"
+	"github.com/satori/go.uuid"
 	"github.com/spf13/cobra"
 )
 
 var (
-	numWriters   *int
-	numChannels  *int
-	numDocs      *int
-	docSizeBytes *int
-	batchSize    *int
+	numWriters    *int
+	numChannels   *int
+	numDocs       *int
+	docSizeBytes  *int
+	batchSize     *int
+	testSessionID *string
 )
 
 // writeloadCmd respresents the writeload command
@@ -21,6 +24,11 @@ var writeloadCmd = &cobra.Command{
 	Short: "Generate a write load",
 	Long:  `Generate a write load`,
 	Run: func(cmd *cobra.Command, args []string) {
+
+		// If the user didn't pass in a test session id, autogen one
+		if *testSessionID == "" {
+			*testSessionID = NewUuid()
+		}
 
 		writeLoadSpec := sgload.WriteLoadSpec{
 			LoadSpec: sgload.LoadSpec{
@@ -31,6 +39,7 @@ var writeloadCmd = &cobra.Command{
 				MockDataStore:        *mockDataStore,
 				StatsdEnabled:        *statsdEnabled,
 				StatsdEndpoint:       *statsdEndpoint,
+				TestSessionID:        *testSessionID,
 			},
 			NumWriters:   *numWriters,
 			NumChannels:  *numChannels,
@@ -85,7 +94,18 @@ func init() {
 		"The batch size that will be used for writing docs via bulk_docs endpoint",
 	)
 
+	testSessionID = writeloadCmd.PersistentFlags().String(
+		"testsessionid",
+		"",
+		"A unique identifier for this test session, used for generating channel names.  If omitted, a UUID will be auto-generated",
+	)
+
 	// Cobra supports local flags which will only run when this command is called directly
 	// writeloadCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle" )
 
+}
+
+func NewUuid() string {
+	u4 := uuid.NewV4()
+	return fmt.Sprintf("%s", u4)
 }

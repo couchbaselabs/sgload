@@ -34,7 +34,11 @@ func (w *Writer) Run() {
 	defer w.WaitGroup.Done()
 
 	if w.CreateDataStoreUser == true {
-		if err := w.DataStore.CreateUser(w.UserCred); err != nil {
+
+		// Just give writers access to all channels
+		allChannels := []string{"*"}
+
+		if err := w.DataStore.CreateUser(w.UserCred, allChannels); err != nil {
 			log.Fatalf("Error creating user in datastore.  User: %v, Err: %v", w.UserCred, err)
 		}
 	}

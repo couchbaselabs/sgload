@@ -45,7 +45,7 @@ func (s *SGDataStore) SetUserCreds(u UserCred) {
 	s.UserCreds = u
 }
 
-func (s SGDataStore) CreateUser(u UserCred) error {
+func (s SGDataStore) CreateUser(u UserCred, channelNames []string) error {
 
 	adminUrl, err := s.sgAdminURL()
 	if err != nil {
@@ -62,7 +62,7 @@ func (s SGDataStore) CreateUser(u UserCred) error {
 	userDoc := map[string]interface{}{}
 	userDoc["name"] = u.Username
 	userDoc["password"] = u.Password
-	userDoc["admin_channels"] = []string{"*"}
+	userDoc["admin_channels"] = channelNames
 
 	docBytes, err := json.Marshal(userDoc)
 	if err != nil {
