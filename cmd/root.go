@@ -16,6 +16,10 @@ var (
 	statsdEndpoint *string
 	statsdEnabled  *bool
 	testSessionID  *string
+	numChannels    *int
+	numDocs        *int
+	docSizeBytes   *int
+	batchSize      *int
 )
 
 // This represents the base command when called without any subcommands
@@ -78,6 +82,32 @@ func init() {
 		"testsessionid",
 		"",
 		"A unique identifier for this test session, used for generating channel names.  If omitted, a UUID will be auto-generated",
+	)
+
+	numChannels = writeloadCmd.PersistentFlags().Int(
+		"numchannels",
+		100,
+		"The number of unique channels that docs will be distributed to.  Must be less than or equal to total number of docs.  If less than, then multiple docs will be assigned to the same channel.  If equal to, then each doc will get its own channel",
+	)
+
+	// NOTE: could also be numDocsPerWriter and total docs would be numWriters * numDocsPerWriter
+	numDocs = writeloadCmd.PersistentFlags().Int(
+		"numdocs",
+		1000,
+		"The number of total docs that will be written.  Will be evenly distributed among writers",
+	)
+
+	// NOTE: could also just point to a sample doc or doc templates
+	docSizeBytes = writeloadCmd.PersistentFlags().Int(
+		"docsizebytes",
+		1024,
+		"The size of each doc, in bytes, that will be pushed up to sync gateway",
+	)
+
+	batchSize = writeloadCmd.PersistentFlags().Int(
+		"batchsize",
+		1,
+		"The batch size that will be used for writing docs via bulk_docs endpoint",
 	)
 
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.sgload.yaml)")

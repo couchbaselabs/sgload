@@ -11,10 +11,6 @@ type WriteLoadSpec struct {
 	CreateWriters bool   // Whether or not to create users for writers
 	WriterCreds   string // The usernames / passwords to use if CreateWriters is set to false
 	NumWriters    int
-	NumChannels   int
-	DocSizeBytes  int
-	NumDocs       int
-	BatchSize     int
 }
 
 func (wls WriteLoadSpec) Validate() error {
