@@ -66,13 +66,13 @@ func init() {
 		"The number of channels that each reader has access to.",
 	)
 
-	createReaders = RootCmd.PersistentFlags().Bool(
+	createReaders = readloadCmd.PersistentFlags().Bool(
 		"createreaders",
 		false,
 		"Add this flag if you need the test to create SG users for readers.  Otherwise you'll need to specify readercreds",
 	)
 
-	readerCreds = RootCmd.PersistentFlags().String(
+	readerCreds = readloadCmd.PersistentFlags().String(
 		"readercreds",
 		"",
 		"The usernames/passwords of the SG users to use for readers in a JSON array form, eg: [{\"foo\":\"passw0rd\"}].  Must be equal to number of readers.  Leave this flag off if using the createwriters flag to create readers",

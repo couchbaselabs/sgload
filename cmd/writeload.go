@@ -58,13 +58,13 @@ func init() {
 		"The number of unique users that will write documents.  Each writer runs concurrently in it's own goroutine",
 	)
 
-	createWriters = RootCmd.PersistentFlags().Bool(
+	createWriters = writeloadCmd.PersistentFlags().Bool(
 		"createwriters",
 		false,
 		"Add this flag if you need the test to create SG users for writers.  Otherwise you'll need to specify writercreds",
 	)
 
-	writerCreds = RootCmd.PersistentFlags().String(
+	writerCreds = writeloadCmd.PersistentFlags().String(
 		"writercreds",
 		"",
 		"The usernames/passwords of the SG users to use for writers in a JSON array form, eg: [{\"foo\":\"passw0rd\"}].  Must be equal to number of writers.  Leave this flag off if using the createwriters flag to create writers",
