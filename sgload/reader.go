@@ -4,9 +4,10 @@ import "log"
 
 type Reader struct {
 	Agent
+	SGChannels []string // The Sync Gateway channels this reader is assigned to pull from
 }
 
-func NewReader(ID int, u UserCred, d DataStore, batchsize int) *Reader {
+func NewReader(ID int, u UserCred, d DataStore, batchsize int, sgChannels []string) *Reader {
 
 	return &Reader{
 		Agent: Agent{
@@ -15,9 +16,18 @@ func NewReader(ID int, u UserCred, d DataStore, batchsize int) *Reader {
 			DataStore: d,
 			BatchSize: batchsize,
 		},
+		SGChannels: sgChannels,
 	}
 }
 
-func (w *Reader) Run() {
+func (r *Reader) Run() {
+
+	if r.CreateDataStoreUser == true {
+
+		if err := r.DataStore.CreateUser(r.UserCred, r.SGChannels); err != nil {
+			log.Fatalf("Error creating user in datastore.  User: %v, Err: %v", r.UserCred, err)
+		}
+	}
+
 	log.Printf("Run() called")
 }

@@ -16,6 +16,10 @@ type ReadLoadSpec struct {
 }
 
 func (rls ReadLoadSpec) Validate() error {
+	if err := rls.LoadSpec.Validate(); err != nil {
+		return err
+	}
+
 	return nil
 }
 

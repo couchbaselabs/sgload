@@ -22,7 +22,6 @@ var readloadCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 
 		loadSpec := createLoadSpecFromArgs()
-		loadSpec.GenerateTestSessionID()
 
 		// TODO: create a writeload spec and runner
 		// In meantime, try to run readload sepearately from writeload
