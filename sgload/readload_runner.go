@@ -76,8 +76,8 @@ func (rlr ReadLoadRunner) createReaders() ([]*Reader, error) {
 			userCred,
 			dataStore,
 			rlr.ReadLoadSpec.BatchSize,
-			sgChannels,
 		)
+		reader.SetChannels(sgChannels)
 		reader.CreateDataStoreUser = rlr.ReadLoadSpec.CreateReaders
 		readers = append(readers, reader)
 	}

@@ -7,7 +7,7 @@ type Reader struct {
 	SGChannels []string // The Sync Gateway channels this reader is assigned to pull from
 }
 
-func NewReader(ID int, u UserCred, d DataStore, batchsize int, sgChannels []string) *Reader {
+func NewReader(ID int, u UserCred, d DataStore, batchsize int) *Reader {
 
 	return &Reader{
 		Agent: Agent{
@@ -16,8 +16,11 @@ func NewReader(ID int, u UserCred, d DataStore, batchsize int, sgChannels []stri
 			DataStore: d,
 			BatchSize: batchsize,
 		},
-		SGChannels: sgChannels,
 	}
+}
+
+func (r *Reader) SetChannels(sgChannels []string) {
+	r.SGChannels = sgChannels
 }
 
 func (r *Reader) Run() {
