@@ -13,6 +13,9 @@ type DataStore interface {
 
 	// Sets the user credentials to use for all subsequent requests
 	SetUserCreds(u UserCred)
+
+	// Get all the changes since the since value
+	Changes(sinceVal Sincer, limit int) (changes []Change, newSinceVal Sincer, err error)
 }
 
 type UserCred struct {
@@ -25,6 +28,8 @@ func (u UserCred) Empty() bool {
 }
 
 type Document map[string]interface{}
+
+type Change interface{} // TODO: spec this out further
 
 type BulkDocs struct {
 	NewEdits  bool       `json:"new_edits"`

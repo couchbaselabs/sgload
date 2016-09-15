@@ -135,6 +135,44 @@ func (s SGDataStore) sgAdminURL() (string, error) {
 
 }
 
+func (s SGDataStore) Changes(sinceVal Sincer, limit int) (changes []Change, newSinceVal Sincer, err error) {
+
+	changesFeedEndpoint, err := addEndpointToUrl(s.SyncGatewayUrl, "_changes")
+	if err != nil {
+		return nil, sinceVal, err
+	}
+
+	changesFeedParams := NewChangesFeedParams(sinceVal, limit)
+
+	changesFeedUrl := fmt.Sprintf(
+		"%s?%s",
+		changesFeedEndpoint,
+		changesFeedParams,
+	)
+
+	req, err := http.NewRequest("GET", changesFeedUrl, nil)
+	s.addAuthIfNeeded(req)
+
+	req.Header.Set("Content-Type", "application/json")
+
+	client := http.DefaultClient
+
+	startTime := time.Now()
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, sinceVal, err
+	}
+	s.pushTimingStat("changes_feed", time.Since(startTime))
+	if resp.StatusCode < 200 || resp.StatusCode > 201 {
+		return nil, sinceVal, fmt.Errorf("Unexpected response status for POST request: %d", resp.StatusCode)
+	}
+
+	defer resp.Body.Close()
+	io.Copy(ioutil.Discard, resp.Body)
+
+	return nil, sinceVal, nil
+}
+
 // Create a single document in Sync Gateway
 func (s SGDataStore) CreateDocument(d Document) error {
 

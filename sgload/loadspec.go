@@ -23,6 +23,10 @@ type LoadSpec struct {
 
 func (ls LoadSpec) Validate() error {
 
+	if ls.NumChannels > ls.NumDocs {
+		return fmt.Errorf("Number of channels must be less than or equal to number of docs")
+	}
+
 	if ls.SyncGatewayUrl == "" {
 		return fmt.Errorf("%+v missing Sync Gateway URL", ls)
 	}

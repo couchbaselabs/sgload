@@ -12,7 +12,6 @@ type ReadLoadSpec struct {
 	ReaderCreds       string // The usernames / passwords to use if CreateReaders is set to false
 	NumReaders        int
 	NumChansPerReader int
-	NumDocs           int
 }
 
 func (rls ReadLoadSpec) Validate() error {

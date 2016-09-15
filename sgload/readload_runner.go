@@ -78,11 +78,26 @@ func (rlr ReadLoadRunner) createReaders() ([]*Reader, error) {
 			rlr.ReadLoadSpec.BatchSize,
 		)
 		reader.SetChannels(sgChannels)
+		reader.SetNumDocsExpected(rlr.numDocsExpectedPerReader())
 		reader.CreateDataStoreUser = rlr.ReadLoadSpec.CreateReaders
 		readers = append(readers, reader)
 	}
 
 	return readers, nil
+}
+
+// Calculate how many docs each reader is expected to pull.  Find out how many docs are
+// in each channel, and then find out how many channels each reader is pulling from,
+// and then multiply to get the number docs each reader is expected to pull.
+func (rlr ReadLoadRunner) numDocsExpectedPerReader() int {
+
+	numDocsPerChannel := rlr.ReadLoadSpec.NumDocs / rlr.ReadLoadSpec.NumChannels
+	docsPerReader := numDocsPerChannel * rlr.ReadLoadSpec.NumChansPerReader
+
+	log.Printf("numdocsperchan: %d, rlr.ReadLoadSpec.NumDocs: %d  rlr.ReadLoadSpec.NumChannels:  %d rlr.ReadLoadSpec.NumChansPerReader: %d docsPerReader: %d", numDocsPerChannel, rlr.ReadLoadSpec.NumDocs, rlr.ReadLoadSpec.NumChannels, rlr.ReadLoadSpec.NumChansPerReader, docsPerReader)
+
+	return docsPerReader
+
 }
 
 // Given the full list of SG channel names for this scenario, assign one more more

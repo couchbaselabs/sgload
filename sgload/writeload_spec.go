@@ -27,11 +27,6 @@ func (wls WriteLoadSpec) Validate() error {
 			return fmt.Errorf("You only provided %d user credentials, but specified %d writers", len(userCreds), wls.NumWriters)
 		}
 	}
-
-	if wls.NumChannels > wls.NumDocs {
-		return fmt.Errorf("Number of channels must be less than or equal to number of docs")
-	}
-
 	if len(wls.WriterCreds) > 0 {
 		if wls.CreateWriters == true {
 			return fmt.Errorf("Cannot only set user credentials if createwriters is set to false")

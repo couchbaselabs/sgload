@@ -26,3 +26,7 @@ func (m MockDataStore) BulkCreateDocuments(docs []Document) error {
 func (m *MockDataStore) SetUserCreds(u UserCred) {
 	// ignore these
 }
+
+func (m MockDataStore) Changes(sinceVal Sincer, limit int) (changes []Change, newSinceVal Sincer, err error) {
+	return nil, nil, nil
+}
