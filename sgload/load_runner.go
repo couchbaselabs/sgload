@@ -1,6 +1,10 @@
 package sgload
 
-import "github.com/peterbourgon/g2s"
+import (
+	"fmt"
+
+	"github.com/peterbourgon/g2s"
+)
 
 type LoadRunner struct {
 	LoadSpec     LoadSpec
@@ -39,4 +43,16 @@ func (lr LoadRunner) createDataStore() DataStore {
 
 	return sgDataStore
 
+}
+
+func (lr LoadRunner) generateChannelNames() []string {
+	channelNames := []string{}
+	for i := 0; i < lr.LoadSpec.NumChannels; i++ {
+		channelName := fmt.Sprintf("%d-%s", i, lr.LoadSpec.TestSessionID)
+		channelNames = append(
+			channelNames,
+			channelName,
+		)
+	}
+	return channelNames
 }

@@ -68,8 +68,8 @@ func (rlr ReadLoadRunner) createReaders() ([]*Reader, error) {
 		dataStore := rlr.createDataStore()
 		dataStore.SetUserCreds(userCred)
 
-		// TODO: figure out reader to channels assignement
-		sgChannels := []string{"foo"}
+		// get channels that should be assigned to this reader
+		sgChannels := rlr.assignChannelsToReader(rlr.generateChannelNames())
 
 		reader := NewReader(
 			userId,
@@ -83,6 +83,27 @@ func (rlr ReadLoadRunner) createReaders() ([]*Reader, error) {
 	}
 
 	return readers, nil
+}
+
+// Given the full list of SG channel names for this scenario, assign one more more
+// SG channels to this particular reader.  This means that when the reader user is
+// created, this will have these channels listed in their admin_channels field
+// so they pull these channels when hittting the _changes feed.
+func (rlr ReadLoadRunner) assignChannelsToReader(sgChannels []string) []string {
+
+	assignedChannels := []string{}
+
+	if rlr.ReadLoadSpec.NumChansPerReader > len(sgChannels) {
+		log.Panicf("Cannot haave more chans per reader than total channels")
+	}
+
+	for i := 0; i < rlr.ReadLoadSpec.NumChansPerReader; i++ {
+		sgChannel := sgChannels[i]
+		assignedChannels = append(assignedChannels, sgChannel)
+	}
+
+	return assignedChannels
+
 }
 
 func (rlr ReadLoadRunner) generateUserCreds() []UserCred {
