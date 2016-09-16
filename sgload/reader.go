@@ -65,10 +65,14 @@ func (r *Reader) Run() {
 			return
 		}
 
-		changes, since, err := r.DataStore.Changes(since, r.BatchSize)
+		changes, newSince, err := r.DataStore.Changes(since, r.BatchSize)
 		if err != nil {
 			log.Panicf("Got error getting changes: %v", err)
 		}
+		if newSince.Equals(since) {
+			log.Panicf("Since value should have changed from: %v", since)
+		}
+		since = newSince.(StringSincer)
 
 		// Strip out any changes with id "id":"_user/*" since they are user docs and we don't care about them
 		changes = stripUserDocChanges(changes)

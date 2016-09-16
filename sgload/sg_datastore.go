@@ -174,8 +174,15 @@ func (s SGDataStore) Changes(sinceVal Sincer, limit int) (changes sgreplicate.Ch
 	if err != nil {
 		return sgreplicate.Changes{}, sinceVal, err
 	}
+	lastSequenceStr, ok := changes.LastSequence.(string)
+	if !ok {
+		return sgreplicate.Changes{}, sinceVal, fmt.Errorf("Could not convert changes.LastSequence to string")
+	}
+	lastSequenceSincer := StringSincer{
+		Since: lastSequenceStr,
+	}
 
-	return changes, sinceVal, nil
+	return changes, lastSequenceSincer, nil
 }
 
 // Create a single document in Sync Gateway

@@ -41,8 +41,10 @@ func (rlr ReadLoadRunner) Run() error {
 		go reader.Run()
 	}
 
-	log.Printf("Created readers")
-	time.Sleep(time.Second * 5)
+	// TODO: block until readers are done!
+	log.Printf("Created readers.  Sleeping for a few seconds to let them run")
+	time.Sleep(time.Second * 60)
+	log.Printf("Done sleeping, exit")
 
 	return nil
 

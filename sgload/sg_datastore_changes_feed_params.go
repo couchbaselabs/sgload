@@ -47,6 +47,7 @@ func (p ChangesFeedParams) String() string {
 type Sincer interface {
 	Empty() bool
 	String() string
+	Equals(other Sincer) bool
 }
 
 type StringSincer struct {
@@ -59,4 +60,8 @@ func (s StringSincer) Empty() bool {
 
 func (s StringSincer) String() string {
 	return s.Since
+}
+
+func (s StringSincer) Equals(otherSincer Sincer) bool {
+	return s.String() == otherSincer.String()
 }
