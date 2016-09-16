@@ -3,7 +3,7 @@ package sgload
 import (
 	"fmt"
 	"log"
-	"time"
+	"sync"
 
 	"github.com/peterbourgon/g2s"
 )
@@ -32,8 +32,11 @@ func NewReadLoadRunner(rls ReadLoadSpec) *ReadLoadRunner {
 
 func (rlr ReadLoadRunner) Run() error {
 
+	// Create a wait group to see when all the reader goroutines have finished
+	var wg sync.WaitGroup
+
 	// Create writer goroutines
-	readers, err := rlr.createReaders()
+	readers, err := rlr.createReaders(&wg)
 	if err != nil {
 		return fmt.Errorf("Error creating readers: %v", err)
 	}
@@ -42,15 +45,15 @@ func (rlr ReadLoadRunner) Run() error {
 	}
 
 	// TODO: block until readers are done!
-	log.Printf("Created readers.  Sleeping for a few seconds to let them run")
-	time.Sleep(time.Second * 60)
-	log.Printf("Done sleeping, exit")
+	log.Printf("Waiting for readers to finish")
+	wg.Wait()
+	log.Printf("Readers finished")
 
 	return nil
 
 }
 
-func (rlr ReadLoadRunner) createReaders() ([]*Reader, error) {
+func (rlr ReadLoadRunner) createReaders(wg *sync.WaitGroup) ([]*Reader, error) {
 
 	readers := []*Reader{}
 	var userCreds []UserCred
@@ -75,6 +78,7 @@ func (rlr ReadLoadRunner) createReaders() ([]*Reader, error) {
 		sgChannels := rlr.assignChannelsToReader(rlr.generateChannelNames())
 
 		reader := NewReader(
+			wg,
 			userId,
 			userCred,
 			dataStore,
@@ -85,6 +89,7 @@ func (rlr ReadLoadRunner) createReaders() ([]*Reader, error) {
 		reader.SetNumDocsExpected(rlr.numDocsExpectedPerReader())
 		reader.CreateDataStoreUser = rlr.ReadLoadSpec.CreateReaders
 		readers = append(readers, reader)
+		wg.Add(1)
 	}
 
 	return readers, nil

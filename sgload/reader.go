@@ -3,6 +3,7 @@ package sgload
 import (
 	"log"
 	"strings"
+	"sync"
 	"time"
 
 	sgreplicate "github.com/couchbaselabs/sg-replicate"
@@ -15,14 +16,15 @@ type Reader struct {
 	BatchSize       int      // The number of docs to pull in batch (_changes feed and bulk_get)
 }
 
-func NewReader(ID int, u UserCred, d DataStore, batchsize int) *Reader {
+func NewReader(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, batchsize int) *Reader {
 
 	return &Reader{
 		Agent: Agent{
-			UserCred:  u,
-			ID:        ID,
-			DataStore: d,
-			BatchSize: batchsize,
+			FinishedWg: wg,
+			UserCred:   u,
+			ID:         ID,
+			DataStore:  d,
+			BatchSize:  batchsize,
 		},
 	}
 }
@@ -40,6 +42,8 @@ func (r *Reader) SetBatchSize(batchSize int) {
 }
 
 func (r *Reader) Run() {
+
+	defer r.FinishedWg.Done()
 
 	if r.CreateDataStoreUser == true {
 

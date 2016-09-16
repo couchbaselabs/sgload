@@ -17,19 +17,19 @@ func NewWriter(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, batchsize in
 
 	return &Writer{
 		Agent: Agent{
-			UserCred:  u,
-			ID:        ID,
-			DataStore: d,
-			BatchSize: batchsize,
+			FinishedWg: wg,
+			UserCred:   u,
+			ID:         ID,
+			DataStore:  d,
+			BatchSize:  batchsize,
 		},
 		OutboundDocs: outboundDocs,
-		WaitGroup:    wg,
 	}
 }
 
 func (w *Writer) Run() {
 
-	defer w.WaitGroup.Done()
+	defer w.FinishedWg.Done()
 
 	if w.CreateDataStoreUser == true {
 
