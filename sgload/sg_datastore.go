@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/couchbaselabs/sg-replicate"
 	"github.com/peterbourgon/g2s"
 )
 
@@ -135,11 +136,11 @@ func (s SGDataStore) sgAdminURL() (string, error) {
 
 }
 
-func (s SGDataStore) Changes(sinceVal Sincer, limit int) (changes []Change, newSinceVal Sincer, err error) {
+func (s SGDataStore) Changes(sinceVal Sincer, limit int) (changes sgreplicate.Changes, newSinceVal Sincer, err error) {
 
 	changesFeedEndpoint, err := addEndpointToUrl(s.SyncGatewayUrl, "_changes")
 	if err != nil {
-		return nil, sinceVal, err
+		return sgreplicate.Changes{}, sinceVal, err
 	}
 
 	changesFeedParams := NewChangesFeedParams(sinceVal, limit)
@@ -160,17 +161,22 @@ func (s SGDataStore) Changes(sinceVal Sincer, limit int) (changes []Change, newS
 	startTime := time.Now()
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, sinceVal, err
+		return sgreplicate.Changes{}, sinceVal, err
 	}
 	s.pushTimingStat("changes_feed", time.Since(startTime))
 	if resp.StatusCode < 200 || resp.StatusCode > 201 {
-		return nil, sinceVal, fmt.Errorf("Unexpected response status for POST request: %d", resp.StatusCode)
+		return sgreplicate.Changes{}, sinceVal, fmt.Errorf("Unexpected response status for POST request: %d", resp.StatusCode)
 	}
 
 	defer resp.Body.Close()
-	io.Copy(ioutil.Discard, resp.Body)
+	decoder := json.NewDecoder(resp.Body)
+	err = decoder.Decode(&changes)
+	if err != nil {
+		return sgreplicate.Changes{}, sinceVal, err
+	}
+	log.Printf("Got changes: %+v", changes)
 
-	return nil, sinceVal, nil
+	return changes, sinceVal, nil
 }
 
 // Create a single document in Sync Gateway

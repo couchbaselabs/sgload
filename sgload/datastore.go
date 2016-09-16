@@ -1,5 +1,7 @@
 package sgload
 
+import "github.com/couchbaselabs/sg-replicate"
+
 type DataStore interface {
 
 	// Creates a new user in the data store (admin port)
@@ -15,7 +17,7 @@ type DataStore interface {
 	SetUserCreds(u UserCred)
 
 	// Get all the changes since the since value
-	Changes(sinceVal Sincer, limit int) (changes []Change, newSinceVal Sincer, err error)
+	Changes(sinceVal Sincer, limit int) (changes sgreplicate.Changes, newSinceVal Sincer, err error)
 }
 
 type UserCred struct {

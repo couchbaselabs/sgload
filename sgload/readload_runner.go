@@ -35,7 +35,7 @@ func (rlr ReadLoadRunner) Run() error {
 	// Create writer goroutines
 	readers, err := rlr.createReaders()
 	if err != nil {
-		return err
+		return fmt.Errorf("Error creating readers: %v", err)
 	}
 	for _, reader := range readers {
 		go reader.Run()
@@ -49,6 +49,7 @@ func (rlr ReadLoadRunner) Run() error {
 }
 
 func (rlr ReadLoadRunner) createReaders() ([]*Reader, error) {
+
 	readers := []*Reader{}
 	var userCreds []UserCred
 	var err error
@@ -59,7 +60,7 @@ func (rlr ReadLoadRunner) createReaders() ([]*Reader, error) {
 	default:
 		userCreds, err = rlr.ReadLoadSpec.loadUserCredsFromArgs()
 		if err != nil {
-			return readers, err
+			return readers, fmt.Errorf("Error loading user creds from args: %v", err)
 		}
 	}
 

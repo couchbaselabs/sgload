@@ -1,6 +1,10 @@
 package sgload
 
-import "log"
+import (
+	"log"
+
+	"github.com/couchbaselabs/sg-replicate"
+)
 
 type MockDataStore struct{}
 
@@ -27,6 +31,6 @@ func (m *MockDataStore) SetUserCreds(u UserCred) {
 	// ignore these
 }
 
-func (m MockDataStore) Changes(sinceVal Sincer, limit int) (changes []Change, newSinceVal Sincer, err error) {
-	return nil, nil, nil
+func (m MockDataStore) Changes(sinceVal Sincer, limit int) (changes sgreplicate.Changes, newSinceVal Sincer, err error) {
+	return sgreplicate.Changes{}, nil, nil
 }
