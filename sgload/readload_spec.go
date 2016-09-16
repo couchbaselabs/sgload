@@ -8,10 +8,11 @@ import (
 
 type ReadLoadSpec struct {
 	LoadSpec
-	CreateReaders     bool   // Whether or not to create users for readers
-	ReaderCreds       string // The usernames / passwords to use if CreateReaders is set to false
-	NumReaders        int
-	NumChansPerReader int
+	CreateReaders      bool   // Whether or not to create users for readers
+	ReaderCreds        string // The usernames / passwords to use if CreateReaders is set to false
+	NumReaders         int
+	NumChansPerReader  int
+	SkipWriteLoadSetup bool // By default the readload scenario runs the writeload scenario first.  If this is true, it will skip the writeload scenario.
 }
 
 func (rls ReadLoadSpec) Validate() error {
