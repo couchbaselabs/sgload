@@ -70,30 +70,6 @@ func (r *Reader) Run() {
 			log.Panicf("Got error getting changes: %v", err)
 		}
 
-		/*
-			{
-			  "results":[
-			    {
-			      "seq":"5:4",
-			      "id":"e83a41f812a8265ab6cf72725cfbfc5b",
-			      "changes":[
-			        {
-			          "rev":"1-3391cbe0ca0da56892481ca6f5db6402"
-			        }
-			      ]
-			    },
-			    {
-			      "seq":5,
-			      "id":"_user/readload-user-0-foo",
-			      "changes":[
-
-			      ]
-			    }
-			  ],
-			  "last_seq":"5"
-			}
-		*/
-
 		// Strip out any changes with id "id":"_user/*" since they are user docs and we don't care about them
 		changes = stripUserDocChanges(changes)
 
@@ -108,7 +84,7 @@ func (r *Reader) Run() {
 
 		log.Printf("changes: %+v, since: %v, err: %v", changes, since, err)
 
-		<-time.After(time.Second * 5)
+		<-time.After(time.Second * 1)
 
 	}
 
