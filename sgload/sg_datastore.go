@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/couchbaselabs/sg-replicate"
+	sgreplicate "github.com/couchbaselabs/sg-replicate"
 	"github.com/peterbourgon/g2s"
 )
 
@@ -88,8 +88,8 @@ func (s SGDataStore) CreateUser(u UserCred, channelNames []string) error {
 		return fmt.Errorf("Unexpected response status for POST request: %d", resp.StatusCode)
 	}
 
+	defer resp.Body.Close()
 	io.Copy(ioutil.Discard, resp.Body)
-	resp.Body.Close()
 
 	return nil
 }
@@ -174,7 +174,6 @@ func (s SGDataStore) Changes(sinceVal Sincer, limit int) (changes sgreplicate.Ch
 	if err != nil {
 		return sgreplicate.Changes{}, sinceVal, err
 	}
-	log.Printf("Got changes: %+v", changes)
 
 	return changes, sinceVal, nil
 }
@@ -260,6 +259,47 @@ func (s SGDataStore) BulkCreateDocuments(docs []Document) error {
 			return fmt.Errorf("%v", docRevisionPair.Error)
 		}
 	}
+
+	return nil
+
+}
+
+func (s SGDataStore) BulkGetDocuments(r sgreplicate.BulkGetRequest) error {
+
+	// TODO: needs to check response status of each doc to
+	// make sure no errors pulling docs
+
+	bulkGetEndpoint, err := addEndpointToUrl(s.SyncGatewayUrl, "_bulk_get")
+	if err != nil {
+		return err
+	}
+
+	bulkGetBytes, err := json.Marshal(r)
+	if err != nil {
+		return fmt.Errorf("BulkGetDocuemnts failed to marshal request: %v", err)
+	}
+
+	buf := bytes.NewBuffer(bulkGetBytes)
+
+	req, err := http.NewRequest("POST", bulkGetEndpoint, buf)
+	s.addAuthIfNeeded(req)
+
+	req.Header.Set("Content-Type", "application/json")
+
+	client := http.DefaultClient
+
+	startTime := time.Now()
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	s.pushTimingStat("get_document", timeDeltaPerDocument(len(r.Docs), time.Since(startTime)))
+	if resp.StatusCode < 200 || resp.StatusCode > 201 {
+		return fmt.Errorf("Unexpected response status for POST request: %d", resp.StatusCode)
+	}
+
+	defer resp.Body.Close()
+	io.Copy(ioutil.Discard, resp.Body)
 
 	return nil
 

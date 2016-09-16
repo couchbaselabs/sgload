@@ -34,3 +34,7 @@ func (m *MockDataStore) SetUserCreds(u UserCred) {
 func (m MockDataStore) Changes(sinceVal Sincer, limit int) (changes sgreplicate.Changes, newSinceVal Sincer, err error) {
 	return sgreplicate.Changes{}, nil, nil
 }
+
+func (m MockDataStore) BulkGetDocuments(r sgreplicate.BulkGetRequest) error {
+	return nil
+}

@@ -1,6 +1,6 @@
 package sgload
 
-import "github.com/couchbaselabs/sg-replicate"
+import sgreplicate "github.com/couchbaselabs/sg-replicate"
 
 type DataStore interface {
 
@@ -18,6 +18,9 @@ type DataStore interface {
 
 	// Get all the changes since the since value
 	Changes(sinceVal Sincer, limit int) (changes sgreplicate.Changes, newSinceVal Sincer, err error)
+
+	// Does a bulk get on docs in bulk get request, discards actual docs
+	BulkGetDocuments(sgreplicate.BulkGetRequest) error
 }
 
 type UserCred struct {

@@ -2,7 +2,10 @@ package sgload
 
 import (
 	"log"
+	"strings"
 	"time"
+
+	sgreplicate "github.com/couchbaselabs/sg-replicate"
 )
 
 type Reader struct {
@@ -63,6 +66,9 @@ func (r *Reader) Run() {
 		}
 
 		changes, since, err := r.DataStore.Changes(since, r.BatchSize)
+		if err != nil {
+			log.Panicf("Got error getting changes: %v", err)
+		}
 
 		/*
 			{
@@ -89,17 +95,50 @@ func (r *Reader) Run() {
 		*/
 
 		// Strip out any changes with id "id":"_user/*" since they are user docs and we don't care about them
-		// changes = stripUserDocChanges(changes)
-		// docRevisionPairs = getDocRevisionPairs(changes)
+		changes = stripUserDocChanges(changes)
 
-		// docs := r.DataStore.BulkGetDocuments(docRevisionPairs)
+		bulkGetRequest := getBulkGetRequest(changes)
 
-		// numDocsPulled += len(docs)
+		err = r.DataStore.BulkGetDocuments(bulkGetRequest)
+		if err != nil {
+			log.Panicf("Got error getting bulk docs: %v", err)
+		}
 
-		log.Printf("changes: %v, since: %v, err: %v", changes, since, err)
+		numDocsPulled += len(bulkGetRequest.Docs)
+
+		log.Printf("changes: %+v, since: %v, err: %v", changes, since, err)
 
 		<-time.After(time.Second * 5)
 
 	}
 
+}
+
+func getBulkGetRequest(changes sgreplicate.Changes) sgreplicate.BulkGetRequest {
+
+	bulkDocsRequest := sgreplicate.BulkGetRequest{}
+	docs := []sgreplicate.DocumentRevisionPair{}
+	for _, change := range changes.Results {
+		docRevPair := sgreplicate.DocumentRevisionPair{}
+		docRevPair.Id = change.Id
+		docRevPair.Revision = change.ChangedRevs[0].Revision
+		docs = append(docs, docRevPair)
+	}
+	bulkDocsRequest.Docs = docs
+	return bulkDocsRequest
+
+}
+
+func stripUserDocChanges(changes sgreplicate.Changes) (changesStripped sgreplicate.Changes) {
+	changesStripped.LastSequence = changes.LastSequence
+
+	for _, change := range changes.Results {
+		if strings.Contains(change.Id, "_user") {
+			continue
+		}
+		changesStripped.Results = append(changesStripped.Results, change)
+
+	}
+
+	return changesStripped
 }
