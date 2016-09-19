@@ -99,14 +99,8 @@ func createLoadSpecFromArgs() sgload.LoadSpec {
 }
 
 func init() {
+
 	RootCmd.AddCommand(readloadCmd)
-
-	// add the writeload command params to the readload command, because
-	// the readload can invoke the writeload scenario, and so the writeload
-	// args need a way of "passing through" the reaload to the writeload
-	log.Printf("setupWriteLoadCmd for readloadCmd")
-
-	log.Printf("/setupWriteLoadCmd for readloadCmd")
 
 	numReaders = readloadCmd.PersistentFlags().Int(
 		"numreaders",

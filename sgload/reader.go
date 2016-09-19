@@ -61,7 +61,7 @@ func (r *Reader) Run() {
 			log.Panicf("Reader was only expected to pull %d docs, but pulled %d.", r.NumDocsExpected, numDocsPulled)
 		}
 
-		log.Printf("Reader.Run() numDocsPulled: %d / numDocsExpected: %d", numDocsPulled, r.NumDocsExpected)
+		log.Printf("Reader.Run() agentid: %v numDocsPulled: %d / numDocsExpected: %d", r.ID, numDocsPulled, r.NumDocsExpected)
 
 		if numDocsPulled == r.NumDocsExpected {
 			// reader finished!

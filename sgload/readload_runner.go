@@ -44,7 +44,7 @@ func (rlr ReadLoadRunner) Run() error {
 		go reader.Run()
 	}
 
-	// TODO: block until readers are done!
+	// block until readers are done
 	log.Printf("Waiting for readers to finish")
 	wg.Wait()
 	log.Printf("Readers finished")
