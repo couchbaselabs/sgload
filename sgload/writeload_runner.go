@@ -4,14 +4,17 @@ import (
 	"bytes"
 	"log"
 	"sync"
+
+	"github.com/inconshreveable/log15"
 )
 
 type WriteLoadRunner struct {
 	LoadRunner
 	WriteLoadSpec WriteLoadSpec
+	Logger        log15.Logger
 }
 
-func NewWriteLoadRunner(wls WriteLoadSpec) *WriteLoadRunner {
+func NewWriteLoadRunner(wls WriteLoadSpec, logger log15.Logger) *WriteLoadRunner {
 
 	wls.MustValidate()
 
@@ -23,6 +26,7 @@ func NewWriteLoadRunner(wls WriteLoadSpec) *WriteLoadRunner {
 	return &WriteLoadRunner{
 		LoadRunner:    loadRunner,
 		WriteLoadSpec: wls,
+		Logger:        logger,
 	}
 }
 

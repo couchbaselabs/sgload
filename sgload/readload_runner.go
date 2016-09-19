@@ -5,16 +5,16 @@ import (
 	"log"
 	"sync"
 
-	"github.com/peterbourgon/g2s"
+	"github.com/inconshreveable/log15"
 )
 
 type ReadLoadRunner struct {
 	LoadRunner
 	ReadLoadSpec ReadLoadSpec
-	StatsdClient *g2s.Statsd
+	Logger       log15.Logger
 }
 
-func NewReadLoadRunner(rls ReadLoadSpec) *ReadLoadRunner {
+func NewReadLoadRunner(rls ReadLoadSpec, logger log15.Logger) *ReadLoadRunner {
 
 	rls.MustValidate()
 
@@ -26,6 +26,7 @@ func NewReadLoadRunner(rls ReadLoadSpec) *ReadLoadRunner {
 	return &ReadLoadRunner{
 		LoadRunner:   loadRunner,
 		ReadLoadSpec: rls,
+		Logger:       logger,
 	}
 
 }

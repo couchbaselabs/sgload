@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/couchbaselabs/sgload/sgload"
+	"github.com/inconshreveable/log15"
 	"github.com/spf13/cobra"
 )
 
@@ -25,6 +26,9 @@ var readloadCmd = &cobra.Command{
 	Long:  `Generate a read load`,
 	Run: func(cmd *cobra.Command, args []string) {
 
+		// Setup logger
+		logger := log15.New()
+
 		loadSpec := createLoadSpecFromArgs()
 
 		readLoadSpec := sgload.ReadLoadSpec{
@@ -39,7 +43,7 @@ var readloadCmd = &cobra.Command{
 		if *skipWriteload == false {
 
 			log.Printf("Running writeload scenario")
-			if err := runWriteLoadScenario(loadSpec); err != nil {
+			if err := runWriteLoadScenario(loadSpec, logger); err != nil {
 				log.Fatalf("Failed to run writeload: %v", err)
 			}
 			log.Printf("Finished running writeload scenario")
@@ -51,7 +55,7 @@ var readloadCmd = &cobra.Command{
 		}
 
 		log.Printf("Running readload scenario")
-		readLoadRunner := sgload.NewReadLoadRunner(readLoadSpec)
+		readLoadRunner := sgload.NewReadLoadRunner(readLoadSpec, logger)
 		if err := readLoadRunner.Run(); err != nil {
 			log.Fatalf("Readload.Run() failed with: %v", err)
 		}
@@ -60,7 +64,7 @@ var readloadCmd = &cobra.Command{
 	},
 }
 
-func runWriteLoadScenario(loadSpec sgload.LoadSpec) error {
+func runWriteLoadScenario(loadSpec sgload.LoadSpec, logger log15.Logger) error {
 
 	log.Printf("createWriters: %v. ", *createWriters)
 
@@ -73,7 +77,7 @@ func runWriteLoadScenario(loadSpec sgload.LoadSpec) error {
 	if err := writeLoadSpec.Validate(); err != nil {
 		log.Fatalf("Invalid writeLoadSpec parameters: %+v. Error: %v", writeLoadSpec, err)
 	}
-	writeLoadRunner := sgload.NewWriteLoadRunner(writeLoadSpec)
+	writeLoadRunner := sgload.NewWriteLoadRunner(writeLoadSpec, logger)
 
 	return writeLoadRunner.Run()
 
