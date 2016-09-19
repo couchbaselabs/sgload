@@ -131,25 +131,5 @@ func (rlr ReadLoadRunner) assignChannelsToReader(sgChannels []string) []string {
 }
 
 func (rlr ReadLoadRunner) generateUserCreds() []UserCred {
-	userCreds := []UserCred{}
-	for userId := 0; userId < rlr.ReadLoadSpec.NumReaders; userId++ {
-		username := fmt.Sprintf(
-			"readload-user-%d-%s",
-			userId,
-			rlr.ReadLoadSpec.TestSessionID,
-		)
-		password := fmt.Sprintf(
-			"readload-passw0rd-%d-%s",
-			userId,
-			rlr.ReadLoadSpec.TestSessionID,
-		)
-		userCred := UserCred{
-			Username: username,
-			Password: password,
-		}
-		userCreds = append(userCreds, userCred)
-
-	}
-	return userCreds
-
+	return rlr.LoadRunner.generateUserCreds(rlr.ReadLoadSpec.NumReaders, "readload")
 }

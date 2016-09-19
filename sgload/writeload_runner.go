@@ -2,7 +2,6 @@ package sgload
 
 import (
 	"bytes"
-	"fmt"
 	"log"
 	"sync"
 )
@@ -90,27 +89,7 @@ func (wlr WriteLoadRunner) createWriters(wg *sync.WaitGroup) ([]*Writer, error) 
 }
 
 func (wlr WriteLoadRunner) generateUserCreds() []UserCred {
-	userCreds := []UserCred{}
-	for userId := 0; userId < wlr.WriteLoadSpec.NumWriters; userId++ {
-		username := fmt.Sprintf(
-			"writeload-user-%d-%s",
-			userId,
-			wlr.WriteLoadSpec.TestSessionID,
-		)
-		password := fmt.Sprintf(
-			"writeload-passw0rd-%d-%s",
-			userId,
-			wlr.WriteLoadSpec.TestSessionID,
-		)
-		userCred := UserCred{
-			Username: username,
-			Password: password,
-		}
-		userCreds = append(userCreds, userCred)
-
-	}
-	return userCreds
-
+	return wlr.LoadRunner.generateUserCreds(wlr.WriteLoadSpec.NumWriters, "writeload")
 }
 
 func (wlr WriteLoadRunner) feedDocsToWriters(writers []*Writer) error {
