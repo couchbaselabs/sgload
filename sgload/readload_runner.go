@@ -55,6 +55,7 @@ func (rlr ReadLoadRunner) createReaders(wg *sync.WaitGroup) ([]*Reader, error) {
 	readers := []*Reader{}
 	var userCreds []UserCred
 	var err error
+	numDocsExpectedPerReader := rlr.numDocsExpectedPerReader()
 
 	switch rlr.ReadLoadSpec.CreateReaders {
 	case true:
@@ -83,7 +84,7 @@ func (rlr ReadLoadRunner) createReaders(wg *sync.WaitGroup) ([]*Reader, error) {
 		)
 		reader.SetChannels(sgChannels)
 		reader.SetBatchSize(rlr.ReadLoadSpec.BatchSize)
-		reader.SetNumDocsExpected(rlr.numDocsExpectedPerReader())
+		reader.SetNumDocsExpected(numDocsExpectedPerReader)
 		reader.CreateDataStoreUser = rlr.ReadLoadSpec.CreateReaders
 		readers = append(readers, reader)
 		wg.Add(1)
@@ -136,7 +137,12 @@ func (rlr ReadLoadRunner) loadUserCredsFromArgs() ([]UserCred, error) {
 func (rlr ReadLoadRunner) numDocsExpectedPerReader() int {
 
 	numDocsPerChannel := rlr.ReadLoadSpec.NumDocs / rlr.ReadLoadSpec.NumChannels
+
+	logger.Info("Calculated numDocsPerChannel", "numDocsPerChannel", numDocsPerChannel, "numDocs", rlr.ReadLoadSpec.NumDocs, "numChannels", rlr.ReadLoadSpec.NumChannels)
+
 	docsPerReader := numDocsPerChannel * rlr.ReadLoadSpec.NumChansPerReader
+
+	logger.Info("Calculated docsPerReader", "docsPerReader", docsPerReader, "numDocsPerChannel", numDocsPerChannel, "numChansPerReader", rlr.ReadLoadSpec.NumChansPerReader)
 
 	return docsPerReader
 
