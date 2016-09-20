@@ -352,5 +352,8 @@ func addTrailingSlash(urlStr string) string {
 }
 
 func timeDeltaPerDocument(numDocs int, timeDeltaAllDocs time.Duration) time.Duration {
+	if numDocs == 0 {
+		return timeDeltaAllDocs
+	}
 	return time.Duration(int64(timeDeltaAllDocs) / int64(numDocs))
 }
