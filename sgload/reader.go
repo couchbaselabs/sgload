@@ -57,10 +57,23 @@ func (r *Reader) Run() {
 
 	defer r.FinishedWg.Done()
 	defer func() {
+		// Calculate how long it took for this reader to read
+		// all of its docs
 		delta := time.Since(timeStartedCreatingDocs)
 		r.StatsdClient.Timing(
 			statsdSampleRate,
 			"get_all_documents",
+			delta,
+		)
+	}()
+	defer func() {
+		// Calculate the average time it took to read each doc from
+		// the changes feed and the doc itself
+		delta := time.Since(timeStartedCreatingDocs)
+		delta = time.Duration(int64(delta) / int64(numDocsPulled))
+		r.StatsdClient.Timing(
+			statsdSampleRate,
+			"get_change_and_document",
 			delta,
 		)
 	}()
