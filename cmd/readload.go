@@ -124,7 +124,7 @@ func init() {
 
 	createReaders = readloadCmd.PersistentFlags().Bool(
 		"createreaders",
-		true,
+		false,
 		"Add this flag if you need the test to create SG users for readers.  Otherwise you'll need to specify readercreds",
 	)
 
@@ -148,7 +148,7 @@ func init() {
 
 	readLoadCreateWriters = readloadCmd.PersistentFlags().Bool(
 		"createwriters",
-		true,
+		false,
 		"Add this flag if you need the test to create SG users for writers.  Otherwise you'll need to specify writercreds",
 	)
 
