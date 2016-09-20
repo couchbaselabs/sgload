@@ -56,7 +56,7 @@ func init() {
 
 	createWriters = writeloadCmd.PersistentFlags().Bool(
 		"createwriters",
-		false,
+		true,
 		"Add this flag if you need the test to create SG users for writers.  Otherwise you'll need to specify writercreds",
 	)
 
