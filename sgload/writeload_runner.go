@@ -89,6 +89,7 @@ func (wlr WriteLoadRunner) createWriters(wg *sync.WaitGroup) ([]*Writer, error) 
 
 }
 
+// TODO: duplicated code with ReadLoadRunner.loadUserCredsFromArgs()
 func (wlr WriteLoadRunner) loadUserCredsFromArgs() ([]UserCred, error) {
 
 	userCreds := []UserCred{}

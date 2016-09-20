@@ -1,10 +1,6 @@
 package sgload
 
-import (
-	"encoding/json"
-	"fmt"
-	"log"
-)
+import "log"
 
 type ReadLoadSpec struct {
 	LoadSpec
@@ -29,16 +25,4 @@ func (rls ReadLoadSpec) MustValidate() {
 	if err := rls.Validate(); err != nil {
 		log.Panicf("Invalid ReadLoadSpec: %+v. Error: %v", rls, err)
 	}
-}
-
-func (rls ReadLoadSpec) loadUserCredsFromArgs() ([]UserCred, error) {
-
-	userCreds := []UserCred{}
-	err := json.Unmarshal([]byte(rls.ReaderCreds), &userCreds)
-	for _, userCred := range userCreds {
-		if userCred.Empty() {
-			return userCreds, fmt.Errorf("User credentials empty: %+v", userCred)
-		}
-	}
-	return userCreds, err
 }
