@@ -15,14 +15,34 @@ Load testing tool for Sync Gateway intended to allow more flexible scenarios tha
 
 ```
 $ go get -u -v github.com/couchbaselabs/sgload
-$ sgload writeload --createusers --numwriters 1 --numdocs 4 --numchannels 4
+$ sgload --help
 ```
 
 To view more options, run `sgload writeload --help`
 
 ## Supported scenarios
 
-* [Write load](https://github.com/couchbaselabs/mobile-testkit/issues/607)
+### Write Load
+
+This scenario writes documents:
+
+```
+$ sgload writeload --help
+```
+
+### Read Load (+ optional Write Load)
+
+
+By default, this scenario:
+
+* Writes documents by invoking the write load scenario
+* Reads documents
+
+However there is a way to skip the write load step an only do the read load step
+
+```
+$ sgload readload --help
+```
 
 ## Design
 
@@ -40,7 +60,6 @@ To view more options, run `sgload writeload --help`
 
 ## Roadmap
 
-1. Collect metrics
 1. Add scenarios
 
 
