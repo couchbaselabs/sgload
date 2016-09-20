@@ -2,19 +2,16 @@ package sgload
 
 import (
 	"bytes"
-	"log"
+	"fmt"
 	"sync"
-
-	"github.com/inconshreveable/log15"
 )
 
 type WriteLoadRunner struct {
 	LoadRunner
 	WriteLoadSpec WriteLoadSpec
-	Logger        log15.Logger
 }
 
-func NewWriteLoadRunner(wls WriteLoadSpec, logger log15.Logger) *WriteLoadRunner {
+func NewWriteLoadRunner(wls WriteLoadSpec) *WriteLoadRunner {
 
 	wls.MustValidate()
 
@@ -26,7 +23,6 @@ func NewWriteLoadRunner(wls WriteLoadSpec, logger log15.Logger) *WriteLoadRunner
 	return &WriteLoadRunner{
 		LoadRunner:    loadRunner,
 		WriteLoadSpec: wls,
-		Logger:        logger,
 	}
 }
 
@@ -48,9 +44,9 @@ func (wlr WriteLoadRunner) Run() error {
 	go wlr.feedDocsToWriters(writers)
 
 	// Wait for writers to finish
-	log.Printf("Waiting for %d writers to finish...", len(writers))
+	logger.Info("Waiting for writers to finish", "numwriters", len(writers))
 	wg.Wait()
-	log.Printf("Writers finished")
+	logger.Info("Writers finished")
 
 	return nil
 
@@ -128,7 +124,7 @@ func (wlr WriteLoadRunner) assignDocsToChannels(inputDocs []Document) []Document
 	channelNames := wlr.generateChannelNames()
 
 	if len(channelNames) > len(inputDocs) {
-		log.Panicf("Number of channels must be less than or equal to number of docs")
+		panic(fmt.Sprintf("Num chans (%d) must be LTE to num docs (%d)", len(channelNames), len(inputDocs)))
 	}
 
 	for docNum, inputDoc := range inputDocs {

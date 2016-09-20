@@ -2,19 +2,15 @@ package sgload
 
 import (
 	"fmt"
-	"log"
 	"sync"
-
-	"github.com/inconshreveable/log15"
 )
 
 type ReadLoadRunner struct {
 	LoadRunner
 	ReadLoadSpec ReadLoadSpec
-	Logger       log15.Logger
 }
 
-func NewReadLoadRunner(rls ReadLoadSpec, logger log15.Logger) *ReadLoadRunner {
+func NewReadLoadRunner(rls ReadLoadSpec) *ReadLoadRunner {
 
 	rls.MustValidate()
 
@@ -26,7 +22,6 @@ func NewReadLoadRunner(rls ReadLoadSpec, logger log15.Logger) *ReadLoadRunner {
 	return &ReadLoadRunner{
 		LoadRunner:   loadRunner,
 		ReadLoadSpec: rls,
-		Logger:       logger,
 	}
 
 }
@@ -46,9 +41,9 @@ func (rlr ReadLoadRunner) Run() error {
 	}
 
 	// block until readers are done
-	log.Printf("Waiting for readers to finish")
+	logger.Info("Waiting for readers to finish")
 	wg.Wait()
-	log.Printf("Readers finished")
+	logger.Info("Readers finished")
 
 	return nil
 
@@ -104,8 +99,6 @@ func (rlr ReadLoadRunner) numDocsExpectedPerReader() int {
 	numDocsPerChannel := rlr.ReadLoadSpec.NumDocs / rlr.ReadLoadSpec.NumChannels
 	docsPerReader := numDocsPerChannel * rlr.ReadLoadSpec.NumChansPerReader
 
-	log.Printf("numdocsperchan: %d, rlr.ReadLoadSpec.NumDocs: %d  rlr.ReadLoadSpec.NumChannels:  %d rlr.ReadLoadSpec.NumChansPerReader: %d docsPerReader: %d", numDocsPerChannel, rlr.ReadLoadSpec.NumDocs, rlr.ReadLoadSpec.NumChannels, rlr.ReadLoadSpec.NumChansPerReader, docsPerReader)
-
 	return docsPerReader
 
 }
@@ -119,7 +112,7 @@ func (rlr ReadLoadRunner) assignChannelsToReader(sgChannels []string) []string {
 	assignedChannels := []string{}
 
 	if rlr.ReadLoadSpec.NumChansPerReader > len(sgChannels) {
-		log.Panicf("Cannot haave more chans per reader than total channels")
+		panic(fmt.Sprintf("Cannot have more chans per reader (%d) than total channels (%d)", rlr.ReadLoadSpec.NumChansPerReader, len(sgChannels)))
 	}
 
 	for i := 0; i < rlr.ReadLoadSpec.NumChansPerReader; i++ {

@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"log"
+	"fmt"
 
 	"github.com/couchbaselabs/sgload/sgload"
 	"github.com/inconshreveable/log15"
@@ -22,7 +22,8 @@ var writeloadCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 
 		// Setup logger
-		logger := log15.New()
+		logger = log15.New()
+		sgload.SetLogger(logger)
 
 		loadSpec := createLoadSpecFromArgs()
 		writeLoadSpec := sgload.WriteLoadSpec{
@@ -32,11 +33,12 @@ var writeloadCmd = &cobra.Command{
 			WriterCreds:   *writerCreds,
 		}
 		if err := writeLoadSpec.Validate(); err != nil {
-			log.Fatalf("Invalid parameters: %+v. Error: %v", writeLoadSpec, err)
+
+			panic(fmt.Sprintf("Invalid parameters: %+v. Error: %v", writeLoadSpec, err))
 		}
-		writeLoadRunner := sgload.NewWriteLoadRunner(writeLoadSpec, logger)
+		writeLoadRunner := sgload.NewWriteLoadRunner(writeLoadSpec)
 		if err := writeLoadRunner.Run(); err != nil {
-			log.Fatalf("Writeload.Run() failed with: %v", err)
+			panic(fmt.Sprintf("Writeload.Run() failed with: %v", err))
 		}
 
 	},

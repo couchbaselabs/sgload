@@ -1,10 +1,9 @@
 package sgload
 
 import (
-	"log"
+	"fmt"
 	"strings"
 	"sync"
-	"time"
 
 	sgreplicate "github.com/couchbaselabs/sg-replicate"
 )
@@ -48,7 +47,7 @@ func (r *Reader) Run() {
 	if r.CreateDataStoreUser == true {
 
 		if err := r.DataStore.CreateUser(r.UserCred, r.SGChannels); err != nil {
-			log.Fatalf("Error creating user in datastore.  User: %v, Err: %v", r.UserCred, err)
+			panic(fmt.Sprintf("Error creating user in datastore.  User: %v, Err: %v", r.UserCred, err))
 		}
 	}
 
@@ -58,41 +57,38 @@ func (r *Reader) Run() {
 	for {
 
 		if numDocsPulled > r.NumDocsExpected {
-			log.Panicf("Reader was only expected to pull %d docs, but pulled %d.", r.NumDocsExpected, numDocsPulled)
+			panic(fmt.Sprintf("Reader was only expected to pull %d docs, but pulled %d.", r.NumDocsExpected, numDocsPulled))
 		}
 
-		log.Printf("Reader.Run() agentid: %v numDocsPulled: %d / numDocsExpected: %d", r.ID, numDocsPulled, r.NumDocsExpected)
+		logger.Info("Reader", "agent.ID", r.ID, "numDocsPulled", numDocsPulled, "numDocsExpected", r.NumDocsExpected)
 
 		if numDocsPulled == r.NumDocsExpected {
 			// reader finished!
-			log.Printf("Received all docs -- reader finished")
+			logger.Info("Received all docs -- reader finished", "agent.ID", r.ID)
 			return
 		}
 
 		changes, newSince, err := r.DataStore.Changes(since, r.BatchSize)
 		if err != nil {
-			log.Panicf("Got error getting changes: %v", err)
+			panic(fmt.Sprintf("Got error getting changes: %v", err))
 		}
 		if newSince.Equals(since) {
-			log.Panicf("Since value should have changed from: %v", since)
+			panic(fmt.Sprintf("Since value should have changed from: %v", since))
 		}
 		since = newSince.(StringSincer)
 
-		// Strip out any changes with id "id":"_user/*" since they are user docs and we don't care about them
+		// Strip out any changes with id "id":"_user/*"
+		// since they are user docs and we don't care about them
 		changes = stripUserDocChanges(changes)
 
 		bulkGetRequest := getBulkGetRequest(changes)
 
 		err = r.DataStore.BulkGetDocuments(bulkGetRequest)
 		if err != nil {
-			log.Panicf("Got error getting bulk docs: %v", err)
+			panic(fmt.Sprintf("Got error getting bulk docs: %v", err))
 		}
 
 		numDocsPulled += len(bulkGetRequest.Docs)
-
-		log.Printf("changes: %+v, since: %v, err: %v", changes, since, err)
-
-		<-time.After(time.Second * 1)
 
 	}
 

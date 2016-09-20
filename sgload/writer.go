@@ -1,7 +1,7 @@
 package sgload
 
 import (
-	"log"
+	"fmt"
 	"sync"
 )
 
@@ -37,9 +37,11 @@ func (w *Writer) Run() {
 		allChannels := []string{"*"}
 
 		if err := w.DataStore.CreateUser(w.UserCred, allChannels); err != nil {
-			log.Fatalf("Error creating user in datastore.  User: %v, Err: %v", w.UserCred, err)
+			panic(fmt.Sprintf("Error creating user in datastore.  User: %v, Err: %v", w.UserCred, err))
 		}
 	}
+
+	numDocsPushed := 0
 
 	for {
 
@@ -51,19 +53,22 @@ func (w *Writer) Run() {
 				doc := docs[0]
 				_, ok := doc["_terminal"]
 				if ok {
+					logger.Info("Writer pushed all docs", "agent.ID", w.ID, "numdocs", numDocsPushed)
 					return
 				}
 
 				if err := w.DataStore.CreateDocument(doc); err != nil {
-					log.Fatalf("Error creating doc in datastore.  Doc: %v, Err: %v", doc, err)
+					panic(fmt.Sprintf("Error creating doc in datastore.  Doc: %v, Err: %v", doc, err))
 				}
 
 			default:
 				if err := w.DataStore.BulkCreateDocuments(docs); err != nil {
-					log.Fatalf("Error creating docs in datastore.  Docs: %v, Err: %v", docs, err)
+					panic(fmt.Sprintf("Error creating docs in datastore.  Docs: %v, Err: %v", docs, err))
 				}
 
 			}
+
+			numDocsPushed += len(docs)
 		}
 
 	}

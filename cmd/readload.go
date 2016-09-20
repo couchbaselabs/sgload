@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"log"
+	"os"
 
 	"github.com/couchbaselabs/sgload/sgload"
 	"github.com/inconshreveable/log15"
@@ -17,6 +17,7 @@ var (
 	readLoadNumWriters    *int    // Hack alert: duplicate this CLI writeload arg
 	readLoadCreateWriters *bool   // Hack alert: duplicate this CLI writeload arg
 	readLoadWriterCreds   *string // Hack alert: duplicate this CLI writeload arg
+	logger                log15.Logger
 )
 
 // readloadCmd respresents the readload command
@@ -27,7 +28,8 @@ var readloadCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 
 		// Setup logger
-		logger := log15.New()
+		logger = log15.New()
+		sgload.SetLogger(logger)
 
 		loadSpec := createLoadSpecFromArgs()
 
@@ -42,31 +44,33 @@ var readloadCmd = &cobra.Command{
 
 		if *skipWriteload == false {
 
-			log.Printf("Running writeload scenario")
-			if err := runWriteLoadScenario(loadSpec, logger); err != nil {
-				log.Fatalf("Failed to run writeload: %v", err)
+			logger.Info("Running writeload scenario")
+			if err := runWriteLoadScenario(loadSpec); err != nil {
+				logger.Crit("Failed to run writeload", "error", err)
+				os.Exit(1)
 			}
-			log.Printf("Finished running writeload scenario")
+			logger.Info("Finished running writeload scenario")
 
 		}
 
 		if err := readLoadSpec.Validate(); err != nil {
-			log.Fatalf("Invalid readloadSpec parameters: %+v. Error: %v", readLoadSpec, err)
+			logger.Crit("Invalid loadspec", "error", err, "readLoadSpec", readLoadSpec)
+			os.Exit(1)
+
 		}
 
-		log.Printf("Running readload scenario")
-		readLoadRunner := sgload.NewReadLoadRunner(readLoadSpec, logger)
+		logger.Info("Running readload scenario")
+		readLoadRunner := sgload.NewReadLoadRunner(readLoadSpec)
 		if err := readLoadRunner.Run(); err != nil {
-			log.Fatalf("Readload.Run() failed with: %v", err)
+			logger.Crit("Readload.Run() failed", "error", err)
+			os.Exit(1)
 		}
-		log.Printf("Finished running readload scenario")
+		logger.Info("Finished running readload scenario")
 
 	},
 }
 
-func runWriteLoadScenario(loadSpec sgload.LoadSpec, logger log15.Logger) error {
-
-	log.Printf("createWriters: %v. ", *createWriters)
+func runWriteLoadScenario(loadSpec sgload.LoadSpec) error {
 
 	writeLoadSpec := sgload.WriteLoadSpec{
 		LoadSpec:      loadSpec,
@@ -75,9 +79,9 @@ func runWriteLoadScenario(loadSpec sgload.LoadSpec, logger log15.Logger) error {
 		WriterCreds:   *readLoadWriterCreds,
 	}
 	if err := writeLoadSpec.Validate(); err != nil {
-		log.Fatalf("Invalid writeLoadSpec parameters: %+v. Error: %v", writeLoadSpec, err)
+		logger.Crit("Invalid loadspec", "error", err, "writeLoadSpec", writeLoadSpec)
 	}
-	writeLoadRunner := sgload.NewWriteLoadRunner(writeLoadSpec, logger)
+	writeLoadRunner := sgload.NewWriteLoadRunner(writeLoadSpec)
 
 	return writeLoadRunner.Run()
 
