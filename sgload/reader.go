@@ -59,18 +59,10 @@ func (r *Reader) Run() {
 
 	for {
 
-		if numDocsPulled > r.NumDocsExpected {
-			panic(fmt.Sprintf("Reader was only expected to pull %d docs, but pulled %d.", r.NumDocsExpected, numDocsPulled))
+		if r.isFinished(numDocsPulled) {
+			logger.Info("Reader finished", "agent.ID", r.ID, "numDocs", r.NumDocsExpected)
+			break
 		}
-
-		logger.Info("Reader pulled docs", "agent.ID", r.ID, "numDocsPulled", numDocsPulled, "numDocsExpected", r.NumDocsExpected)
-
-		if numDocsPulled == r.NumDocsExpected {
-			// reader finished!
-			logger.Info("Reader finished", "agent.ID", r.ID, "numDocsPulled", numDocsPulled, "numDocsExpected", r.NumDocsExpected)
-			return
-		}
-
 		result, err = r.pullMoreDocs(since)
 		if err != nil {
 			panic(fmt.Sprintf("Got error getting changes: %v", err))
@@ -78,6 +70,21 @@ func (r *Reader) Run() {
 		since = result.since
 		numDocsPulled += result.numDocsPulled
 
+	}
+
+}
+
+func (r *Reader) isFinished(numDocsPulled int) bool {
+
+	logger.Info("Reader checking if finished", "agent.ID", r.ID, "numDocsPulled", numDocsPulled, "numDocsExpected", r.NumDocsExpected)
+
+	switch {
+	case numDocsPulled > r.NumDocsExpected:
+		panic(fmt.Sprintf("Reader was only expected to pull %d docs, but pulled %d.", r.NumDocsExpected, numDocsPulled))
+	case numDocsPulled == r.NumDocsExpected:
+		return true
+	default:
+		return false
 	}
 
 }
@@ -91,7 +98,7 @@ func (r *Reader) pullMoreDocs(since Sincer) (pullMoreDocsResult, error) {
 
 	// Create a retry sleeper which controls how many times to retry
 	// and how long to wait in between retries
-	numRetries := 8
+	numRetries := 7
 	sleepMsBetweenRetry := 500
 	retrySleeper := CreateDoublingSleeperFunc(numRetries, sleepMsBetweenRetry)
 
