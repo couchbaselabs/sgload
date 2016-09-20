@@ -53,8 +53,8 @@ func (r *Reader) Run() {
 	}
 
 	numDocsPulled := 0
-	numDocsPulledJustNow := 0
 	since := StringSincer{}
+	result := pullMoreDocsResult{}
 	var err error
 
 	for {
@@ -71,46 +71,73 @@ func (r *Reader) Run() {
 			return
 		}
 
-		since, numDocsPulledJustNow, err = r.pullMoreDocs(since)
+		result, err = r.pullMoreDocs(since)
 		if err != nil {
 			panic(fmt.Sprintf("Got error getting changes: %v", err))
 		}
-		numDocsPulled += numDocsPulledJustNow
+		since = result.since
+		numDocsPulled += result.numDocsPulled
 
 	}
 
 }
 
-func (r *Reader) pullMoreDocs(since Sincer) (StringSincer, int, error) {
+type pullMoreDocsResult struct {
+	since         StringSincer
+	numDocsPulled int
+}
 
-	// numRetries := 5
-	// sleepMsBetweenRetry := 50
-	// retrySleeper := CreateDoublingSleeperFunc(numRetries, sleepMsBetweenRetry)
+func (r *Reader) pullMoreDocs(since Sincer) (pullMoreDocsResult, error) {
 
-	changes, newSince, err := r.DataStore.Changes(since, r.BatchSize)
+	// Create a retry sleeper which controls how many times to retry
+	// and how long to wait in between retries
+	numRetries := 8
+	sleepMsBetweenRetry := 500
+	retrySleeper := CreateDoublingSleeperFunc(numRetries, sleepMsBetweenRetry)
+
+	// Create retry worker that knows how to do actual work
+	retryWorker := func() (shouldRetry bool, err error, value interface{}) {
+
+		result := pullMoreDocsResult{}
+
+		changes, newSince, err := r.DataStore.Changes(since, r.BatchSize)
+		if err != nil {
+			return false, err, result
+		}
+
+		if len(changes.Results) == 0 {
+			logger.Warn("No changes pulled", "agent.ID", r.ID, "since", since)
+			return true, nil, result
+		}
+		if newSince.Equals(since) {
+			logger.Warn("Since value should have changed", "agent.ID", r.ID, "since", since, "newsince", newSince)
+			return true, nil, result
+		}
+
+		// Strip out any changes with id "id":"_user/*"
+		// since they are user docs and we don't care about them
+		changes = stripUserDocChanges(changes)
+
+		bulkGetRequest := getBulkGetRequest(changes)
+
+		err = r.DataStore.BulkGetDocuments(bulkGetRequest)
+		if err != nil {
+			return false, err, result
+		}
+
+		result.since = newSince.(StringSincer)
+		result.numDocsPulled = len(bulkGetRequest.Docs)
+		return false, nil, result
+
+	}
+
+	// Invoke the retry worker / sleeper combo in a loop
+	err, workerReturnVal := RetryLoop("pullMoreDocs", retryWorker, retrySleeper)
 	if err != nil {
-		return StringSincer{}, 0, err
+		return pullMoreDocsResult{}, err
 	}
 
-	if len(changes.Results) == 0 {
-		logger.Warn("No changes pulled", "since", since)
-	}
-	if newSince.Equals(since) {
-		logger.Warn("Since value should have changed", "since", since, "newsince", newSince)
-	}
-
-	// Strip out any changes with id "id":"_user/*"
-	// since they are user docs and we don't care about them
-	changes = stripUserDocChanges(changes)
-
-	bulkGetRequest := getBulkGetRequest(changes)
-
-	err = r.DataStore.BulkGetDocuments(bulkGetRequest)
-	if err != nil {
-		return StringSincer{}, 0, err
-	}
-
-	return newSince.(StringSincer), len(bulkGetRequest.Docs), nil
+	return workerReturnVal.(pullMoreDocsResult), nil
 
 }
 
