@@ -60,11 +60,11 @@ func (r *Reader) Run() {
 			panic(fmt.Sprintf("Reader was only expected to pull %d docs, but pulled %d.", r.NumDocsExpected, numDocsPulled))
 		}
 
-		logger.Info("Reader", "agent.ID", r.ID, "numDocsPulled", numDocsPulled, "numDocsExpected", r.NumDocsExpected)
+		logger.Info("Reader pulled docs", "agent.ID", r.ID, "numDocsPulled", numDocsPulled, "numDocsExpected", r.NumDocsExpected)
 
 		if numDocsPulled == r.NumDocsExpected {
 			// reader finished!
-			logger.Info("Received all docs -- reader finished", "agent.ID", r.ID)
+			logger.Info("Reader finished", "agent.ID", r.ID, "numDocsPulled", numDocsPulled, "numDocsExpected", r.NumDocsExpected)
 			return
 		}
 
