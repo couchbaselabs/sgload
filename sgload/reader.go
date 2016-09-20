@@ -47,6 +47,8 @@ func (r *Reader) Run() {
 
 	if r.CreateDataStoreUser == true {
 
+		logger.Info("Creating reader SG user", "username", r.UserCred.Username, "channels", r.SGChannels)
+
 		if err := r.DataStore.CreateUser(r.UserCred, r.SGChannels); err != nil {
 			panic(fmt.Sprintf("Error creating user in datastore.  User: %v, Err: %v", r.UserCred, err))
 		}

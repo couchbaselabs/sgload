@@ -36,6 +36,8 @@ func (w *Writer) Run() {
 		// Just give writers access to all channels
 		allChannels := []string{"*"}
 
+		logger.Info("Creating writer SG user", "username", w.UserCred.Username, "channels", allChannels)
+
 		if err := w.DataStore.CreateUser(w.UserCred, allChannels); err != nil {
 			panic(fmt.Sprintf("Error creating user in datastore.  User: %v, Err: %v", w.UserCred, err))
 		}
