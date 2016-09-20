@@ -7,13 +7,15 @@ import (
 	"time"
 
 	sgreplicate "github.com/couchbaselabs/sg-replicate"
+	"github.com/peterbourgon/g2s"
 )
 
 type Reader struct {
 	Agent
-	SGChannels      []string // The Sync Gateway channels this reader is assigned to pull from
-	NumDocsExpected int      // The total number of docs this reader is expected to pull
-	BatchSize       int      // The number of docs to pull in batch (_changes feed and bulk_get)
+	SGChannels      []string    // The Sync Gateway channels this reader is assigned to pull from
+	NumDocsExpected int         // The total number of docs this reader is expected to pull
+	BatchSize       int         // The number of docs to pull in batch (_changes feed and bulk_get)
+	StatsdClient    *g2s.Statsd // The statsd client instance to use to push stats to statdsd
 }
 
 func NewReader(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, batchsize int) *Reader {
@@ -41,23 +43,31 @@ func (r *Reader) SetBatchSize(batchSize int) {
 	r.BatchSize = batchSize
 }
 
+func (r *Reader) SetStatsdClient(statsdClient *g2s.Statsd) {
+	r.StatsdClient = statsdClient
+}
+
 func (r *Reader) Run() {
-
-	defer r.FinishedWg.Done()
-
-	if r.CreateDataStoreUser == true {
-
-		logger.Info("Creating reader SG user", "username", r.UserCred.Username, "channels", r.SGChannels)
-
-		if err := r.DataStore.CreateUser(r.UserCred, r.SGChannels); err != nil {
-			panic(fmt.Sprintf("Error creating user in datastore.  User: %v, Err: %v", r.UserCred, err))
-		}
-	}
 
 	numDocsPulled := 0
 	since := StringSincer{}
 	result := pullMoreDocsResult{}
 	var err error
+	var timeStartedCreatingDocs time.Time
+
+	defer r.FinishedWg.Done()
+	defer func() {
+		delta := time.Since(timeStartedCreatingDocs)
+		r.StatsdClient.Timing(
+			statsdSampleRate,
+			"get_all_documents",
+			delta,
+		)
+	}()
+
+	r.createSGUserIfNeeded()
+
+	timeStartedCreatingDocs = time.Now()
 
 	for {
 
@@ -72,6 +82,18 @@ func (r *Reader) Run() {
 		since = result.since
 		numDocsPulled += result.numDocsPulled
 
+	}
+
+}
+
+func (r *Reader) createSGUserIfNeeded() {
+	if r.CreateDataStoreUser == true {
+
+		logger.Info("Creating reader SG user", "username", r.UserCred.Username, "channels", r.SGChannels)
+
+		if err := r.DataStore.CreateUser(r.UserCred, r.SGChannels); err != nil {
+			panic(fmt.Sprintf("Error creating user in datastore.  User: %v, Err: %v", r.UserCred, err))
+		}
 	}
 
 }

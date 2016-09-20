@@ -305,6 +305,8 @@ func (s SGDataStore) BulkGetDocuments(r sgreplicate.BulkGetRequest) error {
 		return fmt.Errorf("Unexpected response status for POST request: %d", resp.StatusCode)
 	}
 
+	// TODO: parse the response and make sure that we got all the docs we requested
+
 	defer resp.Body.Close()
 	io.Copy(ioutil.Discard, resp.Body)
 
