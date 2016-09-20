@@ -3,6 +3,7 @@ package sgload
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"sync"
 )
 
@@ -73,7 +74,10 @@ func (rlr ReadLoadRunner) createReaders(wg *sync.WaitGroup) ([]*Reader, error) {
 		dataStore.SetUserCreds(userCred)
 
 		// get channels that should be assigned to this reader
-		sgChannels := rlr.assignChannelsToReader(rlr.generateChannelNames())
+		sgChannels := assignChannelsToReader(
+			rlr.ReadLoadSpec.NumChansPerReader,
+			rlr.generateChannelNames(),
+		)
 
 		reader := NewReader(
 			wg,
@@ -152,16 +156,17 @@ func (rlr ReadLoadRunner) numDocsExpectedPerReader() int {
 // SG channels to this particular reader.  This means that when the reader user is
 // created, this will have these channels listed in their admin_channels field
 // so they pull these channels when hittting the _changes feed.
-func (rlr ReadLoadRunner) assignChannelsToReader(sgChannels []string) []string {
+func assignChannelsToReader(numChansPerReader int, sgChannels []string) []string {
 
 	assignedChannels := []string{}
 
-	if rlr.ReadLoadSpec.NumChansPerReader > len(sgChannels) {
-		panic(fmt.Sprintf("Cannot have more chans per reader (%d) than total channels (%d)", rlr.ReadLoadSpec.NumChansPerReader, len(sgChannels)))
+	if numChansPerReader > len(sgChannels) {
+		panic(fmt.Sprintf("Cannot have more chans per reader (%d) than total channels (%d)", numChansPerReader, len(sgChannels)))
 	}
 
-	for i := 0; i < rlr.ReadLoadSpec.NumChansPerReader; i++ {
-		sgChannel := sgChannels[i]
+	for i := 0; i < numChansPerReader; i++ {
+		chanIndex := rand.Intn(len(sgChannels))
+		sgChannel := sgChannels[chanIndex]
 		assignedChannels = append(assignedChannels, sgChannel)
 	}
 
