@@ -58,26 +58,5 @@ func (lr LoadRunner) generateChannelNames() []string {
 }
 
 func (lr LoadRunner) generateUserCreds(numUsers int, usernamePrefix string) []UserCred {
-	userCreds := []UserCred{}
-	for userId := 0; userId < numUsers; userId++ {
-		username := fmt.Sprintf(
-			"%s-user-%d-%s",
-			usernamePrefix,
-			userId,
-			lr.LoadSpec.TestSessionID,
-		)
-		password := fmt.Sprintf(
-			"%s-passw0rd-%d-%s",
-			usernamePrefix,
-			userId,
-			lr.LoadSpec.TestSessionID,
-		)
-		userCred := UserCred{
-			Username: username,
-			Password: password,
-		}
-		userCreds = append(userCreds, userCred)
-
-	}
-	return userCreds
+	return lr.LoadSpec.generateUserCreds(numUsers, usernamePrefix)
 }
