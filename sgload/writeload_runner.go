@@ -80,6 +80,7 @@ func (wlr WriteLoadRunner) createWriters(wg *sync.WaitGroup) ([]*Writer, error) 
 			dataStore,
 			wlr.WriteLoadSpec.BatchSize,
 		)
+		writer.SetStatsdClient(wlr.StatsdClient)
 		writer.CreateDataStoreUser = wlr.WriteLoadSpec.CreateWriters
 		writers = append(writers, writer)
 		wg.Add(1)

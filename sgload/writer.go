@@ -3,6 +3,8 @@ package sgload
 import (
 	"fmt"
 	"sync"
+
+	"github.com/peterbourgon/g2s"
 )
 
 type Writer struct {
@@ -65,6 +67,10 @@ func (w *Writer) Run() {
 
 	}
 
+}
+
+func (w *Writer) SetStatsdClient(statsdClient *g2s.Statsd) {
+	w.StatsdClient = statsdClient
 }
 
 func (w *Writer) createSGUserIfNeeded() {

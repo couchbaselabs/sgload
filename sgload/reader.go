@@ -12,15 +12,15 @@ import (
 
 type Reader struct {
 	Agent
-	SGChannels      []string    // The Sync Gateway channels this reader is assigned to pull from
-	NumDocsExpected int         // The total number of docs this reader is expected to pull
-	BatchSize       int         // The number of docs to pull in batch (_changes feed and bulk_get)
-	StatsdClient    *g2s.Statsd // The statsd client instance to use to push stats to statdsd
+	SGChannels      []string // The Sync Gateway channels this reader is assigned to pull from
+	NumDocsExpected int      // The total number of docs this reader is expected to pull
+	BatchSize       int      // The number of docs to pull in batch (_changes feed and bulk_get)
+
 }
 
 func NewReader(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, batchsize int) *Reader {
 
-	return &Reader{
+	reader := Reader{
 		Agent: Agent{
 			FinishedWg: wg,
 			UserCred:   u,
@@ -29,6 +29,9 @@ func NewReader(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, batchsize in
 			BatchSize:  batchsize,
 		},
 	}
+
+	return &reader
+
 }
 
 func (r *Reader) SetChannels(sgChannels []string) {
