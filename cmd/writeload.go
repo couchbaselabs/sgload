@@ -49,9 +49,9 @@ func init() {
 	RootCmd.AddCommand(writeloadCmd)
 
 	numWriters = writeloadCmd.PersistentFlags().Int(
-		"numwriters",
-		100,
-		"The number of unique users that will write documents.  Each writer runs concurrently in it's own goroutine",
+		NUM_WRITERS_CMD_NAME,
+		NUM_WRITERS_CMD_DEFAULT,
+		NUM_WRITERS_CMD_DESC,
 	)
 
 	createWriters = writeloadCmd.PersistentFlags().Bool(

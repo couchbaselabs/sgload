@@ -87,33 +87,14 @@ func runWriteLoadScenario(loadSpec sgload.LoadSpec) error {
 
 }
 
-func createLoadSpecFromArgs() sgload.LoadSpec {
-
-	loadSpec := sgload.LoadSpec{
-		SyncGatewayUrl:       *sgUrl,
-		SyncGatewayAdminPort: *sgAdminPort,
-		MockDataStore:        *mockDataStore,
-		StatsdEnabled:        *statsdEnabled,
-		StatsdEndpoint:       *statsdEndpoint,
-		TestSessionID:        *testSessionID,
-		BatchSize:            *batchSize,
-		NumChannels:          *numChannels,
-		DocSizeBytes:         *docSizeBytes,
-		NumDocs:              *numDocs,
-	}
-	loadSpec.GenerateTestSessionID()
-	return loadSpec
-
-}
-
 func init() {
 
 	RootCmd.AddCommand(readloadCmd)
 
 	numReaders = readloadCmd.PersistentFlags().Int(
-		"numreaders",
-		100,
-		"The number of unique readers that will read documents.  Each reader runs concurrently in it's own goroutine",
+		NUM_READERS_CMD_NAME,
+		NUM_READERS_CMD_DEFAULT,
+		NUM_READERS_CMD_DESC,
 	)
 
 	numChansPerReader = readloadCmd.PersistentFlags().Int(
@@ -141,9 +122,9 @@ func init() {
 	)
 
 	readLoadNumWriters = readloadCmd.PersistentFlags().Int(
-		"numwriters",
-		100,
-		"The number of unique users that will write documents.  Each writer runs concurrently in it's own goroutine",
+		NUM_WRITERS_CMD_NAME,
+		NUM_WRITERS_CMD_DEFAULT,
+		NUM_WRITERS_CMD_DESC,
 	)
 
 	readLoadCreateWriters = readloadCmd.PersistentFlags().Bool(
