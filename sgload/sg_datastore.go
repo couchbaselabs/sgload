@@ -188,6 +188,8 @@ func (s SGDataStore) Changes(sinceVal Sincer, limit int) (changes sgreplicate.Ch
 // Create a single document in Sync Gateway
 func (s SGDataStore) CreateDocument(d Document) error {
 
+	defer s.pushCounter("create_document_counter", 1)
+
 	docBytes, err := json.Marshal(d)
 	if err != nil {
 		return err
@@ -219,6 +221,8 @@ func (s SGDataStore) CreateDocument(d Document) error {
 
 // Bulk create a set of documents in Sync Gateway
 func (s SGDataStore) BulkCreateDocuments(docs []Document) error {
+
+	defer s.pushCounter("create_document_counter", len(docs))
 
 	bulkDocsEndpoint, err := addEndpointToUrl(s.SyncGatewayUrl, "_bulk_docs")
 	if err != nil {
@@ -329,6 +333,17 @@ func (s SGDataStore) pushTimingStat(key string, delta time.Duration) {
 		statsdSampleRate,
 		key,
 		delta,
+	)
+}
+
+func (s SGDataStore) pushCounter(key string, n int) {
+	if s.StatsdClient == nil {
+		return
+	}
+	s.StatsdClient.Counter(
+		statsdSampleRate,
+		key,
+		n,
 	)
 }
 
