@@ -277,6 +277,8 @@ func (s SGDataStore) BulkCreateDocuments(docs []Document) error {
 
 func (s SGDataStore) BulkGetDocuments(r sgreplicate.BulkGetRequest) error {
 
+	defer s.pushCounter("get_document_counter", len(r.Docs))
+
 	// TODO: needs to check response status of each doc to
 	// make sure no errors pulling docs
 
