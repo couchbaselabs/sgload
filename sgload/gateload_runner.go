@@ -1,6 +1,9 @@
 package sgload
 
-import "sync"
+import (
+	"fmt"
+	"sync"
+)
 
 type GateLoadRunner struct {
 	LoadRunner
@@ -87,6 +90,19 @@ func (glr GateLoadRunner) startWriters() (*sync.WaitGroup, []*Writer, error) {
 }
 
 func (glr GateLoadRunner) startReaders() error {
+
+	// Create a wait group that is currently ignored
+	var wg sync.WaitGroup
+
+	// Create reader goroutines
+	readers, err := glr.createReaders(&wg)
+	if err != nil {
+		return fmt.Errorf("Error creating readers: %v", err)
+	}
+	for _, reader := range readers {
+		go reader.Run()
+	}
+
 	return nil
 }
 
