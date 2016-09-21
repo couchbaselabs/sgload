@@ -1,7 +1,11 @@
 package sgload
 
+import "sync"
+
 type GateLoadRunner struct {
 	LoadRunner
+	WriteLoadRunner
+	ReadLoadRunner
 	GateLoadSpec GateLoadSpec
 }
 
@@ -14,9 +18,21 @@ func NewGateLoadRunner(gls GateLoadSpec) *GateLoadRunner {
 	}
 	loadRunner.CreateStatsdClient()
 
-	return &GateLoadRunner{
+	writeLoadRunner := WriteLoadRunner{
+		LoadRunner:    loadRunner,
+		WriteLoadSpec: gls.WriteLoadSpec,
+	}
+
+	readLoadRunner := ReadLoadRunner{
 		LoadRunner:   loadRunner,
-		GateLoadSpec: gls,
+		ReadLoadSpec: gls.ReadLoadSpec,
+	}
+
+	return &GateLoadRunner{
+		LoadRunner:      loadRunner,
+		WriteLoadRunner: writeLoadRunner,
+		ReadLoadRunner:  readLoadRunner,
+		GateLoadSpec:    gls,
 	}
 
 }
@@ -30,7 +46,8 @@ func (glr GateLoadRunner) Run() error {
 	// TODO: 3) instead of finishing when writers finish, block until readers have read all docs written)
 
 	// Start Writers
-	if err := glr.startWriters(); err != nil {
+	writerWaitGroup, writers, err := glr.startWriters()
+	if err != nil {
 		return err
 	}
 
@@ -40,30 +57,46 @@ func (glr GateLoadRunner) Run() error {
 	}
 
 	// Start Doc Feeder
-	if err := glr.startDocFeeder(); err != nil {
+	if err := glr.startDocFeeder(writers); err != nil {
 		return err
 	}
 
 	// Wait until writers finish
-	if err := glr.waitUntilWritersFinish(); err != nil {
+	if err := glr.waitUntilWritersFinish(writerWaitGroup); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (glr GateLoadRunner) startWriters() error {
-	return nil
+func (glr GateLoadRunner) startWriters() (*sync.WaitGroup, []*Writer, error) {
+
+	// Create a wait group to see when all the writer goroutines have finished
+	wg := sync.WaitGroup{}
+
+	// Create writer goroutines
+	writers, err := glr.createWriters(&wg)
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, writer := range writers {
+		go writer.Run()
+	}
+
+	return &wg, writers, nil
 }
 
 func (glr GateLoadRunner) startReaders() error {
 	return nil
 }
 
-func (glr GateLoadRunner) startDocFeeder() error {
+func (glr GateLoadRunner) startDocFeeder(writers []*Writer) error {
+	// Create doc feeder goroutine
+	go glr.feedDocsToWriters(writers)
 	return nil
 }
 
-func (glr GateLoadRunner) waitUntilWritersFinish() error {
+func (glr GateLoadRunner) waitUntilWritersFinish(writerWaitGroup *sync.WaitGroup) error {
+	writerWaitGroup.Wait()
 	return nil
 }
