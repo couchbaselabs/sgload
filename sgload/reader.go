@@ -102,7 +102,8 @@ func (r *Reader) Run() {
 		}
 		result, err = r.pullMoreDocs(since)
 		if err != nil {
-			panic(fmt.Sprintf("Got error getting changes: %v", err))
+			logger.Error("Error calling pullMoreDocs", "agent.ID", r.ID, "since", since, "err", err)
+			panic(fmt.Sprintf("Error calling pullMoreDoc: %v", err))
 		}
 		since = result.since
 		numDocsPulled += result.numDocsPulled
