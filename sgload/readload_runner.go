@@ -166,13 +166,28 @@ func assignChannelsToReader(numChansPerReader int, sgChannels []string) []string
 	}
 
 	for i := 0; i < numChansPerReader; i++ {
-		chanIndex := rand.Intn(len(sgChannels))
-		sgChannel := sgChannels[chanIndex]
-		assignedChannels = append(assignedChannels, sgChannel)
+		for { // keep looping until we get a unique channel
+			chanIndex := rand.Intn(len(sgChannels))
+			sgChannel := sgChannels[chanIndex]
+			if contains(assignedChannels, sgChannel) {
+				continue
+			}
+			assignedChannels = append(assignedChannels, sgChannel)
+			break
+		}
 	}
 
 	return assignedChannels
 
+}
+
+func contains(stringslice []string, other string) bool {
+	for _, s := range stringslice {
+		if s == other {
+			return true
+		}
+	}
+	return false
 }
 
 func (rlr ReadLoadRunner) generateUserCreds() []UserCred {
