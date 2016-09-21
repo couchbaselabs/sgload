@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sync"
+	"time"
 )
 
 type WriteLoadRunner struct {
@@ -187,6 +188,7 @@ func (wlr WriteLoadRunner) createDocsToWrite() []Document {
 		d = map[string]interface{}{}
 		d["docNum"] = docNum
 		d["body"] = createBodyContentWithSize(wlr.WriteLoadSpec.DocSizeBytes)
+		d["created_at"] = time.Now().Format(time.RFC3339Nano)
 		docs = append(docs, d)
 	}
 	return docs

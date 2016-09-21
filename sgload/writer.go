@@ -3,6 +3,7 @@ package sgload
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/peterbourgon/g2s"
 )
@@ -42,6 +43,8 @@ func (w *Writer) Run() {
 		select {
 		case docs := <-w.OutboundDocs:
 
+			updateCreatedAtTimestamp(docs)
+
 			switch len(docs) {
 			case 1:
 				doc := docs[0]
@@ -67,6 +70,12 @@ func (w *Writer) Run() {
 
 	}
 
+}
+
+func updateCreatedAtTimestamp(docs []Document) {
+	for _, doc := range docs {
+		doc["created_at"] = time.Now().Format(time.RFC3339Nano)
+	}
 }
 
 func (w *Writer) SetStatsdClient(statsdClient *g2s.Statsd) {

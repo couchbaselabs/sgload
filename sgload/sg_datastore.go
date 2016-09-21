@@ -279,9 +279,6 @@ func (s SGDataStore) BulkGetDocuments(r sgreplicate.BulkGetRequest) error {
 
 	defer s.pushCounter("get_document_counter", len(r.Docs))
 
-	// TODO: needs to check response status of each doc to
-	// make sure no errors pulling docs
-
 	bulkGetEndpoint, err := addEndpointToUrl(s.SyncGatewayUrl, "_bulk_get")
 	if err != nil {
 		return err
@@ -311,10 +308,36 @@ func (s SGDataStore) BulkGetDocuments(r sgreplicate.BulkGetRequest) error {
 		return fmt.Errorf("Unexpected response status for POST request: %d", resp.StatusCode)
 	}
 
-	// TODO: parse the response and make sure that we got all the docs we requested
-
+	// Parse the response and make sure that we got all the docs we requested
 	defer resp.Body.Close()
-	io.Copy(ioutil.Discard, resp.Body)
+	documents, err := sgreplicate.ReadBulkGetResponse(resp)
+	if len(documents) != len(r.Docs) {
+		return fmt.Errorf("Expected %d docs, got %d docs", len(r.Docs), len(documents))
+	}
+
+	for _, doc := range documents {
+		createAtRFC3339NanoIface, ok := doc.Body["created_at"]
+		if !ok {
+			logger.Warn("Document missing created_at field", "doc.Body", doc.Body)
+			continue
+		}
+		createAtRFC3339NanoStr, ok := createAtRFC3339NanoIface.(string)
+		if !ok {
+			logger.Warn("Document created_at not a string", "doc.Body", doc.Body)
+			continue
+		}
+		createAtRFC3339Nano, err := time.Parse(
+			time.RFC3339Nano,
+			createAtRFC3339NanoStr,
+		)
+		if err != nil {
+			logger.Warn("Could not parse doc.created_at field into time", "createAtRFC3339Nano", createAtRFC3339Nano)
+			continue
+		}
+		delta := time.Since(createAtRFC3339Nano)
+		logger.Info("gateload_roundtrip", "delta", delta)
+		s.pushTimingStat("gateload_roundtrip", delta)
+	}
 
 	return nil
 

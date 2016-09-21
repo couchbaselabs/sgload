@@ -33,7 +33,7 @@ func (rlr ReadLoadRunner) Run() error {
 	// Create a wait group to see when all the reader goroutines have finished
 	var wg sync.WaitGroup
 
-	// Create writer goroutines
+	// Create reader goroutines
 	readers, err := rlr.createReaders(&wg)
 	if err != nil {
 		return fmt.Errorf("Error creating readers: %v", err)

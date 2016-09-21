@@ -63,16 +63,18 @@ func (r *Reader) pushPostRunTimingStats(numDocsPulled int, timeStartedCreatingDo
 		delta,
 	)
 
-	// Average time it took to read each doc from
-	// the changes feed and the doc itself
-	deltaChangeAndDoc := time.Duration(int64(delta) / int64(numDocsPulled))
-	r.StatsdClient.Timing(
-		statsdSampleRate,
-		"get_change_and_document",
-		deltaChangeAndDoc,
-	)
+	if numDocsPulled > 0 {
+		// Average time it took to read each doc from
+		// the changes feed and the doc itself
+		deltaChangeAndDoc := time.Duration(int64(delta) / int64(numDocsPulled))
+		r.StatsdClient.Timing(
+			statsdSampleRate,
+			"get_change_and_document",
+			deltaChangeAndDoc,
+		)
+	}
 
-	logger.Info("Reader finished", "agent.ID", r.ID, "numdocs", numDocsPulled, "get_all_documents", delta, "get_change_and_document", deltaChangeAndDoc)
+	logger.Info("Reader finished", "agent.ID", r.ID, "numdocs", numDocsPulled, "get_all_documents", delta)
 
 }
 
