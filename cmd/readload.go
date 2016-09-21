@@ -98,15 +98,15 @@ func init() {
 	)
 
 	numChansPerReader = readloadCmd.PersistentFlags().Int(
-		"num-chans-per-reader",
-		1,
-		"The number of channels that each reader has access to.",
+		NUM_CHANS_PER_READER_CMD_NAME,
+		NUM_CHANS_PER_READER_CMD_DEFAULT,
+		NUM_CHANS_PER_READER_CMD_DESC,
 	)
 
 	createReaders = readloadCmd.PersistentFlags().Bool(
-		"createreaders",
-		false,
-		"Add this flag if you need the test to create SG users for readers.  Otherwise you'll need to specify readercreds",
+		CREATE_READERS_CMD_NAME,
+		CREATE_READERS_CMD_DEFAULT,
+		CREATE_READERS_CMD_DESC,
 	)
 
 	readerCreds = readloadCmd.PersistentFlags().String(
@@ -128,9 +128,9 @@ func init() {
 	)
 
 	readLoadCreateWriters = readloadCmd.PersistentFlags().Bool(
-		"createwriters",
-		false,
-		"Add this flag if you need the test to create SG users for writers.  Otherwise you'll need to specify writercreds",
+		CREATE_WRITERS_CMD_NAME,
+		CREATE_WRITERS_CMD_DEFAULT,
+		CREATE_WRITERS_CMD_DESC,
 	)
 
 	readLoadWriterCreds = readloadCmd.PersistentFlags().String(

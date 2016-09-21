@@ -4,13 +4,21 @@ import "log"
 
 type GateLoadSpec struct {
 	LoadSpec
-	NumReaders int
-	NumWriters int
+	WriteLoadSpec
+	ReadLoadSpec
 }
 
 func (gls GateLoadSpec) Validate() error {
 
 	if err := gls.LoadSpec.Validate(); err != nil {
+		return err
+	}
+
+	if err := gls.ReadLoadSpec.Validate(); err != nil {
+		return err
+	}
+
+	if err := gls.WriteLoadSpec.Validate(); err != nil {
 		return err
 	}
 

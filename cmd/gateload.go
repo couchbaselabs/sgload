@@ -10,8 +10,12 @@ import (
 )
 
 var (
-	glNumReaders *int
-	glNumWriters *int
+	glNumReaders        *int
+	glNumWriters        *int
+	glWriterCreds       *string
+	glNumChansPerReader *int
+	glCreateReaders     *bool
+	glCreateWriters     *bool
 )
 
 var gateloadCmd = &cobra.Command{
@@ -26,10 +30,24 @@ var gateloadCmd = &cobra.Command{
 		sgload.SetLogger(logger)
 
 		loadSpec := createLoadSpecFromArgs()
+
+		writeLoadSpec := sgload.WriteLoadSpec{
+			LoadSpec:      loadSpec,
+			NumWriters:    *glNumWriters,
+			CreateWriters: *glCreateWriters,
+		}
+
+		readLoadSpec := sgload.ReadLoadSpec{
+			LoadSpec:          loadSpec,
+			NumReaders:        *glNumReaders,
+			NumChansPerReader: *glNumChansPerReader,
+			CreateReaders:     *glCreateReaders,
+		}
+
 		gateLoadSpec := sgload.GateLoadSpec{
-			LoadSpec:   loadSpec,
-			NumWriters: *glNumWriters,
-			NumReaders: *glNumReaders,
+			LoadSpec:      loadSpec,
+			WriteLoadSpec: writeLoadSpec,
+			ReadLoadSpec:  readLoadSpec,
 		}
 		if err := gateLoadSpec.Validate(); err != nil {
 
@@ -44,6 +62,7 @@ var gateloadCmd = &cobra.Command{
 }
 
 func init() {
+
 	RootCmd.AddCommand(gateloadCmd)
 
 	glNumReaders = gateloadCmd.PersistentFlags().Int(
@@ -56,6 +75,24 @@ func init() {
 		NUM_WRITERS_CMD_NAME,
 		NUM_WRITERS_CMD_DEFAULT,
 		NUM_WRITERS_CMD_DESC,
+	)
+
+	glCreateWriters = gateloadCmd.PersistentFlags().Bool(
+		CREATE_WRITERS_CMD_NAME,
+		CREATE_WRITERS_CMD_DEFAULT,
+		CREATE_WRITERS_CMD_DESC,
+	)
+
+	glNumChansPerReader = gateloadCmd.PersistentFlags().Int(
+		NUM_CHANS_PER_READER_CMD_NAME,
+		NUM_CHANS_PER_READER_CMD_DEFAULT,
+		NUM_CHANS_PER_READER_CMD_DESC,
+	)
+
+	glCreateReaders = gateloadCmd.PersistentFlags().Bool(
+		CREATE_READERS_CMD_NAME,
+		CREATE_READERS_CMD_DEFAULT,
+		CREATE_READERS_CMD_DESC,
 	)
 
 }
