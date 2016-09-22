@@ -2,6 +2,7 @@ package sgload
 
 import (
 	"fmt"
+	"math/rand"
 	"time"
 )
 
@@ -36,6 +37,9 @@ func assignDocsToChannels(channelNames []string, inputDocs []Document) []Documen
 	if len(channelNames) > len(inputDocs) {
 		panic(fmt.Sprintf("Num chans (%d) must be LTE to num docs (%d)", len(channelNames), len(inputDocs)))
 	}
+	if len(channelNames) == 0 {
+		panic(fmt.Sprintf("Cannot call assignDocsToChannels with empty channelNames"))
+	}
 
 	for docNum, inputDoc := range inputDocs {
 		chanIndex := docNum % len(channelNames)
@@ -49,21 +53,19 @@ func assignDocsToChannels(channelNames []string, inputDocs []Document) []Documen
 }
 
 // Split the docs among the writers with an even distribution
-func assignDocsToWriters(d []Document, w []*Writer) map[*Writer][]Document {
+func assignDocsToWriters(d []Document, writers []*Writer) map[*Writer][]Document {
 
 	docAssignmentMapping := map[*Writer][]Document{}
-	for _, writer := range w {
+	for _, writer := range writers {
 		docAssignmentMapping[writer] = []Document{}
 	}
 
-	// TODO: choose a writer randomly (roughly equal distribution).  if one writer has more load than other
-	// won't ruin the test
+	for _, doc := range d {
 
-	for docNum, doc := range d {
+		// choose a random writer
+		writerIndex := rand.Intn(len(writers))
 
-		// figure out which writer to assign this doc to
-		writerIndex := docNum % len(w)
-		writer := w[writerIndex]
+		writer := writers[writerIndex]
 
 		// add doc to writer's list of docs
 		docsForWriter := docAssignmentMapping[writer]
