@@ -48,3 +48,16 @@ type DocumentRevisionPair struct {
 	Error    string `json:"error,omitempty"`
 	Reason   string `json:"reason,omitempty"`
 }
+
+func (d Document) channelNames() []string {
+	channelNames := []string{}
+	channelNamesIface, ok := d["channels"]
+	if !ok {
+		return channelNames
+	}
+	channelNamesStr := channelNamesIface.([]string)
+	for _, chanName := range channelNamesStr {
+		channelNames = append(channelNames, chanName)
+	}
+	return channelNames
+}
