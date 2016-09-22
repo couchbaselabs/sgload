@@ -275,6 +275,7 @@ func (s SGDataStore) BulkCreateDocuments(docs []Document) error {
 
 }
 
+// TODO: return docs to caller
 func (s SGDataStore) BulkGetDocuments(r sgreplicate.BulkGetRequest) error {
 
 	defer s.pushCounter("get_document_counter", len(r.Docs))

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"sync"
-	"time"
 )
 
 type WriteLoadRunner struct {
@@ -135,15 +134,16 @@ func (wlr WriteLoadRunner) generateUserCreds() []UserCred {
 
 func (wlr WriteLoadRunner) feedDocsToWriters(writers []*Writer) error {
 
-	docsToWrite := wlr.createDocsToWrite()
-	docsToWrite = wlr.assignDocsToChannels(docsToWrite)
-
-	// Assign docs to writers, this returns a map keyed on writer which points
-	// to doc slice for that writer
-	docAssignmentMapping := wlr.assignDocsToWriters(docsToWrite, writers)
+	channelNames := wlr.generateChannelNames()
+	docsToChannelsAndWriters := createAndAssignDocs(
+		writers,
+		channelNames,
+		wlr.WriteLoadSpec.NumDocs,
+		wlr.WriteLoadSpec.DocSizeBytes,
+	)
 
 	// Loop over doc assignment map and tell each writer to push to data store
-	for writer, docsToWrite := range docAssignmentMapping {
+	for writer, docsToWrite := range docsToChannelsAndWriters {
 		writer.AddToDataStore(docsToWrite)
 	}
 
@@ -156,67 +156,6 @@ func (wlr WriteLoadRunner) feedDocsToWriters(writers []*Writer) error {
 	}
 
 	return nil
-
-}
-
-func (wlr WriteLoadRunner) assignDocsToChannels(inputDocs []Document) []Document {
-
-	docs := []Document{}
-	channelNames := wlr.generateChannelNames()
-
-	if len(channelNames) > len(inputDocs) {
-		panic(fmt.Sprintf("Num chans (%d) must be LTE to num docs (%d)", len(channelNames), len(inputDocs)))
-	}
-
-	for docNum, inputDoc := range inputDocs {
-		chanIndex := docNum % len(channelNames)
-		channelName := channelNames[chanIndex]
-		inputDoc["channels"] = []string{channelName}
-		docs = append(docs, inputDoc)
-	}
-
-	return docs
-
-}
-
-func (wlr WriteLoadRunner) createDocsToWrite() []Document {
-
-	var d Document
-	docs := []Document{}
-
-	for docNum := 0; docNum < wlr.WriteLoadSpec.NumDocs; docNum++ {
-		d = map[string]interface{}{}
-		d["docNum"] = docNum
-		d["body"] = createBodyContentWithSize(wlr.WriteLoadSpec.DocSizeBytes)
-		d["created_at"] = time.Now().Format(time.RFC3339Nano)
-		docs = append(docs, d)
-	}
-	return docs
-
-}
-
-// Split the docs among the writers with an even distribution
-func (wlr WriteLoadRunner) assignDocsToWriters(d []Document, w []*Writer) map[*Writer][]Document {
-
-	docAssignmentMapping := map[*Writer][]Document{}
-	for _, writer := range w {
-		docAssignmentMapping[writer] = []Document{}
-	}
-
-	for docNum, doc := range d {
-
-		// figure out which writer to assign this doc to
-		writerIndex := docNum % len(w)
-		writer := w[writerIndex]
-
-		// add doc to writer's list of docs
-		docsForWriter := docAssignmentMapping[writer]
-		docsForWriter = append(docsForWriter, doc)
-		docAssignmentMapping[writer] = docsForWriter
-
-	}
-
-	return docAssignmentMapping
 
 }
 
