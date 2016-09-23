@@ -41,8 +41,16 @@ func (wlr WriteLoadRunner) Run() error {
 		go writer.Run()
 	}
 
+	channelNames := wlr.generateChannelNames()
+	docsToChannelsAndWriters := createAndAssignDocs(
+		writers,
+		channelNames,
+		wlr.WriteLoadSpec.NumDocs,
+		wlr.WriteLoadSpec.DocSizeBytes,
+	)
+
 	// Create doc feeder goroutine
-	go wlr.feedDocsToWriters(writers)
+	go wlr.feedDocsToWriters(writers, docsToChannelsAndWriters)
 
 	// Wait for writers to finish
 	logger.Info("Waiting for writers to finish", "numwriters", len(writers))
@@ -132,15 +140,7 @@ func (wlr WriteLoadRunner) generateUserCreds() []UserCred {
 	return wlr.LoadRunner.generateUserCreds(wlr.WriteLoadSpec.NumWriters, "writeload")
 }
 
-func (wlr WriteLoadRunner) feedDocsToWriters(writers []*Writer) error {
-
-	channelNames := wlr.generateChannelNames()
-	docsToChannelsAndWriters := createAndAssignDocs(
-		writers,
-		channelNames,
-		wlr.WriteLoadSpec.NumDocs,
-		wlr.WriteLoadSpec.DocSizeBytes,
-	)
+func (wlr WriteLoadRunner) feedDocsToWriters(writers []*Writer, docsToChannelsAndWriters map[*Writer][]Document) error {
 
 	// Loop over doc assignment map and tell each writer to push to data store
 	for writer, docsToWrite := range docsToChannelsAndWriters {

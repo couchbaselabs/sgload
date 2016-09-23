@@ -3,6 +3,8 @@ package sgload
 import (
 	"fmt"
 	"sync"
+
+	"github.com/couchbaselabs/sg-replicate"
 )
 
 type GateLoadRunner struct {
@@ -10,6 +12,7 @@ type GateLoadRunner struct {
 	WriteLoadRunner
 	ReadLoadRunner
 	GateLoadSpec GateLoadSpec
+	PushedDocs   chan []sgreplicate.DocumentRevisionPair
 }
 
 func NewGateLoadRunner(gls GateLoadSpec) *GateLoadRunner {
@@ -36,6 +39,7 @@ func NewGateLoadRunner(gls GateLoadSpec) *GateLoadRunner {
 		WriteLoadRunner: writeLoadRunner,
 		ReadLoadRunner:  readLoadRunner,
 		GateLoadSpec:    gls,
+		PushedDocs:      make(chan []sgreplicate.DocumentRevisionPair),
 	}
 
 }
@@ -60,7 +64,19 @@ func (glr GateLoadRunner) Run() error {
 	}
 
 	// Start Doc Feeder
+	channelNames := glr.generateChannelNames()
+	docsToChannelsAndWriters := createAndAssignDocs(
+		writers,
+		channelNames,
+		glr.WriteLoadSpec.NumDocs,
+		glr.WriteLoadSpec.DocSizeBytes,
+	)
 	if err := glr.startDocFeeder(writers); err != nil {
+		return err
+	}
+
+	// Start updaters
+	if err := glr.startUpdaters(len(writers), docsToChannelsAndWriters); err != nil {
 		return err
 	}
 
@@ -69,7 +85,32 @@ func (glr GateLoadRunner) Run() error {
 		return err
 	}
 
+	// Wait until updaters finish
+	// Close glr.PushedDocs channel
+
 	return nil
+}
+
+func (glr GateLoadRunner) startUpdaters(numWriters int, docsToChannelsAndWriters map[*Writer][]Document) error {
+
+	// create numwriter updaters, so 1:1 ratio between writer
+	// and updater.  pass it a list of docs to get assigned to updating.
+
+	// start updater goroutines
+
+	// Start docUpdaterRouter that reads off of glr.PushedDocs chan
+	go func() {
+		for pushedDocRevPairs := range glr.PushedDocs {
+			logger.Info("DocUpdaterRouter received", "PushedDocs", pushedDocRevPairs)
+			// TODO: route it to appropriate updater
+			// Look up updater from docsToChannelsAndUpdaters
+			// Push to it's channel
+
+		}
+	}()
+
+	return nil
+
 }
 
 func (glr GateLoadRunner) startWriters() (*sync.WaitGroup, []*Writer, error) {
@@ -108,7 +149,7 @@ func (glr GateLoadRunner) startReaders() error {
 
 func (glr GateLoadRunner) startDocFeeder(writers []*Writer) error {
 	// Create doc feeder goroutine
-	go glr.feedDocsToWriters(writers)
+	// go glr.feedDocsToWriters(writers)
 	return nil
 }
 

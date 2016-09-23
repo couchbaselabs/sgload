@@ -61,6 +61,7 @@ func (w *Writer) Run() {
 				if err != nil {
 					panic(fmt.Sprintf("Error creating doc in datastore.  Doc: %v, Err: %v", doc, err))
 				}
+				w.notifyDocPushed(docRevPair)
 
 			default:
 				docRevPairs, err := w.DataStore.BulkCreateDocuments(docs)
@@ -68,6 +69,7 @@ func (w *Writer) Run() {
 				if err != nil {
 					panic(fmt.Sprintf("Error creating docs in datastore.  Docs: %v, Err: %v", docs, err))
 				}
+				w.notifyDocsPushed(docRevPairs)
 
 			}
 
@@ -81,6 +83,16 @@ func (w *Writer) Run() {
 func updateCreatedAtTimestamp(docs []Document) {
 	for _, doc := range docs {
 		doc["created_at"] = time.Now().Format(time.RFC3339Nano)
+	}
+}
+
+func (w *Writer) notifyDocPushed(doc sgreplicate.DocumentRevisionPair) {
+	w.notifyDocsPushed([]sgreplicate.DocumentRevisionPair{doc})
+}
+
+func (w *Writer) notifyDocsPushed(docs []sgreplicate.DocumentRevisionPair) {
+	if w.PushedDocs != nil {
+		w.PushedDocs <- docs
 	}
 }
 
