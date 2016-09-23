@@ -10,7 +10,8 @@ import (
 
 type Writer struct {
 	Agent
-	OutboundDocs chan []Document
+	OutboundDocs chan []Document // The Docfeeder pushes outbound docs to the writer
+	SentDocs     chan []Document // After docs are sent, push to this channel
 	WaitGroup    *sync.WaitGroup
 }
 
@@ -59,7 +60,9 @@ func (w *Writer) Run() {
 				}
 
 			default:
-				if err := w.DataStore.BulkCreateDocuments(docs); err != nil {
+				docRevPairs, err := w.DataStore.BulkCreateDocuments(docs)
+				logger.Info("BulkCreateDocs", "docRevPairs", docRevPairs)
+				if err != nil {
 					panic(fmt.Sprintf("Error creating docs in datastore.  Docs: %v, Err: %v", docs, err))
 				}
 

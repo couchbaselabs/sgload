@@ -3,7 +3,7 @@ package sgload
 import (
 	"log"
 
-	"github.com/couchbaselabs/sg-replicate"
+	sgreplicate "github.com/couchbaselabs/sg-replicate"
 )
 
 type MockDataStore struct{}
@@ -22,9 +22,9 @@ func (m MockDataStore) CreateDocument(d Document) error {
 	return nil
 }
 
-func (m MockDataStore) BulkCreateDocuments(docs []Document) error {
+func (m MockDataStore) BulkCreateDocuments(docs []Document) ([]sgreplicate.DocumentRevisionPair, error) {
 	log.Printf("MockDataStore BulkCreateDocuments called with %d docs", len(docs))
-	return nil
+	return []sgreplicate.DocumentRevisionPair{}, nil
 }
 
 func (m *MockDataStore) SetUserCreds(u UserCred) {

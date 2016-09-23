@@ -11,7 +11,7 @@ type DataStore interface {
 	CreateDocument(d Document) error
 
 	// Bulk creates a set of documents in the data store
-	BulkCreateDocuments(d []Document) error
+	BulkCreateDocuments(d []Document) ([]sgreplicate.DocumentRevisionPair, error)
 
 	// Sets the user credentials to use for all subsequent requests
 	SetUserCreds(u UserCred)

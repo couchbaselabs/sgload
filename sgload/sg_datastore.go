@@ -220,13 +220,15 @@ func (s SGDataStore) CreateDocument(d Document) error {
 }
 
 // Bulk create a set of documents in Sync Gateway
-func (s SGDataStore) BulkCreateDocuments(docs []Document) error {
+func (s SGDataStore) BulkCreateDocuments(docs []Document) ([]sgreplicate.DocumentRevisionPair, error) {
 
 	defer s.pushCounter("create_document_counter", len(docs))
 
+	bulkDocsResponse := []sgreplicate.DocumentRevisionPair{}
+
 	bulkDocsEndpoint, err := addEndpointToUrl(s.SyncGatewayUrl, "_bulk_docs")
 	if err != nil {
-		return err
+		return bulkDocsResponse, err
 	}
 
 	bulkDocs := BulkDocs{
@@ -235,7 +237,7 @@ func (s SGDataStore) BulkCreateDocuments(docs []Document) error {
 	}
 	docBytes, err := json.Marshal(bulkDocs)
 	if err != nil {
-		return err
+		return bulkDocsResponse, err
 	}
 	buf := bytes.NewBuffer(docBytes)
 
@@ -249,29 +251,28 @@ func (s SGDataStore) BulkCreateDocuments(docs []Document) error {
 	startTime := time.Now()
 	resp, err := client.Do(req)
 	if err != nil {
-		return err
+		return bulkDocsResponse, err
 	}
 	s.pushTimingStat("create_document", timeDeltaPerDocument(len(docs), time.Since(startTime)))
 	if resp.StatusCode < 200 || resp.StatusCode > 201 {
-		return fmt.Errorf("Unexpected response status for POST request: %d", resp.StatusCode)
+		return bulkDocsResponse, fmt.Errorf("Unexpected response status for POST request: %d", resp.StatusCode)
 	}
 
 	defer resp.Body.Close()
 
-	bulkDocsResponse := []DocumentRevisionPair{}
 	decoder := json.NewDecoder(resp.Body)
 	if err = decoder.Decode(&bulkDocsResponse); err != nil {
-		return err
+		return bulkDocsResponse, err
 	}
 
 	// If any of the bulk docs had errors, return an error
 	for _, docRevisionPair := range bulkDocsResponse {
 		if docRevisionPair.Error != "" {
-			return fmt.Errorf("%v", docRevisionPair.Error)
+			return bulkDocsResponse, fmt.Errorf("%v", docRevisionPair.Error)
 		}
 	}
 
-	return nil
+	return bulkDocsResponse, nil
 
 }
 
