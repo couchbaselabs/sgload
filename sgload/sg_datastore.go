@@ -186,37 +186,17 @@ func (s SGDataStore) Changes(sinceVal Sincer, limit int) (changes sgreplicate.Ch
 }
 
 // Create a single document in Sync Gateway
-func (s SGDataStore) CreateDocument(d Document) error {
+func (s SGDataStore) CreateDocument(d Document) (sgreplicate.DocumentRevisionPair, error) {
 
-	defer s.pushCounter("create_document_counter", 1)
-
-	docBytes, err := json.Marshal(d)
+	docRevisionPairs, err := s.BulkCreateDocuments([]Document{d})
 	if err != nil {
-		return err
+		return sgreplicate.DocumentRevisionPair{}, err
 	}
-	buf := bytes.NewBuffer(docBytes)
-
-	req, err := http.NewRequest("POST", s.SyncGatewayUrl, buf)
-	s.addAuthIfNeeded(req)
-
-	req.Header.Set("Content-Type", "application/json")
-
-	client := http.DefaultClient
-
-	startTime := time.Now()
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
+	if len(docRevisionPairs) == 0 {
+		return sgreplicate.DocumentRevisionPair{}, fmt.Errorf("Unexpected response")
 	}
-	s.pushTimingStat("create_document", time.Since(startTime))
-	if resp.StatusCode < 200 || resp.StatusCode > 201 {
-		return fmt.Errorf("Unexpected response status for POST request: %d", resp.StatusCode)
-	}
+	return docRevisionPairs[0], nil
 
-	defer resp.Body.Close()
-	io.Copy(ioutil.Discard, resp.Body)
-
-	return nil
 }
 
 // Bulk create a set of documents in Sync Gateway

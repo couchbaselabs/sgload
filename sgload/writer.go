@@ -5,13 +5,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/couchbaselabs/sg-replicate"
 	"github.com/peterbourgon/g2s"
 )
 
 type Writer struct {
 	Agent
-	OutboundDocs chan []Document // The Docfeeder pushes outbound docs to the writer
-	SentDocs     chan []Document // After docs are sent, push to this channel
+	OutboundDocs chan []Document                         // The Docfeeder pushes outbound docs to the writer
+	PushedDocs   chan []sgreplicate.DocumentRevisionPair // After docs are sent, push to this channel
 	WaitGroup    *sync.WaitGroup
 }
 
@@ -55,7 +56,9 @@ func (w *Writer) Run() {
 					return
 				}
 
-				if err := w.DataStore.CreateDocument(doc); err != nil {
+				docRevPair, err := w.DataStore.CreateDocument(doc)
+				logger.Info("CreateDoc", "docRevPair", docRevPair)
+				if err != nil {
 					panic(fmt.Sprintf("Error creating doc in datastore.  Doc: %v, Err: %v", doc, err))
 				}
 
