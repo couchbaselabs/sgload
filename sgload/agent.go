@@ -1,6 +1,7 @@
 package sgload
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/peterbourgon/g2s"
@@ -15,4 +16,24 @@ type Agent struct {
 	DataStore           DataStore   // The target data store where docs will be written
 	BatchSize           int         // bulk_get or bulk_docs batch size
 	StatsdClient        *g2s.Statsd // The statsd client instance to use to push stats to statdsd
+}
+
+func (a *Agent) createSGUserIfNeeded(channels []string) {
+
+	if a.CreateDataStoreUser == true {
+
+		// Just give writers access to all channels
+		allChannels := []string{"*"}
+
+		logger.Info("Creating SG user", "username", a.UserCred.Username, "channels", channels)
+
+		if err := a.DataStore.CreateUser(a.UserCred, channels); err != nil {
+			panic(fmt.Sprintf("Error creating user in datastore.  User: %v, Err: %v", a.UserCred, err))
+		}
+	}
+
+}
+
+func (a *Agent) SetStatsdClient(statsdClient *g2s.Statsd) {
+	a.StatsdClient = statsdClient
 }

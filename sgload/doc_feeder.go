@@ -93,3 +93,43 @@ func createDocsToWrite(numDocs, docSizeBytes int) []Document {
 	return docs
 
 }
+
+// Break things into batches, for example:
+//
+// batchSize: 3
+// things: [t1, t2, t3, t4, t5]
+//
+// result:
+//
+//   [
+//     [t1, t2, t3],  <-- batch 1
+//     [t4, t5],      <-- batch 2 (incomplete, not enough to fill batch)
+//
+//   ]
+func breakIntoBatches(batchSize int, docs []Document) [][]Document {
+
+	batches := [][]Document{}
+
+	numBatches := len(docs) / batchSize
+
+	// is there residue?  if so, add one more to batch
+	if len(docs)%batchSize != 0 {
+		numBatches += 1
+	}
+
+	for i := 0; i < numBatches; i++ {
+		batch := []Document{}
+		for j := 0; j < batchSize; j++ {
+			docIndex := i*batchSize + j
+			if docIndex >= len(docs) {
+				break
+			}
+			doc := docs[docIndex]
+			batch = append(batch, doc)
+		}
+		batches = append(batches, batch)
+	}
+
+	return batches
+
+}

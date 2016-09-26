@@ -7,7 +7,6 @@ import (
 	"time"
 
 	sgreplicate "github.com/couchbaselabs/sg-replicate"
-	"github.com/peterbourgon/g2s"
 )
 
 type Reader struct {
@@ -44,10 +43,6 @@ func (r *Reader) SetNumDocsExpected(n int) {
 
 func (r *Reader) SetBatchSize(batchSize int) {
 	r.BatchSize = batchSize
-}
-
-func (r *Reader) SetStatsdClient(statsdClient *g2s.Statsd) {
-	r.StatsdClient = statsdClient
 }
 
 func (r *Reader) pushPostRunTimingStats(numDocsPulled int, timeStartedCreatingDocs time.Time) {

@@ -76,9 +76,10 @@ func (glr GateLoadRunner) Run() error {
 	}
 
 	// Start updaters
-	if err := glr.startUpdaters(len(writers), docsToChannelsAndWriters); err != nil {
+	updaterWaitGroup, updaters, err := glr.startUpdaters(len(writers), docsToChannelsAndWriters)       if err != nil {
 		return err
 	}
+	logger.Info("")
 
 	// Wait until writers finish
 	if err := glr.waitUntilWritersFinish(writerWaitGroup); err != nil {
@@ -87,11 +88,12 @@ func (glr GateLoadRunner) Run() error {
 
 	// Wait until updaters finish
 	// Close glr.PushedDocs channel
+	
 
 	return nil
 }
 
-func (glr GateLoadRunner) startUpdaters(numWriters int, docsToChannelsAndWriters map[*Writer][]Document) error {
+func (glr GateLoadRunner) startUpdaters(numWriters int, docsToChannelsAndWriters map[*Writer][]Document) (*sync.WaitGroup, []*Updater, error) {
 
 	// create numwriter updaters, so 1:1 ratio between writer
 	// and updater.  pass it a list of docs to get assigned to updating.

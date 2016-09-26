@@ -6,14 +6,12 @@ import (
 	"time"
 
 	"github.com/couchbaselabs/sg-replicate"
-	"github.com/peterbourgon/g2s"
 )
 
 type Writer struct {
 	Agent
 	OutboundDocs chan []Document                         // The Docfeeder pushes outbound docs to the writer
 	PushedDocs   chan []sgreplicate.DocumentRevisionPair // After docs are sent, push to this channel
-	WaitGroup    *sync.WaitGroup
 }
 
 func NewWriter(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, batchsize int) *Writer {
@@ -38,7 +36,7 @@ func (w *Writer) Run() {
 
 	numDocsPushed := 0
 
-	w.createSGUserIfNeeded()
+	w.createSGUserIfNeeded([]string{"*"})
 
 	for {
 
@@ -96,25 +94,6 @@ func (w *Writer) notifyDocsPushed(docs []sgreplicate.DocumentRevisionPair) {
 	}
 }
 
-func (w *Writer) SetStatsdClient(statsdClient *g2s.Statsd) {
-	w.StatsdClient = statsdClient
-}
-
-func (w *Writer) createSGUserIfNeeded() {
-	if w.CreateDataStoreUser == true {
-
-		// Just give writers access to all channels
-		allChannels := []string{"*"}
-
-		logger.Info("Creating writer SG user", "username", w.UserCred.Username, "channels", allChannels)
-
-		if err := w.DataStore.CreateUser(w.UserCred, allChannels); err != nil {
-			panic(fmt.Sprintf("Error creating user in datastore.  User: %v, Err: %v", w.UserCred, err))
-		}
-	}
-
-}
-
 func (w *Writer) AddToDataStore(docs []Document) {
 
 	switch w.BatchSize {
@@ -129,45 +108,5 @@ func (w *Writer) AddToDataStore(docs []Document) {
 			w.OutboundDocs <- docBatch
 		}
 	}
-
-}
-
-// Break things into batches, for example:
-//
-// batchSize: 3
-// things: [t1, t2, t3, t4, t5]
-//
-// result:
-//
-//   [
-//     [t1, t2, t3],  <-- batch 1
-//     [t4, t5],      <-- batch 2 (incomplete, not enough to fill batch)
-//
-//   ]
-func breakIntoBatches(batchSize int, docs []Document) [][]Document {
-
-	batches := [][]Document{}
-
-	numBatches := len(docs) / batchSize
-
-	// is there residue?  if so, add one more to batch
-	if len(docs)%batchSize != 0 {
-		numBatches += 1
-	}
-
-	for i := 0; i < numBatches; i++ {
-		batch := []Document{}
-		for j := 0; j < batchSize; j++ {
-			docIndex := i*batchSize + j
-			if docIndex >= len(docs) {
-				break
-			}
-			doc := docs[docIndex]
-			batch = append(batch, doc)
-		}
-		batches = append(batches, batch)
-	}
-
-	return batches
 
 }
