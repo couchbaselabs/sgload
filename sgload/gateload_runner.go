@@ -65,8 +65,9 @@ func (glr GateLoadRunner) Run() error {
 
 	// Start Doc Feeder
 	channelNames := glr.generateChannelNames()
+	writerAgentIds := getWriterAgentIds(writers)
 	docsToChannelsAndWriters := createAndAssignDocs(
-		writers,
+		writerAgentIds,
 		channelNames,
 		glr.WriteLoadSpec.NumDocs,
 		glr.WriteLoadSpec.DocSizeBytes,
@@ -93,7 +94,15 @@ func (glr GateLoadRunner) Run() error {
 	return nil
 }
 
-func (glr GateLoadRunner) startUpdaters(numWriters int, docsToChannelsAndWriters map[*Writer][]Document) (*sync.WaitGroup, []*Updater, error) {
+func getWriterAgentIds(writers []*Writer) []string {
+	writerAgentIds := []string{}
+	for _, writer := range writers {
+		writerAgentIds = append(writerAgentIds, writer.UserCred.Username)
+	}
+	return writerAgentIds
+}
+
+func (glr GateLoadRunner) startUpdaters(numWriters int, docsToChannelsAndWriters map[string][]Document) (*sync.WaitGroup, []*Updater, error) {
 
 	// create numwriter updaters, so 1:1 ratio between writer
 	// and updater.  pass it a list of docs to get assigned to updating.

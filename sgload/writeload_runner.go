@@ -44,8 +44,9 @@ func (wlr WriteLoadRunner) Run() error {
 	}
 
 	channelNames := wlr.generateChannelNames()
+	writerAgentIds := getWriterAgentIds(writers)
 	docsToChannelsAndWriters := createAndAssignDocs(
-		writers,
+		writerAgentIds,
 		channelNames,
 		wlr.WriteLoadSpec.NumDocs,
 		wlr.WriteLoadSpec.DocSizeBytes,
@@ -104,10 +105,11 @@ func (wlr WriteLoadRunner) generateUserCreds() []UserCred {
 	return wlr.LoadRunner.generateUserCreds(wlr.WriteLoadSpec.NumWriters, USER_PREFIX_WRITER)
 }
 
-func (wlr WriteLoadRunner) feedDocsToWriters(writers []*Writer, docsToChannelsAndWriters map[*Writer][]Document) error {
+func (wlr WriteLoadRunner) feedDocsToWriters(writers []*Writer, docsToChannelsAndWriters map[string][]Document) error {
 
 	// Loop over doc assignment map and tell each writer to push to data store
-	for writer, docsToWrite := range docsToChannelsAndWriters {
+	for writerAgentUsername, docsToWrite := range docsToChannelsAndWriters {
+		writer := findWriterByAgentUsername(writers, writerAgentUsername)
 		writer.AddToDataStore(docsToWrite)
 	}
 
@@ -121,6 +123,16 @@ func (wlr WriteLoadRunner) feedDocsToWriters(writers []*Writer, docsToChannelsAn
 
 	return nil
 
+}
+
+func findWriterByAgentUsername(writers []*Writer, writerAgentUsername string) *Writer {
+
+	for _, writer := range writers {
+		if writer.UserCred.Username == writerAgentUsername {
+			return writer
+		}
+	}
+	return nil
 }
 
 func createBodyContentWithSize(docSizeBytes int) string {

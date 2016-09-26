@@ -10,26 +10,26 @@ func TestCreateAndAssignDocs(t *testing.T) {
 
 	numDocs := 49
 	docByteSize := 1
-	numWriters := 10
+	numAgents := 10
 	numChannels := 10
 
-	writers := generateWriters(numWriters)
+	agentIds := generateAgentIds(numAgents)
 	channelNames := generateChannels(numChannels)
 
-	docsToChannelsAndWriters := createAndAssignDocs(
-		writers,
+	docsToChannelsAndAgents := createAndAssignDocs(
+		agentIds,
 		channelNames,
 		numDocs,
 		docByteSize,
 	)
 
-	if len(docsToChannelsAndWriters) != len(writers) {
-		t.Errorf("Expected map to have each writer as keys")
+	if len(docsToChannelsAndAgents) != len(agentIds) {
+		t.Errorf("Expected map to have each agent as keys")
 	}
 
 	uniqueChannelsFromDocs := map[string]struct{}{}
-	for writer, docs := range docsToChannelsAndWriters {
-		log.Printf("Docs/channels assigned to writer %d", writer.ID)
+	for agentId, docs := range docsToChannelsAndAgents {
+		log.Printf("Docs/channels assigned to agent %s", agentId)
 		uniqueChannelsPerWriter := map[string]struct{}{}
 		for _, doc := range docs {
 			channelNames := doc.channelNames()
@@ -106,12 +106,12 @@ func TestBreakIntoBatchesOversizedBatch(t *testing.T) {
 
 }
 
-func generateWriters(numWriters int) []*Writer {
-	writers := []*Writer{}
-	for i := 0; i < numWriters; i++ {
-		writers = append(writers, &Writer{Agent: Agent{ID: i}})
+func generateAgentIds(numAgents int) []string {
+	agentIds := []string{}
+	for i := 0; i < numAgents; i++ {
+		agentIds = append(agentIds, fmt.Sprintf("agent-%d", i))
 	}
-	return writers
+	return agentIds
 }
 
 func generateChannels(numChannels int) []string {

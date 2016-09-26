@@ -10,7 +10,7 @@ import (
 // Assign docs to writers with an equal distribution of docs into writers,
 // but mix up so each writer is writing to a variety of channels.
 // This returns a map keyed on writer which points to doc slice for that writer
-func createAndAssignDocs(writers []*Writer, channelNames []string, numDocs, docSizeBytes int) map[*Writer][]Document {
+func createAndAssignDocs(agentIds []string, channelNames []string, numDocs, docSizeBytes int) map[string][]Document {
 
 	// Create Documents
 	docsToWrite := createDocsToWrite(
@@ -23,9 +23,9 @@ func createAndAssignDocs(writers []*Writer, channelNames []string, numDocs, docS
 
 	// Assign docs to writers, this returns a map keyed on writer which points
 	// to doc slice for that writer
-	docsToChannelsAndWriters := assignDocsToWriters(docsToChannels, writers)
+	docsToChannelsAndAgents := assignDocsToAgents(docsToChannels, agentIds)
 
-	return docsToChannelsAndWriters
+	return docsToChannelsAndAgents
 
 }
 
@@ -52,25 +52,24 @@ func assignDocsToChannels(channelNames []string, inputDocs []Document) []Documen
 
 }
 
-// Split the docs among the writers with an even distribution
-func assignDocsToWriters(d []Document, writers []*Writer) map[*Writer][]Document {
+// Split the docs among the agents with an even distribution
+func assignDocsToAgents(d []Document, agentIds []string) map[string][]Document {
 
-	docAssignmentMapping := map[*Writer][]Document{}
-	for _, writer := range writers {
-		docAssignmentMapping[writer] = []Document{}
+	docAssignmentMapping := map[string][]Document{}
+	for _, agentId := range agentIds {
+		docAssignmentMapping[agentId] = []Document{}
 	}
 
 	for _, doc := range d {
 
-		// choose a random writer
-		writerIndex := rand.Intn(len(writers))
-
-		writer := writers[writerIndex]
+		// choose a random agent
+		agentIdIndex := rand.Intn(len(agentIds))
+		agentId := agentIds[agentIdIndex]
 
 		// add doc to writer's list of docs
-		docsForWriter := docAssignmentMapping[writer]
-		docsForWriter = append(docsForWriter, doc)
-		docAssignmentMapping[writer] = docsForWriter
+		docsForAgent := docAssignmentMapping[agentId]
+		docsForAgent = append(docsForAgent, doc)
+		docAssignmentMapping[agentId] = docsForAgent
 
 	}
 

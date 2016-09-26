@@ -40,26 +40,33 @@ func (ulr UpdateLoadRunner) Run() error {
 		go updater.Run()
 	}
 
-	/*
-		channelNames := ulr.generateChannelNames()
-		docsToChannelsAndUpdaters := createAndAssignDocs(
-			updaters,
-			channelNames,
-			ulr.UpdateLoadSpec.NumDocs,
-			ulr.UpdateLoadSpec.DocSizeBytes,
-		)
+	channelNames := ulr.generateChannelNames()
+	updaterAgentUsernames := getUpdaterAgentUsernames(updaters)
+	docsToChannelsAndUpdaters := createAndAssignDocs(
+		updaterAgentUsernames,
+		channelNames,
+		ulr.UpdateLoadSpec.NumDocs,
+		ulr.UpdateLoadSpec.DocSizeBytes,
+	)
 
-		// Create doc feeder goroutine
-		go ulr.feedDocsToUpdaters(updaters, docsToChannelsAndUpdaters)
+	// Create doc feeder goroutine
+	go ulr.feedDocsToUpdaters(updaters, docsToChannelsAndUpdaters)
 
-		// Wait for updaters to finish
-		logger.Info("Waiting for updaters to finish", "numupdaters", len(updaters))
-		wg.Wait()
-		logger.Info("Updaters finished")
-	*/
+	// Wait for updaters to finish
+	logger.Info("Waiting for updaters to finish", "numupdaters", len(updaters))
+	wg.Wait()
+	logger.Info("Updaters finished")
 
 	return nil
 
+}
+
+func getUpdaterAgentUsernames(updaters []*Updater) []string {
+	updaterAgentIds := []string{}
+	for _, updater := range updaters {
+		updaterAgentIds = append(updaterAgentIds, updater.UserCred.Username)
+	}
+	return updaterAgentIds
 }
 
 func (ulr UpdateLoadRunner) createUpdaters(wg *sync.WaitGroup) ([]*Updater, error) {
@@ -96,7 +103,7 @@ func (ulr UpdateLoadRunner) generateUserCreds() []UserCred {
 	return ulr.LoadRunner.generateUserCreds(ulr.UpdateLoadSpec.NumUpdaters, USER_PREFIX_UPDATER)
 }
 
-func (ulr UpdateLoadRunner) feedDocsToUpdaters(updaters []*Updater, docsToChannelsAndUpdaters map[*Updater][]Document) error {
+func (ulr UpdateLoadRunner) feedDocsToUpdaters(updaters []*Updater, docsToChannelsAndUpdaters map[string][]Document) error {
 
 	return nil
 
