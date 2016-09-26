@@ -30,6 +30,10 @@ const (
 	NUM_UPDATERS_CMD_NAME    = "numupdaters"
 	NUM_UPDATERS_CMD_DEFAULT = 100
 	NUM_UPDATERS_CMD_DESC    = "The number of unique users that will update documents.  Each updater runs concurrently in it's own goroutine"
+
+	NUM_REVS_PER_DOC_CMD_NAME    = "numrevsperdoc"
+	NUM_REVS_PER_DOC_CMD_DEFAULT = 100
+	NUM_REVS_PER_DOC_CMD_DESC    = "The number of revisions per doc to add updates for"
 )
 
 func createLoadSpecFromArgs() sgload.LoadSpec {

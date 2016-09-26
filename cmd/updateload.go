@@ -12,7 +12,7 @@ import (
 var (
 	numRevsPerDoc           *int
 	numUpdaters             *int
-	skipWriteload           *bool
+	updateLoadSkipWriteload *bool
 	updateLoadNumWriters    *int
 	updateLoadCreateWriters *bool
 )
@@ -35,7 +35,7 @@ var updateloadCmd = &cobra.Command{
 			NumUpdaters:   *numUpdaters,
 		}
 
-		if *skipWriteload == false {
+		if *updateLoadSkipWriteload == false {
 
 			logger.Info("Running writeload scenario")
 			if err := runWriteLoadScenario(loadSpec); err != nil {
@@ -62,10 +62,16 @@ func init() {
 
 	RootCmd.AddCommand(updateloadCmd)
 
-	skipWriteload = updateloadCmd.PersistentFlags().Bool(
+	updateLoadSkipWriteload = updateloadCmd.PersistentFlags().Bool(
 		SKIP_WRITELOAD_CMD_NAME,
 		SKIP_WRITELOAD_CMD_DEFAULT,
 		SKIP_WRITELOAD_CMD_DESC,
+	)
+
+	numRevsPerDoc = updateloadCmd.PersistentFlags().Int(
+		NUM_REVS_PER_DOC_CMD_NAME,
+		NUM_REVS_PER_DOC_CMD_DEFAULT,
+		NUM_REVS_PER_DOC_CMD_DESC,
 	)
 
 	numUpdaters = updateloadCmd.PersistentFlags().Int(
