@@ -60,3 +60,24 @@ func (lr LoadRunner) generateChannelNames() []string {
 func (lr LoadRunner) generateUserCreds(numUsers int, usernamePrefix string) []UserCred {
 	return lr.LoadSpec.generateUserCreds(numUsers, usernamePrefix)
 }
+
+func (lr LoadRunner) loadUserCredsFromArgs(numUsers int, usernamePrefix string) ([]UserCred, error) {
+
+	userCreds := []UserCred{}
+	var err error
+
+	switch {
+	case lr.LoadSpec.TestSessionID != "" && lr.LoadSpec.DidAutoGenTestSessionID == false:
+		// If the user explicitly provided a test session ID, then use that
+		// to generate user credentials to use.  Presumably these credentials
+		// were created before in previous runs.  Doesn't make sense to use
+		// this with auto-generated test session ID's, since there is no way
+		// that the Sync Gateway will have those users created from prev. runs
+		userCreds = lr.generateUserCreds(numUsers, usernamePrefix)
+	default:
+		return userCreds, fmt.Errorf("You need to either create load generator users explicitly or specify a test session ID.  See CLI help.")
+
+	}
+
+	return userCreds, err
+}

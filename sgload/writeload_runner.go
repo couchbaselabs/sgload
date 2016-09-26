@@ -2,9 +2,11 @@ package sgload
 
 import (
 	"bytes"
-	"encoding/json"
-	"fmt"
 	"sync"
+)
+
+const (
+	USER_PREFIX_WRITER = "writer"
 )
 
 type WriteLoadRunner struct {
@@ -71,7 +73,7 @@ func (wlr WriteLoadRunner) createWriters(wg *sync.WaitGroup) ([]*Writer, error) 
 	case true:
 		userCreds = wlr.generateUserCreds()
 	default:
-		userCreds, err = wlr.loadUserCredsFromArgs()
+		userCreds, err = wlr.loadUserCredsFromArgs(wlr.WriteLoadSpec.NumWriters, USER_PREFIX_WRITER)
 		if err != nil {
 			return writers, err
 		}
@@ -98,46 +100,8 @@ func (wlr WriteLoadRunner) createWriters(wg *sync.WaitGroup) ([]*Writer, error) 
 
 }
 
-// TODO: duplicated code with ReadLoadRunner.loadUserCredsFromArgs()
-func (wlr WriteLoadRunner) loadUserCredsFromArgs() ([]UserCred, error) {
-
-	userCreds := []UserCred{}
-	var err error
-
-	switch {
-	case wlr.WriteLoadSpec.WriterCreds != "":
-		logger.Info("Load writer creds from CLI args")
-		err = json.Unmarshal([]byte(wlr.WriteLoadSpec.WriterCreds), &userCreds)
-		if err != nil {
-			return userCreds, err
-		}
-		for _, userCred := range userCreds {
-			if userCred.Empty() {
-				return userCreds, fmt.Errorf("User credentials empty: %+v", userCred)
-			}
-		}
-	case wlr.WriteLoadSpec.TestSessionID != "" && wlr.WriteLoadSpec.DidAutoGenTestSessionID == false:
-		// If the user explicitly provided a test session ID, then use that
-		// to generate user credentials to use.  Presumably these credentials
-		// were created before in previous runs.  Doesn't make sense to use
-		// this with auto-generated test session ID's, since there is no way
-		// that the Sync Gateway will have those users created from prev. runs
-		logger.Info("Generate user creds from test session id")
-		userCreds = wlr.generateUserCreds()
-	default:
-		return userCreds, fmt.Errorf("You need to either create writers, specify a test session ID, or specify writer user credentials.  See CLI help.")
-
-	}
-
-	if len(userCreds) != wlr.WriteLoadSpec.NumWriters {
-		return userCreds, fmt.Errorf("You only provided %d user credentials, but specified %d writers", len(userCreds), wlr.WriteLoadSpec.NumWriters)
-	}
-
-	return userCreds, err
-}
-
 func (wlr WriteLoadRunner) generateUserCreds() []UserCred {
-	return wlr.LoadRunner.generateUserCreds(wlr.WriteLoadSpec.NumWriters, "writeload")
+	return wlr.LoadRunner.generateUserCreds(wlr.WriteLoadSpec.NumWriters, USER_PREFIX_WRITER)
 }
 
 func (wlr WriteLoadRunner) feedDocsToWriters(writers []*Writer, docsToChannelsAndWriters map[*Writer][]Document) error {

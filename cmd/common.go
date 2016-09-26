@@ -22,6 +22,14 @@ const (
 	CREATE_READERS_CMD_NAME    = "createreaders"
 	CREATE_READERS_CMD_DEFAULT = false
 	CREATE_READERS_CMD_DESC    = "Add this flag if you need the test to create SG users for readers.  Otherwise you'll need to specify readercreds"
+
+	SKIP_WRITELOAD_CMD_NAME    = "skipwriteload"
+	SKIP_WRITELOAD_CMD_DEFAULT = false
+	SKIP_WRITELOAD_CMD_DESC    = "By default will first run the corresponding writeload, so that it has documents to read, but set this flag if you've run that step separately"
+
+	NUM_UPDATERS_CMD_NAME    = "numupdaters"
+	NUM_UPDATERS_CMD_DEFAULT = 100
+	NUM_UPDATERS_CMD_DESC    = "The number of unique users that will update documents.  Each updater runs concurrently in it's own goroutine"
 )
 
 func createLoadSpecFromArgs() sgload.LoadSpec {
@@ -40,5 +48,22 @@ func createLoadSpecFromArgs() sgload.LoadSpec {
 	}
 	loadSpec.GenerateTestSessionID()
 	return loadSpec
+
+}
+
+func runWriteLoadScenario(loadSpec sgload.LoadSpec) error {
+
+	writeLoadSpec := sgload.WriteLoadSpec{
+		LoadSpec:      loadSpec,
+		NumWriters:    *readLoadNumWriters,
+		CreateWriters: *readLoadCreateWriters,
+		WriterCreds:   *readLoadWriterCreds,
+	}
+	if err := writeLoadSpec.Validate(); err != nil {
+		logger.Crit("Invalid loadspec", "error", err, "writeLoadSpec", writeLoadSpec)
+	}
+	writeLoadRunner := sgload.NewWriteLoadRunner(writeLoadSpec)
+
+	return writeLoadRunner.Run()
 
 }

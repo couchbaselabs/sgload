@@ -14,9 +14,9 @@ var (
 	createReaders         *bool
 	readerCreds           *string
 	skipWriteload         *bool
-	readLoadNumWriters    *int    // Hack alert: duplicate this CLI writeload arg
-	readLoadCreateWriters *bool   // Hack alert: duplicate this CLI writeload arg
-	readLoadWriterCreds   *string // Hack alert: duplicate this CLI writeload arg
+	readLoadNumWriters    *int
+	readLoadCreateWriters *bool
+	readLoadWriterCreds   *string
 	logger                log15.Logger
 )
 
@@ -70,23 +70,6 @@ var readloadCmd = &cobra.Command{
 	},
 }
 
-func runWriteLoadScenario(loadSpec sgload.LoadSpec) error {
-
-	writeLoadSpec := sgload.WriteLoadSpec{
-		LoadSpec:      loadSpec,
-		NumWriters:    *readLoadNumWriters,
-		CreateWriters: *readLoadCreateWriters,
-		WriterCreds:   *readLoadWriterCreds,
-	}
-	if err := writeLoadSpec.Validate(); err != nil {
-		logger.Crit("Invalid loadspec", "error", err, "writeLoadSpec", writeLoadSpec)
-	}
-	writeLoadRunner := sgload.NewWriteLoadRunner(writeLoadSpec)
-
-	return writeLoadRunner.Run()
-
-}
-
 func init() {
 
 	RootCmd.AddCommand(readloadCmd)
@@ -116,9 +99,9 @@ func init() {
 	)
 
 	skipWriteload = readloadCmd.PersistentFlags().Bool(
-		"skipwriteload",
-		false,
-		"By default the readload will first run the corresponding writeload, so that it has documents to read, but set this flag if you've run that step separately",
+		SKIP_WRITELOAD_CMD_NAME,
+		SKIP_WRITELOAD_CMD_DEFAULT,
+		SKIP_WRITELOAD_CMD_DESC,
 	)
 
 	readLoadNumWriters = readloadCmd.PersistentFlags().Int(

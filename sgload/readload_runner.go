@@ -1,10 +1,13 @@
 package sgload
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/rand"
 	"sync"
+)
+
+const (
+	USER_PREFIX_READER = "reader"
 )
 
 type ReadLoadRunner struct {
@@ -62,7 +65,7 @@ func (rlr ReadLoadRunner) createReaders(wg *sync.WaitGroup) ([]*Reader, error) {
 	case true:
 		userCreds = rlr.generateUserCreds()
 	default:
-		userCreds, err = rlr.loadUserCredsFromArgs()
+		userCreds, err = rlr.loadUserCredsFromArgs(rlr.ReadLoadSpec.NumReaders, USER_PREFIX_READER)
 		if err != nil {
 			return readers, fmt.Errorf("Error loading user creds from args: %v", err)
 		}
@@ -96,44 +99,6 @@ func (rlr ReadLoadRunner) createReaders(wg *sync.WaitGroup) ([]*Reader, error) {
 	}
 
 	return readers, nil
-}
-
-// TODO: duplicated code with WriteLoadRunner.loadUserCredsFromArgs()
-func (rlr ReadLoadRunner) loadUserCredsFromArgs() ([]UserCred, error) {
-
-	userCreds := []UserCred{}
-	var err error
-
-	switch {
-	case rlr.ReadLoadSpec.ReaderCreds != "":
-		logger.Info("Load writer creds from CLI args")
-		err = json.Unmarshal([]byte(rlr.ReadLoadSpec.ReaderCreds), &userCreds)
-		if err != nil {
-			return userCreds, err
-		}
-		for _, userCred := range userCreds {
-			if userCred.Empty() {
-				return userCreds, fmt.Errorf("User credentials empty: %+v", userCred)
-			}
-		}
-	case rlr.ReadLoadSpec.TestSessionID != "" && rlr.ReadLoadSpec.DidAutoGenTestSessionID == false:
-		// If the user explicitly provided a test session ID, then use that
-		// to generate user credentials to use.  Presumably these credentials
-		// were created before in previous runs.  Doesn't make sense to use
-		// this with auto-generated test session ID's, since there is no way
-		// that the Sync Gateway will have those users created from prev. runs
-		logger.Info("Generate user creds from test session id")
-		userCreds = rlr.generateUserCreds()
-	default:
-		return userCreds, fmt.Errorf("You need to either create writers, specify a test session ID, or specify writer user credentials.  See CLI help.")
-
-	}
-
-	if len(userCreds) != rlr.ReadLoadSpec.NumReaders {
-		return userCreds, fmt.Errorf("You only provided %d user credentials, but specified %d readers", len(userCreds), rlr.ReadLoadSpec.NumReaders)
-	}
-
-	return userCreds, err
 }
 
 // Calculate how many docs each reader is expected to pull.  Find out how many docs are
@@ -191,5 +156,5 @@ func contains(stringslice []string, other string) bool {
 }
 
 func (rlr ReadLoadRunner) generateUserCreds() []UserCred {
-	return rlr.LoadRunner.generateUserCreds(rlr.ReadLoadSpec.NumReaders, "readload")
+	return rlr.LoadRunner.generateUserCreds(rlr.ReadLoadSpec.NumReaders, USER_PREFIX_READER)
 }

@@ -11,7 +11,7 @@ type Updater struct {
 	InsertedDocs chan []sgreplicate.DocumentRevisionPair
 }
 
-func NewUpdater(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, batchsize int) *Updater {
+func NewUpdater(wg *sync.WaitGroup, ID int, u UserCred, d DataStore) *Updater {
 
 	insertedDocs := make(chan []sgreplicate.DocumentRevisionPair, 100)
 
@@ -21,7 +21,6 @@ func NewUpdater(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, batchsize i
 			UserCred:   u,
 			ID:         ID,
 			DataStore:  d,
-			BatchSize:  batchsize,
 		},
 		InsertedDocs: insertedDocs,
 	}
