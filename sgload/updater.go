@@ -31,7 +31,7 @@ func (u *Updater) Run() {
 
 	defer u.FinishedWg.Done()
 
-	numDocsPushed := 0
+	// numDocsPushed := 0
 
 	u.createSGUserIfNeeded([]string{"*"})
 
@@ -51,6 +51,6 @@ func (u *Updater) Run() {
 // docs that it's responsible for updating) have been inserted into Sync Gateway
 func (u *Updater) NotifyDocsInserted(docs []sgreplicate.DocumentRevisionPair) {
 
-	u.InsertedDocs <- []Document{doc}
+	u.InsertedDocs <- docs
 
 }

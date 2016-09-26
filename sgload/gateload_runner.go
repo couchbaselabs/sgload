@@ -76,10 +76,11 @@ func (glr GateLoadRunner) Run() error {
 	}
 
 	// Start updaters
-	updaterWaitGroup, updaters, err := glr.startUpdaters(len(writers), docsToChannelsAndWriters)       if err != nil {
+	updaterWaitGroup, updaters, err := glr.startUpdaters(len(writers), docsToChannelsAndWriters)
+	if err != nil {
 		return err
 	}
-	logger.Info("")
+	logger.Info("startUpdaters", "updaterWaitGroup", updaterWaitGroup, "updaters", updaters)
 
 	// Wait until writers finish
 	if err := glr.waitUntilWritersFinish(writerWaitGroup); err != nil {
@@ -88,7 +89,6 @@ func (glr GateLoadRunner) Run() error {
 
 	// Wait until updaters finish
 	// Close glr.PushedDocs channel
-	
 
 	return nil
 }
@@ -111,7 +111,7 @@ func (glr GateLoadRunner) startUpdaters(numWriters int, docsToChannelsAndWriters
 		}
 	}()
 
-	return nil
+	return nil, nil, nil
 
 }
 
