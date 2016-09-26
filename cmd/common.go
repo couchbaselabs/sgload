@@ -54,20 +54,3 @@ func createLoadSpecFromArgs() sgload.LoadSpec {
 	return loadSpec
 
 }
-
-func runWriteLoadScenario(loadSpec sgload.LoadSpec) error {
-
-	writeLoadSpec := sgload.WriteLoadSpec{
-		LoadSpec:      loadSpec,
-		NumWriters:    *readLoadNumWriters,
-		CreateWriters: *readLoadCreateWriters,
-		WriterCreds:   *readLoadWriterCreds,
-	}
-	if err := writeLoadSpec.Validate(); err != nil {
-		logger.Crit("Invalid loadspec", "error", err, "writeLoadSpec", writeLoadSpec)
-	}
-	writeLoadRunner := sgload.NewWriteLoadRunner(writeLoadSpec)
-
-	return writeLoadRunner.Run()
-
-}

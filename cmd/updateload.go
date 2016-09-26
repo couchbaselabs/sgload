@@ -38,7 +38,7 @@ var updateloadCmd = &cobra.Command{
 		if *updateLoadSkipWriteload == false {
 
 			logger.Info("Running writeload scenario")
-			if err := runWriteLoadScenario(loadSpec); err != nil {
+			if err := runWriteLoadScenarioUpdateLoad(loadSpec); err != nil {
 				logger.Crit("Failed to run writeload", "error", err)
 				os.Exit(1)
 			}
@@ -56,6 +56,22 @@ var updateloadCmd = &cobra.Command{
 		}
 
 	},
+}
+
+func runWriteLoadScenarioUpdateLoad(loadSpec sgload.LoadSpec) error {
+
+	writeLoadSpec := sgload.WriteLoadSpec{
+		LoadSpec:      loadSpec,
+		NumWriters:    *updateLoadNumWriters,
+		CreateWriters: *updateLoadCreateWriters,
+	}
+	if err := writeLoadSpec.Validate(); err != nil {
+		logger.Crit("Invalid loadspec", "error", err, "writeLoadSpec", writeLoadSpec)
+	}
+	writeLoadRunner := sgload.NewWriteLoadRunner(writeLoadSpec)
+
+	return writeLoadRunner.Run()
+
 }
 
 func init() {

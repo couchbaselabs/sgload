@@ -36,6 +36,8 @@ func (u *Updater) Run() {
 
 	for {
 
+		logger.Info("Updater.Run()", "usercred", u.UserCred.Username)
+
 		select {
 		case docsInserted := <-u.InsertedDocs:
 

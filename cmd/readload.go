@@ -45,7 +45,7 @@ var readloadCmd = &cobra.Command{
 		if *skipWriteload == false {
 
 			logger.Info("Running writeload scenario")
-			if err := runWriteLoadScenario(loadSpec); err != nil {
+			if err := runWriteLoadScenarioReadLoad(loadSpec); err != nil {
 				logger.Crit("Failed to run writeload", "error", err)
 				os.Exit(1)
 			}
@@ -68,6 +68,23 @@ var readloadCmd = &cobra.Command{
 		logger.Info("Finished running readload scenario")
 
 	},
+}
+
+func runWriteLoadScenarioReadLoad(loadSpec sgload.LoadSpec) error {
+
+	writeLoadSpec := sgload.WriteLoadSpec{
+		LoadSpec:      loadSpec,
+		NumWriters:    *readLoadNumWriters,
+		CreateWriters: *readLoadCreateWriters,
+		WriterCreds:   *readLoadWriterCreds,
+	}
+	if err := writeLoadSpec.Validate(); err != nil {
+		logger.Crit("Invalid loadspec", "error", err, "writeLoadSpec", writeLoadSpec)
+	}
+	writeLoadRunner := sgload.NewWriteLoadRunner(writeLoadSpec)
+
+	return writeLoadRunner.Run()
+
 }
 
 func init() {
