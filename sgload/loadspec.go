@@ -34,15 +34,6 @@ func (ls LoadSpec) Validate() error {
 	return nil
 }
 
-func (ls *LoadSpec) GenerateTestSessionID() {
-	// If the user didn't pass in a test session id, autogen one
-	if ls.TestSessionID == "" {
-		ls.TestSessionID = NewUuid()
-		ls.DidAutoGenTestSessionID = true
-	}
-
-}
-
 func (ls *LoadSpec) generateUserCreds(numUsers int, usernamePrefix string) []UserCred {
 	userCreds := []UserCred{}
 	for userId := 0; userId < numUsers; userId++ {

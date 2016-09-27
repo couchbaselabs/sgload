@@ -1,6 +1,9 @@
 package sgload
 
-import "sync"
+import (
+	"fmt"
+	"sync"
+)
 
 const (
 	USER_PREFIX_UPDATER = "updater"
@@ -15,6 +18,7 @@ func NewUpdateLoadRunner(uls UpdateLoadSpec) *UpdateLoadRunner {
 
 	uls.MustValidate()
 
+	logger.Info("creating loadrunner", "loadspec", fmt.Sprintf("%+v", uls.LoadSpec))
 	loadRunner := LoadRunner{
 		LoadSpec: uls.LoadSpec,
 	}

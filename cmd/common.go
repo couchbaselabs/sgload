@@ -50,7 +50,7 @@ func createLoadSpecFromArgs() sgload.LoadSpec {
 		DocSizeBytes:         *docSizeBytes,
 		NumDocs:              *numDocs,
 	}
-	loadSpec.GenerateTestSessionID()
+	loadSpec.TestSessionID = sgload.NewUuid()
+	loadSpec.DidAutoGenTestSessionID = true
 	return loadSpec
-
 }
