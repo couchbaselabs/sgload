@@ -5,10 +5,6 @@ import (
 	"sync"
 )
 
-const (
-	USER_PREFIX_UPDATER = "updater"
-)
-
 type UpdateLoadRunner struct {
 	LoadRunner
 	UpdateLoadSpec UpdateLoadSpec
@@ -53,7 +49,9 @@ func (ulr UpdateLoadRunner) Run() error {
 		ulr.UpdateLoadSpec.DocSizeBytes,
 	)
 
-	// Create doc feeder goroutine
+	// Since the UpdateLoad Runner assumes that all docs have already been
+	// inserted, it simply feeds all docs to the updaters.  In the gateload
+	// scenario, the writers will be pushing these docs as they are written.
 	go ulr.feedDocsToUpdaters(updaters, docsToChannelsAndUpdaters)
 
 	// Wait for updaters to finish
@@ -79,7 +77,7 @@ func (ulr UpdateLoadRunner) createUpdaters(wg *sync.WaitGroup) ([]*Updater, erro
 	var userCreds []UserCred
 	var err error
 
-	userCreds, err = ulr.loadUserCredsFromArgs(ulr.UpdateLoadSpec.NumUpdaters, USER_PREFIX_UPDATER)
+	userCreds, err = ulr.loadUserCredsFromArgs(ulr.UpdateLoadSpec.NumUpdaters, USER_PREFIX_WRITER)
 	if err != nil {
 		return updaters, err
 	}
@@ -104,11 +102,31 @@ func (ulr UpdateLoadRunner) createUpdaters(wg *sync.WaitGroup) ([]*Updater, erro
 }
 
 func (ulr UpdateLoadRunner) generateUserCreds() []UserCred {
-	return ulr.LoadRunner.generateUserCreds(ulr.UpdateLoadSpec.NumUpdaters, USER_PREFIX_UPDATER)
+	return ulr.LoadRunner.generateUserCreds(ulr.UpdateLoadSpec.NumUpdaters, USER_PREFIX_WRITER)
 }
 
 func (ulr UpdateLoadRunner) feedDocsToUpdaters(updaters []*Updater, docsToChannelsAndUpdaters map[string][]Document) error {
 
+	// Loop over doc assignment map and tell each updater to push to data store
+	for updaterAgentUsername, docsToWrite := range docsToChannelsAndUpdaters {
+		updater := findUpdaterByAgentUsername(updaters, updaterAgentUsername)
+		docRevPairs, err := updater.LookupCurrentRevisions(docsToWrite)
+		if err != nil {
+			return err
+		}
+		updater.NotifyDocsInserted(docRevPairs)
+	}
+
 	return nil
 
+}
+
+func findUpdaterByAgentUsername(updaters []*Updater, updaterAgentUsername string) *Updater {
+
+	for _, updater := range updaters {
+		if updater.UserCred.Username == updaterAgentUsername {
+			return updater
+		}
+	}
+	return nil
 }

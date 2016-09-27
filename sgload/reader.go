@@ -172,13 +172,16 @@ func (r *Reader) pullMoreDocs(since Sincer) (pullMoreDocsResult, error) {
 
 		bulkGetRequest := getBulkGetRequest(changes)
 
-		err = r.DataStore.BulkGetDocuments(bulkGetRequest)
+		docs, err := r.DataStore.BulkGetDocuments(bulkGetRequest)
 		if err != nil {
 			return false, err, result
 		}
+		if len(docs) != len(bulkGetRequest.Docs) {
+			return false, fmt.Errorf("Expected %d docs, got %d", len(bulkGetRequest.Docs), len(docs)), result
+		}
 
 		result.since = newSince.(StringSincer)
-		result.numDocsPulled = len(bulkGetRequest.Docs)
+		result.numDocsPulled = len(docs)
 		return false, nil, result
 
 	}

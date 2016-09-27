@@ -35,6 +35,6 @@ func (m MockDataStore) Changes(sinceVal Sincer, limit int) (changes sgreplicate.
 	return sgreplicate.Changes{}, nil, nil
 }
 
-func (m MockDataStore) BulkGetDocuments(r sgreplicate.BulkGetRequest) error {
-	return nil
+func (m MockDataStore) BulkGetDocuments(r sgreplicate.BulkGetRequest) ([]sgreplicate.Document, error) {
+	return nil, nil
 }

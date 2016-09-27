@@ -256,19 +256,18 @@ func (s SGDataStore) BulkCreateDocuments(docs []Document) ([]sgreplicate.Documen
 
 }
 
-// TODO: return docs to caller
-func (s SGDataStore) BulkGetDocuments(r sgreplicate.BulkGetRequest) error {
+func (s SGDataStore) BulkGetDocuments(r sgreplicate.BulkGetRequest) ([]sgreplicate.Document, error) {
 
 	defer s.pushCounter("get_document_counter", len(r.Docs))
 
 	bulkGetEndpoint, err := addEndpointToUrl(s.SyncGatewayUrl, "_bulk_get")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	bulkGetBytes, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("BulkGetDocuemnts failed to marshal request: %v", err)
+		return nil, fmt.Errorf("BulkGetDocuemnts failed to marshal request: %v", err)
 	}
 
 	buf := bytes.NewBuffer(bulkGetBytes)
@@ -283,18 +282,18 @@ func (s SGDataStore) BulkGetDocuments(r sgreplicate.BulkGetRequest) error {
 	startTime := time.Now()
 	resp, err := client.Do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	s.pushTimingStat("get_document", timeDeltaPerDocument(len(r.Docs), time.Since(startTime)))
 	if resp.StatusCode < 200 || resp.StatusCode > 201 {
-		return fmt.Errorf("Unexpected response status for POST request: %d", resp.StatusCode)
+		return nil, fmt.Errorf("Unexpected response status for POST request: %d", resp.StatusCode)
 	}
 
 	// Parse the response and make sure that we got all the docs we requested
 	defer resp.Body.Close()
 	documents, err := sgreplicate.ReadBulkGetResponse(resp)
 	if len(documents) != len(r.Docs) {
-		return fmt.Errorf("Expected %d docs, got %d docs", len(r.Docs), len(documents))
+		return nil, fmt.Errorf("Expected %d docs, got %d docs", len(r.Docs), len(documents))
 	}
 
 	for _, doc := range documents {
@@ -321,7 +320,7 @@ func (s SGDataStore) BulkGetDocuments(r sgreplicate.BulkGetRequest) error {
 		s.pushTimingStat("gateload_roundtrip", delta)
 	}
 
-	return nil
+	return documents, nil
 
 }
 

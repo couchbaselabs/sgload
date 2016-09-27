@@ -20,7 +20,7 @@ type DataStore interface {
 	Changes(sinceVal Sincer, limit int) (changes sgreplicate.Changes, newSinceVal Sincer, err error)
 
 	// Does a bulk get on docs in bulk get request, discards actual docs
-	BulkGetDocuments(sgreplicate.BulkGetRequest) error
+	BulkGetDocuments(sgreplicate.BulkGetRequest) ([]sgreplicate.Document, error)
 }
 
 type UserCred struct {
