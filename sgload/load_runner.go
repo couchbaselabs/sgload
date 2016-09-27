@@ -69,7 +69,7 @@ func (lr LoadRunner) loadUserCredsFromArgs(numUsers int, usernamePrefix string) 
 	logger.Info("check testsessionid", "loadspec", fmt.Sprintf("%+v", lr.LoadSpec))
 
 	switch {
-	case lr.LoadSpec.TestSessionID != "" && lr.LoadSpec.DidAutoGenTestSessionID == false:
+	case lr.LoadSpec.TestSessionID != "":
 		// If the user explicitly provided a test session ID, then use that
 		// to generate user credentials to use.  Presumably these credentials
 		// were created before in previous runs.  Doesn't make sense to use
