@@ -50,6 +50,7 @@ func (wlr WriteLoadRunner) Run() error {
 		channelNames,
 		wlr.WriteLoadSpec.NumDocs,
 		wlr.WriteLoadSpec.DocSizeBytes,
+		wlr.WriteLoadSpec.TestSessionID,
 	)
 
 	// Create doc feeder goroutine

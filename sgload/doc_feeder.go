@@ -10,12 +10,13 @@ import (
 // Assign docs to writers with an equal distribution of docs into writers,
 // but mix up so each writer is writing to a variety of channels.
 // This returns a map keyed on writer which points to doc slice for that writer
-func createAndAssignDocs(agentIds []string, channelNames []string, numDocs, docSizeBytes int) map[string][]Document {
+func createAndAssignDocs(agentIds []string, channelNames []string, numDocs, docSizeBytes int, docIdSuffix string) map[string][]Document {
 
 	// Create Documents
 	docsToWrite := createDocsToWrite(
 		numDocs,
 		docSizeBytes,
+		docIdSuffix,
 	)
 
 	// Assign Docs to Channels (adds doc["channels"] field to each doc)
@@ -77,13 +78,16 @@ func assignDocsToAgents(d []Document, agentIds []string) map[string][]Document {
 
 }
 
-func createDocsToWrite(numDocs, docSizeBytes int) []Document {
+func createDocsToWrite(numDocs, docSizeBytes int, docIdSuffix string) []Document {
 
 	var d Document
 	docs := []Document{}
 
 	for docNum := 0; docNum < numDocs; docNum++ {
 		d = map[string]interface{}{}
+		if docIdSuffix != "" {
+			d["_id"] = fmt.Sprintf("%d-%s", docNum, docIdSuffix)
+		}
 		d["docNum"] = docNum
 		d["body"] = createBodyContentWithSize(docSizeBytes)
 		d["created_at"] = time.Now().Format(time.RFC3339Nano)

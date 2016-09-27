@@ -47,6 +47,7 @@ func (ulr UpdateLoadRunner) Run() error {
 		channelNames,
 		ulr.UpdateLoadSpec.NumDocs,
 		ulr.UpdateLoadSpec.DocSizeBytes,
+		ulr.UpdateLoadSpec.TestSessionID,
 	)
 
 	// Since the UpdateLoad Runner assumes that all docs have already been

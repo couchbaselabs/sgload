@@ -71,6 +71,7 @@ func (glr GateLoadRunner) Run() error {
 		channelNames,
 		glr.WriteLoadSpec.NumDocs,
 		glr.WriteLoadSpec.DocSizeBytes,
+		glr.WriteLoadSpec.TestSessionID,
 	)
 	if err := glr.startDocFeeder(writers); err != nil {
 		return err

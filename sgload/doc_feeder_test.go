@@ -12,6 +12,7 @@ func TestCreateAndAssignDocs(t *testing.T) {
 	docByteSize := 1
 	numAgents := 10
 	numChannels := 10
+	testSessionID := NewUuid()
 
 	agentIds := generateAgentIds(numAgents)
 	channelNames := generateChannels(numChannels)
@@ -21,6 +22,7 @@ func TestCreateAndAssignDocs(t *testing.T) {
 		channelNames,
 		numDocs,
 		docByteSize,
+		testSessionID,
 	)
 
 	if len(docsToChannelsAndAgents) != len(agentIds) {
