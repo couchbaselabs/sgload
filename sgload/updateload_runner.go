@@ -92,6 +92,7 @@ func (ulr UpdateLoadRunner) createUpdaters(wg *sync.WaitGroup) ([]*Updater, erro
 			userId,
 			userCred,
 			dataStore,
+			ulr.UpdateLoadSpec.NumRevsPerDoc,
 		)
 		updater.SetStatsdClient(ulr.StatsdClient)
 		updaters = append(updaters, updater)
