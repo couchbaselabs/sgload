@@ -9,12 +9,12 @@ import (
 
 type Updater struct {
 	Agent
-	InsertedDocs chan []sgreplicate.DocumentRevisionPair
+	DocsToUpdate chan []sgreplicate.DocumentRevisionPair
 }
 
 func NewUpdater(wg *sync.WaitGroup, ID int, u UserCred, d DataStore) *Updater {
 
-	insertedDocs := make(chan []sgreplicate.DocumentRevisionPair, 100)
+	docsToUpdate := make(chan []sgreplicate.DocumentRevisionPair, 100)
 
 	return &Updater{
 		Agent: Agent{
@@ -23,7 +23,7 @@ func NewUpdater(wg *sync.WaitGroup, ID int, u UserCred, d DataStore) *Updater {
 			ID:         ID,
 			DataStore:  d,
 		},
-		InsertedDocs: insertedDocs,
+		DocsToUpdate: docsToUpdate,
 	}
 }
 
@@ -40,9 +40,9 @@ func (u *Updater) Run() {
 		logger.Info("Updater.Run()", "usercred", u.UserCred.Username)
 
 		select {
-		case docsInserted := <-u.InsertedDocs:
+		case docsToUpdate := <-u.DocsToUpdate:
 
-			logger.Info("Updater notified docs inserted", "DocsInserted", docsInserted)
+			logger.Info("Updater notified docs are ready to update", "DocsToUpdate", docsToUpdate)
 		}
 
 	}
@@ -51,9 +51,9 @@ func (u *Updater) Run() {
 
 // Tell this updater that the following docs (which presumably are in its list of
 // docs that it's responsible for updating) have been inserted into Sync Gateway
-func (u *Updater) NotifyDocsInserted(docs []sgreplicate.DocumentRevisionPair) {
+func (u *Updater) NotifyDocsReadyToUpdate(docs []sgreplicate.DocumentRevisionPair) {
 
-	u.InsertedDocs <- docs
+	u.DocsToUpdate <- docs
 
 }
 

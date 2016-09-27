@@ -115,7 +115,7 @@ func (ulr UpdateLoadRunner) feedDocsToUpdaters(updaters []*Updater, docsToChanne
 		if err != nil {
 			return err
 		}
-		updater.NotifyDocsInserted(docRevPairs)
+		updater.NotifyDocsReadyToUpdate(docRevPairs)
 	}
 
 	return nil
