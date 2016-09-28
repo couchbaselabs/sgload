@@ -295,7 +295,10 @@ func (s SGDataStore) BulkGetDocuments(r sgreplicate.BulkGetRequest) ([]sgreplica
 
 	// Parse the response and make sure that we got all the docs we requested
 	defer resp.Body.Close()
-	documents, err := sgreplicate.ReadBulkGetResponse(resp)
+	loggerFunc := func(key string, format string, args ...interface{}) {
+		logger.Warn("BulkGetResponse", "log", fmt.Sprintf(format, args))
+	}
+	documents, err := sgreplicate.ReadBulkGetResponse(resp, loggerFunc)
 	if len(documents) != len(r.Docs) {
 		return nil, fmt.Errorf("Expected %d docs, got %d docs", len(r.Docs), len(documents))
 	}
