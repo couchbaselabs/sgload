@@ -204,6 +204,18 @@ func (s SGDataStore) BulkCreateDocuments(docs []Document) ([]sgreplicate.Documen
 
 	defer s.pushCounter("create_document_counter", len(docs))
 
+	// Set the "created_at" timestamp which is used to calculate the
+	// gateload roundtrip time
+	updateCreatedAtTimestamp(docs)
+
+	// Debugging why gettting "missing created_at" warnings.. can remove
+	for _, doc := range docs {
+		_, ok := doc["created_at"]
+		if !ok {
+			logger.Warn("Doc missing created_at")
+		}
+	}
+
 	bulkDocsResponse := []sgreplicate.DocumentRevisionPair{}
 
 	bulkDocsEndpoint, err := addEndpointToUrl(s.SyncGatewayUrl, "_bulk_docs")

@@ -178,6 +178,8 @@ func (u *Updater) performUpdate(docRevPairs []sgreplicate.DocumentRevisionPair) 
 
 	logger.Info("Updater.performUpdate", "numdocs", len(docRevPairs), "docs", docRevPairs)
 
+	// bulkGetRequest := sgreplicate.BulkGetRequest{}
+
 	bulkDocs := []Document{}
 	for _, docRevPair := range docRevPairs {
 		doc := Document{}
@@ -186,6 +188,7 @@ func (u *Updater) performUpdate(docRevPairs []sgreplicate.DocumentRevisionPair) 
 		doc["body"] = "updatedbody" // TODO
 		bulkDocs = append(bulkDocs, doc)
 	}
+
 	updatedDocs, err := u.DataStore.BulkCreateDocuments(bulkDocs)
 	if err != nil {
 		return updatedDocs, err
