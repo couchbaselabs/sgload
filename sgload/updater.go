@@ -12,9 +12,14 @@ type Updater struct {
 	Agent
 	DocsToUpdate             chan []sgreplicate.DocumentRevisionPair // This is a channel that this updater listens to for docs that are ready to be updated
 	NumUpdatesPerDocRequired int                                     // The number of updates this updater is supposed to do for each doc.
-	NumUpdatesPerDoc         map[string]int                          // The number of updates that have been done per doc id.  Key = doc id, value = number of updates
-	LatestRevPerDoc          map[string]string                       // The latest known revision id for each doc
+	DocUpdateStatuses        map[string]DocUpdateStatus              // The number of updates and latest rev that have been done per doc id.  Key = doc id, value = number of updates and latest rev
+	BatchSize                int                                     // How many docs to update in a batch
 
+}
+
+type DocUpdateStatus struct {
+	NumUpdates int
+	LatestRev  string
 }
 
 func NewUpdater(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, n int) *Updater {
@@ -30,9 +35,10 @@ func NewUpdater(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, n int) *Upd
 		},
 		DocsToUpdate:             docsToUpdate,
 		NumUpdatesPerDocRequired: n,
-		LatestRevPerDoc:          map[string]string{},
-		NumUpdatesPerDoc:         map[string]int{},
+		DocUpdateStatuses:        map[string]DocUpdateStatus{},
+		BatchSize:                10, // TODO: parameterize
 	}
+
 }
 
 func (u *Updater) Run() {
@@ -50,21 +56,24 @@ func (u *Updater) Run() {
 
 			logger.Info("Updater notified docs are ready to update", "DocsToUpdate", docsToUpdate)
 			for _, docToUpdate := range docsToUpdate {
-				_, ok := u.NumUpdatesPerDoc[docToUpdate.Id]
+
+				_, ok := u.DocUpdateStatuses[docToUpdate.Id]
 				if ok {
 					// Invalid state, this should be the first
 					// time seeing this doc
 					panic(fmt.Sprintf("Unexpected doc: %+v", docToUpdate))
 				}
-				u.NumUpdatesPerDoc[docToUpdate.Id] = 0
-				u.LatestRevPerDoc[docToUpdate.Id] = docToUpdate.Revision
+				u.DocUpdateStatuses[docToUpdate.Id] = DocUpdateStatus{
+					NumUpdates: 0,
+					LatestRev:  docToUpdate.Revision,
+				}
+
 			}
 
 		}
 
 		// Grab a batch of docs that need to be updated
-		batchSize := 10
-		docBatch := u.getDocsReadyToUpdate(batchSize)
+		docBatch := u.getDocsReadyToUpdate()
 		if len(docBatch) == 0 {
 			// If all docs have been updated to their max revisions and batch is empty we're done
 			logger.Info("Updater finished", "updater", u)
@@ -81,8 +90,39 @@ func (u *Updater) Run() {
 
 }
 
-func (u *Updater) getDocsReadyToUpdate(batchSize int) []sgreplicate.DocumentRevisionPair {
-	return []sgreplicate.DocumentRevisionPair{}
+func (u *Updater) getDocsReadyToUpdate() []sgreplicate.DocumentRevisionPair {
+
+	return getDocsReadyToUpdate(
+		u.BatchSize,
+		u.NumUpdatesPerDocRequired,
+		u.DocUpdateStatuses,
+	)
+
+}
+
+func getDocsReadyToUpdate(batchSize, maxUpdatesPerDoc int, s map[string]DocUpdateStatus) []sgreplicate.DocumentRevisionPair {
+
+	updateDocBatch := []sgreplicate.DocumentRevisionPair{}
+
+	// loop over all docs in DocUpdateStatuses
+	for docId, docUpdateStatus := range s {
+
+		// if we have enough in batch, return
+		if len(updateDocBatch) >= batchSize {
+			return updateDocBatch
+		}
+
+		// if doc needs more updates, add it to batch
+		if docUpdateStatus.NumUpdates < maxUpdatesPerDoc {
+			docToUpdate := sgreplicate.DocumentRevisionPair{
+				Id:       docId,
+				Revision: docUpdateStatus.LatestRev,
+			}
+			updateDocBatch = append(updateDocBatch, docToUpdate)
+		}
+	}
+	return updateDocBatch
+
 }
 
 func (u *Updater) performUpdate(docs []sgreplicate.DocumentRevisionPair) error {
