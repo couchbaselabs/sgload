@@ -3,7 +3,6 @@ package sgload
 import (
 	"fmt"
 	"sync"
-	"time"
 
 	sgreplicate "github.com/couchbaselabs/sg-replicate"
 )
@@ -36,7 +35,7 @@ func NewUpdater(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, n int) *Upd
 		DocsToUpdate:             docsToUpdate,
 		NumUpdatesPerDocRequired: n,
 		DocUpdateStatuses:        map[string]DocUpdateStatus{},
-		BatchSize:                10, // TODO: parameterize
+		BatchSize:                5, // TODO: parameterize
 	}
 
 }
@@ -125,9 +124,25 @@ func getDocsReadyToUpdate(batchSize, maxUpdatesPerDoc int, s map[string]DocUpdat
 
 }
 
-func (u *Updater) performUpdate(docs []sgreplicate.DocumentRevisionPair) error {
-	logger.Info("Updater.performUpdate", "numdocs", len(docs))
-	<-time.After(time.Second * 5)
+func (u *Updater) performUpdate(docRevPairs []sgreplicate.DocumentRevisionPair) error {
+	logger.Info("Updater.performUpdate", "numdocs", len(docRevPairs), "docs", docRevPairs)
+	// <-time.After(time.Second * 5)
+
+	bulkDocs := []Document{}
+	for _, docRevPair := range docRevPairs {
+		doc := Document{}
+		doc["_id"] = docRevPair.Id
+		doc["_rev"] = docRevPair.Revision
+		doc["body"] = "updatedbody" // TODO
+		bulkDocs = append(bulkDocs, doc)
+	}
+	updatedDocs, err := u.DataStore.BulkCreateDocuments(bulkDocs)
+	if err != nil {
+		return err
+	}
+
+	logger.Info("performUpdateOK", "updatedDocs", updatedDocs)
+
 	return nil
 }
 
