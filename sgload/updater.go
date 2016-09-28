@@ -3,6 +3,7 @@ package sgload
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	sgreplicate "github.com/couchbaselabs/sg-replicate"
 )
@@ -68,7 +69,8 @@ func (u *Updater) Run() {
 				}
 
 			}
-
+		case <-time.After(time.Second * 1):
+			logger.Info("No more docs in DocsToUpdate")
 		}
 
 		// Grab a batch of docs that need to be updated
