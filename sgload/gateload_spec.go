@@ -1,6 +1,9 @@
 package sgload
 
-import "log"
+import (
+	"fmt"
+	"log"
+)
 
 type GateLoadSpec struct {
 	LoadSpec
@@ -25,6 +28,13 @@ func (gls GateLoadSpec) Validate() error {
 
 	if err := gls.UpdateLoadSpec.Validate(); err != nil {
 		return err
+	}
+
+	// Currently we need at least as many writers as updaters, since
+	// they use writer credentials, and if more updaters than writers
+	// the writer creds will be non-existent for some updaters
+	if gls.UpdateLoadSpec.NumUpdaters > gls.WriteLoadSpec.NumWriters {
+		return fmt.Errorf("Need at least as many writers as updaters")
 	}
 
 	return nil
