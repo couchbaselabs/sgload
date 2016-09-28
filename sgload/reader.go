@@ -198,7 +198,7 @@ func (r *Reader) pullMoreDocs(since Sincer) (pullMoreDocsResult, error) {
 
 func getBulkGetRequest(changes sgreplicate.Changes) sgreplicate.BulkGetRequest {
 
-	bulkDocsRequest := sgreplicate.BulkGetRequest{}
+	bulkGetRequest := sgreplicate.BulkGetRequest{}
 	docs := []sgreplicate.DocumentRevisionPair{}
 	for _, change := range changes.Results {
 		docRevPair := sgreplicate.DocumentRevisionPair{}
@@ -206,8 +206,8 @@ func getBulkGetRequest(changes sgreplicate.Changes) sgreplicate.BulkGetRequest {
 		docRevPair.Revision = change.ChangedRevs[0].Revision
 		docs = append(docs, docRevPair)
 	}
-	bulkDocsRequest.Docs = docs
-	return bulkDocsRequest
+	bulkGetRequest.Docs = docs
+	return bulkGetRequest
 
 }
 

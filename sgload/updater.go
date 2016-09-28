@@ -178,18 +178,35 @@ func (u *Updater) performUpdate(docRevPairs []sgreplicate.DocumentRevisionPair) 
 
 	logger.Info("Updater.performUpdate", "numdocs", len(docRevPairs), "docs", docRevPairs)
 
-	// bulkGetRequest := sgreplicate.BulkGetRequest{}
-
-	bulkDocs := []Document{}
-	for _, docRevPair := range docRevPairs {
-		doc := Document{}
-		doc["_id"] = docRevPair.Id
-		doc["_rev"] = docRevPair.Revision
-		doc["body"] = "updatedbody" // TODO
-		bulkDocs = append(bulkDocs, doc)
+	// TODO: remove this, need to pass channels/docs withing sgload
+	bulkGetRequest := sgreplicate.BulkGetRequest{
+		Docs: docRevPairs,
+	}
+	docs, err := u.DataStore.BulkGetDocuments(bulkGetRequest)
+	if err != nil {
+		return nil, err
 	}
 
-	updatedDocs, err := u.DataStore.BulkCreateDocuments(bulkDocs)
+	/*
+		bulkDocs := []Document{}
+		for _, docRevPair := range docRevPairs {
+			doc := Document{}
+			doc["_id"] = docRevPair.Id
+			doc["_rev"] = docRevPair.Revision
+			doc["body"] = "updatedbody" // TODO
+			bulkDocs = append(bulkDocs, doc)
+		}
+	*/
+
+	// Silly workaround for juggling Document and sgreplicate.Document types
+	docsToUpdate := []Document{}
+	for _, doc := range docs {
+		docToUpdate := Document(doc.Body)
+		docToUpdate["body"] = "updatedbody"
+		docsToUpdate = append(docsToUpdate, docToUpdate)
+	}
+
+	updatedDocs, err := u.DataStore.BulkCreateDocuments(docsToUpdate)
 	if err != nil {
 		return updatedDocs, err
 	}
