@@ -16,6 +16,8 @@ var (
 	glNumChansPerReader *int
 	glCreateReaders     *bool
 	glCreateWriters     *bool
+	glNumRevsPerDoc     *int
+	glNumUpdaters       *int
 )
 
 var gateloadCmd = &cobra.Command{
@@ -44,11 +46,19 @@ var gateloadCmd = &cobra.Command{
 			CreateReaders:     *glCreateReaders,
 		}
 
-		gateLoadSpec := sgload.GateLoadSpec{
+		updateLoadSpec := sgload.UpdateLoadSpec{
 			LoadSpec:      loadSpec,
-			WriteLoadSpec: writeLoadSpec,
-			ReadLoadSpec:  readLoadSpec,
+			NumRevsPerDoc: *glNumRevsPerDoc,
+			NumUpdaters:   *glNumUpdaters,
 		}
+
+		gateLoadSpec := sgload.GateLoadSpec{
+			LoadSpec:       loadSpec,
+			WriteLoadSpec:  writeLoadSpec,
+			UpdateLoadSpec: updateLoadSpec,
+			ReadLoadSpec:   readLoadSpec,
+		}
+
 		if err := gateLoadSpec.Validate(); err != nil {
 
 			panic(fmt.Sprintf("Invalid parameters: %+v. Error: %v", gateLoadSpec, err))
@@ -93,6 +103,18 @@ func init() {
 		CREATE_READERS_CMD_NAME,
 		CREATE_READERS_CMD_DEFAULT,
 		CREATE_READERS_CMD_DESC,
+	)
+
+	glNumRevsPerDoc = gateloadCmd.PersistentFlags().Int(
+		NUM_REVS_PER_DOC_CMD_NAME,
+		NUM_REVS_PER_DOC_CMD_DEFAULT,
+		NUM_REVS_PER_DOC_CMD_DESC,
+	)
+
+	glNumUpdaters = gateloadCmd.PersistentFlags().Int(
+		NUM_UPDATERS_CMD_NAME,
+		NUM_UPDATERS_CMD_DEFAULT,
+		NUM_UPDATERS_CMD_DESC,
 	)
 
 }

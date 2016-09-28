@@ -6,6 +6,7 @@ type GateLoadSpec struct {
 	LoadSpec
 	WriteLoadSpec
 	ReadLoadSpec
+	UpdateLoadSpec
 }
 
 func (gls GateLoadSpec) Validate() error {
@@ -19,6 +20,10 @@ func (gls GateLoadSpec) Validate() error {
 	}
 
 	if err := gls.WriteLoadSpec.Validate(); err != nil {
+		return err
+	}
+
+	if err := gls.UpdateLoadSpec.Validate(); err != nil {
 		return err
 	}
 
