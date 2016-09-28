@@ -3,6 +3,7 @@ package sgload
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	sgreplicate "github.com/couchbaselabs/sg-replicate"
 )
@@ -70,7 +71,7 @@ func (u *Updater) Run() {
 				}
 
 			}
-		default:
+		case <-time.After(time.Second * 1):
 			logger.Info("No more docs in DocsToUpdate")
 		}
 
@@ -79,6 +80,11 @@ func (u *Updater) Run() {
 		if len(docBatch) == 0 && u.noMoreExpectedDocsToUpdate() {
 			logger.Info("Updater finished", "updater", u)
 			return
+		}
+
+		// If nothing in doc batch, skip this loop iteration
+		if len(docBatch) == 0 {
+			continue
 		}
 
 		// Push the update
@@ -194,7 +200,9 @@ func (u *Updater) performUpdate(docRevPairs []sgreplicate.DocumentRevisionPair) 
 // docs that it's responsible for updating) have been inserted into Sync Gateway
 func (u *Updater) NotifyDocsReadyToUpdate(docs []sgreplicate.DocumentRevisionPair) {
 
+	logger.Info("NotifyDocsReadyToUpdate", "docs", docs)
 	u.DocsToUpdate <- docs
+	logger.Info("/NotifyDocsReadyToUpdate")
 
 }
 

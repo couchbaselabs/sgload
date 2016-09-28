@@ -91,6 +91,8 @@ func (w *Writer) notifyDocPushed(doc sgreplicate.DocumentRevisionPair) {
 func (w *Writer) notifyDocsPushed(docs []sgreplicate.DocumentRevisionPair) {
 	if w.PushedDocs != nil {
 		w.PushedDocs <- docs
+	} else {
+		logger.Warn("notifyDocsPushed, w.PushedDocs is nil")
 	}
 }
 

@@ -59,8 +59,6 @@ func (glr GateLoadRunner) Run() error {
 	// TODO: 2) readers need to calculate RT latency delta and push to statsd
 	// TODO: 3) instead of finishing when writers finish, block until readers have read all docs written)
 
-	enableUpdaters := false
-
 	// Start Writers
 	writerWaitGroup, writers, err := glr.startWriters()
 	if err != nil {
@@ -86,6 +84,14 @@ func (glr GateLoadRunner) Run() error {
 		return err
 	}
 
+	// TODO: we want to start updaters as soon as the writers have created users
+	// Start updaters
+	updaterWaitGroup, updaters, err := glr.startUpdaters(len(writers), docsToChannelsAndWriters)
+	if err != nil {
+		return err
+	}
+	logger.Info("startUpdaters", "updaterWaitGroup", updaterWaitGroup, "updaters", updaters)
+
 	// Wait until writers finish
 	logger.Info("Wait until writers finish")
 	if err := glr.waitUntilWritersFinish(writerWaitGroup); err != nil {
@@ -93,22 +99,11 @@ func (glr GateLoadRunner) Run() error {
 	}
 	logger.Info("Writers finished")
 
-	if enableUpdaters {
-
-		// TODO: we want to start updaters as soon as the writers have created users
-		// Start updaters
-		updaterWaitGroup, updaters, err := glr.startUpdaters(len(writers), docsToChannelsAndWriters)
-		if err != nil {
-			return err
-		}
-		logger.Info("startUpdaters", "updaterWaitGroup", updaterWaitGroup, "updaters", updaters)
-
-		// Wait until updaters finish
-		// Close glr.PushedDocs channel
-		logger.Info("Wait until updaters finish")
-		updaterWaitGroup.Wait()
-		logger.Info("Updaters finished")
-	}
+	// Wait until updaters finish
+	// Close glr.PushedDocs channel
+	logger.Info("Wait until updaters finish")
+	updaterWaitGroup.Wait()
+	logger.Info("Updaters finished")
 
 	return nil
 }
@@ -197,6 +192,13 @@ func (glr GateLoadRunner) startWriters() (*sync.WaitGroup, []*Writer, error) {
 		return nil, nil, err
 	}
 	for _, writer := range writers {
+
+		// This is the main wiring between the writers and the updaters.
+		// Whenever a writers writes a doc, it pushes the doc/rev pair to
+		// this channel which gives the updater the green light to
+		// start updating it.
+		writer.PushedDocs = glr.PushedDocs
+
 		go writer.Run()
 	}
 
