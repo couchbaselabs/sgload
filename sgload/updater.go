@@ -10,6 +10,7 @@ import (
 
 type Updater struct {
 	Agent
+	DocsAssignedToUpdater    []Document                              //
 	DocsToUpdate             chan []sgreplicate.DocumentRevisionPair // This is a channel that this updater listens to for docs that are ready to be updated
 	NumUpdatesPerDocRequired int                                     // The number of updates this updater is supposed to do for each doc.
 	DocUpdateStatuses        map[string]DocUpdateStatus              // The number of updates and latest rev that have been done per doc id.  Key = doc id, value = number of updates and latest rev

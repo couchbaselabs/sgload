@@ -31,17 +31,14 @@ func (ulr UpdateLoadRunner) Run() error {
 	// Create a wait group to see when all the updater goroutines have finished
 	var wg sync.WaitGroup
 
-	// Create updater goroutines
-	updaters, err := ulr.createUpdaters(&wg)
+	// Create usercreds
+	userCreds, err := ulr.createUserCreds()
 	if err != nil {
 		return err
 	}
-	for _, updater := range updaters {
-		go updater.Run()
-	}
 
 	channelNames := ulr.generateChannelNames()
-	updaterAgentUsernames := getUpdaterAgentUsernames(updaters)
+	updaterAgentUsernames := getUpdaterAgentUsernames(userCreds)
 	docsToChannelsAndUpdaters := createAndAssignDocs(
 		updaterAgentUsernames,
 		channelNames,
@@ -49,6 +46,15 @@ func (ulr UpdateLoadRunner) Run() error {
 		ulr.UpdateLoadSpec.DocSizeBytes,
 		ulr.UpdateLoadSpec.TestSessionID,
 	)
+
+	// Create updater goroutines
+	updaters, err := ulr.createUpdaters(&wg, userCreds)
+	if err != nil {
+		return err
+	}
+	for _, updater := range updaters {
+		go updater.Run()
+	}
 
 	// Since the UpdateLoad Runner assumes that all docs have already been
 	// inserted, it simply feeds all docs to the updaters.  In the gateload
@@ -64,24 +70,32 @@ func (ulr UpdateLoadRunner) Run() error {
 
 }
 
-func getUpdaterAgentUsernames(updaters []*Updater) []string {
+func getUpdaterAgentUsernames(userCreds []UserCred) []string {
 	updaterAgentIds := []string{}
-	for _, updater := range updaters {
-		updaterAgentIds = append(updaterAgentIds, updater.UserCred.Username)
+	for _, userCred := range userCreds {
+		updaterAgentIds = append(updaterAgentIds, userCred.Username)
 	}
 	return updaterAgentIds
 }
 
-func (ulr UpdateLoadRunner) createUpdaters(wg *sync.WaitGroup) ([]*Updater, error) {
-
-	updaters := []*Updater{}
+func (ulr UpdateLoadRunner) createUserCreds() ([]UserCred, error) {
 	var userCreds []UserCred
 	var err error
 
-	userCreds, err = ulr.loadUserCredsFromArgs(ulr.UpdateLoadSpec.NumUpdaters, USER_PREFIX_WRITER)
+	userCreds, err = ulr.loadUserCredsFromArgs(
+		ulr.UpdateLoadSpec.NumUpdaters,
+		USER_PREFIX_WRITER, // re-use writer creds
+	)
 	if err != nil {
-		return updaters, err
+		return userCreds, err
 	}
+	return userCreds, nil
+
+}
+
+func (ulr UpdateLoadRunner) createUpdaters(wg *sync.WaitGroup, userCreds []UserCred) ([]*Updater, error) {
+
+	updaters := []*Updater{}
 
 	for userId := 0; userId < ulr.UpdateLoadSpec.NumUpdaters; userId++ {
 		userCred := userCreds[userId]
