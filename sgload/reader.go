@@ -69,7 +69,7 @@ func (r *Reader) pushPostRunTimingStats(numDocsPulled int, timeStartedCreatingDo
 		)
 	}
 
-	logger.Info("Reader finished", "agent.ID", r.ID, "numdocs", numDocsPulled, "get_all_documents", delta)
+	logger.Info("Reader finished", "agent.ID", r.ID, "numdocs", numDocsPulled)
 
 }
 
@@ -86,7 +86,7 @@ func (r *Reader) Run() {
 		r.pushPostRunTimingStats(numDocsPulled, timeStartedCreatingDocs)
 	}()
 
-	r.createSGUserIfNeeded()
+	r.createSGUserIfNeeded(r.SGChannels)
 
 	timeStartedCreatingDocs = time.Now()
 
@@ -107,21 +107,7 @@ func (r *Reader) Run() {
 
 }
 
-func (r *Reader) createSGUserIfNeeded() {
-	if r.CreateDataStoreUser == true {
-
-		logger.Info("Creating reader SG user", "username", r.UserCred.Username, "channels", r.SGChannels)
-
-		if err := r.DataStore.CreateUser(r.UserCred, r.SGChannels); err != nil {
-			panic(fmt.Sprintf("Error creating user in datastore.  User: %v, Err: %v", r.UserCred, err))
-		}
-	}
-
-}
-
 func (r *Reader) isFinished(numDocsPulled int) bool {
-
-	logger.Info("Reader checking if finished", "agent.ID", r.ID, "numDocsPulled", numDocsPulled, "numDocsExpected", r.NumDocsExpected)
 
 	switch {
 	case numDocsPulled > r.NumDocsExpected:
@@ -158,7 +144,6 @@ func (r *Reader) pullMoreDocs(since Sincer) (pullMoreDocsResult, error) {
 		}
 
 		if len(changes.Results) == 0 {
-			logger.Warn("No changes pulled", "agent.ID", r.ID, "since", since)
 			return true, nil, result
 		}
 		if newSince.Equals(since) {
@@ -253,10 +238,8 @@ func RetryLoop(description string, worker RetryWorker, sleeper RetrySleeper) (er
 			if err == nil {
 				err = fmt.Errorf("RetryLoop for %v giving up after %v attempts", description, numAttempts)
 			}
-			logger.Warn("RetryLoop giving up", "description", description, "numAttempts", numAttempts)
 			return err, value
 		}
-		logger.Warn("RetryLoop will retry soon", "description", description, "sleepMs", sleepMs)
 
 		<-time.After(time.Millisecond * time.Duration(sleepMs))
 

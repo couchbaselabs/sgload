@@ -48,12 +48,11 @@ func (w *Writer) Run() {
 				doc := docs[0]
 				_, ok := doc["_terminal"]
 				if ok {
-					logger.Info("Writer pushed all docs", "agent.ID", w.ID, "numdocs", numDocsPushed)
+					logger.Info("Writer finished", "agent.ID", w.ID, "numdocs", numDocsPushed)
 					return
 				}
 
 				docRevPair, err := w.DataStore.CreateDocument(doc)
-				logger.Info("CreateDoc", "docRevPair", docRevPair)
 				if err != nil {
 					panic(fmt.Sprintf("Error creating doc in datastore.  Doc: %v, Err: %v", doc, err))
 				}
@@ -61,7 +60,6 @@ func (w *Writer) Run() {
 
 			default:
 				docRevPairs, err := w.DataStore.BulkCreateDocuments(docs)
-				logger.Info("BulkCreateDocs", "docRevPairs", docRevPairs)
 				if err != nil {
 					panic(fmt.Sprintf("Error creating docs in datastore.  Docs: %v, Err: %v", docs, err))
 				}

@@ -66,8 +66,6 @@ func (lr LoadRunner) loadUserCredsFromArgs(numUsers int, usernamePrefix string) 
 	userCreds := []UserCred{}
 	var err error
 
-	logger.Info("check testsessionid", "loadspec", fmt.Sprintf("%+v", lr.LoadSpec))
-
 	switch {
 	case lr.LoadSpec.TestSessionID != "":
 		// If the user explicitly provided a test session ID, then use that

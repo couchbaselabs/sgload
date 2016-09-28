@@ -108,11 +108,7 @@ func (rlr ReadLoadRunner) numDocsExpectedPerReader() int {
 
 	numDocsPerChannel := rlr.ReadLoadSpec.NumDocs / rlr.ReadLoadSpec.NumChannels
 
-	logger.Info("Calculated numDocsPerChannel", "numDocsPerChannel", numDocsPerChannel, "numDocs", rlr.ReadLoadSpec.NumDocs, "numChannels", rlr.ReadLoadSpec.NumChannels)
-
 	docsPerReader := numDocsPerChannel * rlr.ReadLoadSpec.NumChansPerReader
-
-	logger.Info("Calculated docsPerReader", "docsPerReader", docsPerReader, "numDocsPerChannel", numDocsPerChannel, "numChansPerReader", rlr.ReadLoadSpec.NumChansPerReader)
 
 	return docsPerReader
 

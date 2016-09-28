@@ -59,6 +59,22 @@ func (glr GateLoadRunner) Run() error {
 	// TODO: 2) readers need to calculate RT latency delta and push to statsd
 	// TODO: 3) instead of finishing when writers finish, block until readers have read all docs written)
 
+	logger.Info(
+		"Running Gateload Scenario",
+		"numdocs",
+		glr.GateLoadSpec.NumDocs,
+		"numwriters",
+		glr.GateLoadSpec.NumWriters,
+		"numreaders",
+		glr.GateLoadSpec.NumReaders,
+		"numupdaters",
+		glr.GateLoadSpec.NumUpdaters,
+		"numchannels",
+		glr.GateLoadSpec.NumChannels,
+		"numrevsperdoc",
+		glr.GateLoadSpec.NumRevsPerDoc,
+	)
+
 	// Start Writers
 	writerWaitGroup, writers, err := glr.startWriters()
 	if err != nil {
@@ -84,13 +100,11 @@ func (glr GateLoadRunner) Run() error {
 		return err
 	}
 
-	// TODO: we want to start updaters as soon as the writers have created users
 	// Start updaters
-	updaterWaitGroup, updaters, err := glr.startUpdaters(len(writers), docsToChannelsAndWriters)
+	updaterWaitGroup, _, err := glr.startUpdaters(len(writers), docsToChannelsAndWriters)
 	if err != nil {
 		return err
 	}
-	logger.Info("startUpdaters", "updaterWaitGroup", updaterWaitGroup, "updaters", updaters)
 
 	// Wait until writers finish
 	logger.Info("Wait until writers finish")
@@ -150,7 +164,6 @@ func (glr GateLoadRunner) startUpdaters(numWriters int, docsToChannelsAndWriters
 	// Start docUpdaterRouter that reads off of glr.PushedDocs chan
 	go func() {
 		for pushedDocRevPairs := range glr.PushedDocs {
-			logger.Info("DocUpdaterRouter received", "PushedDocs", pushedDocRevPairs)
 			for _, docRevPair := range pushedDocRevPairs {
 				// route it to appropriate updater
 				updaterAgentUsername, err := findAgentAssignedToDoc(docRevPair, docsToChannelsAndUpdaters)

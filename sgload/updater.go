@@ -51,12 +51,9 @@ func (u *Updater) Run() {
 
 	for {
 
-		logger.Info("Updater.Run()", "usercred", u.UserCred.Username)
-
 		select {
 		case docsToUpdate := <-u.DocsToUpdate:
 
-			logger.Info("Updater notified docs are ready to update", "DocsToUpdate", docsToUpdate)
 			for _, docToUpdate := range docsToUpdate {
 
 				_, ok := u.DocUpdateStatuses[docToUpdate.Id]
@@ -72,13 +69,12 @@ func (u *Updater) Run() {
 
 			}
 		case <-time.After(time.Second * 1):
-			logger.Info("No more docs in DocsToUpdate")
 		}
 
 		// Grab a batch of docs that need to be updated
 		docBatch := u.getDocsReadyToUpdate()
 		if len(docBatch) == 0 && u.noMoreExpectedDocsToUpdate() {
-			logger.Info("Updater finished", "updater", u)
+			logger.Info("Updater finished", "agent.ID", u.ID, "numdocs", len(u.DocsAssignedToUpdater))
 			return
 		}
 
@@ -176,8 +172,6 @@ func getDocsReadyToUpdate(batchSize, maxUpdatesPerDoc int, s map[string]DocUpdat
 
 func (u *Updater) performUpdate(docRevPairs []sgreplicate.DocumentRevisionPair) ([]sgreplicate.DocumentRevisionPair, error) {
 
-	logger.Info("Updater.performUpdate", "numdocs", len(docRevPairs), "docs", docRevPairs)
-
 	bulkDocs := []Document{}
 	for _, docRevPair := range docRevPairs {
 
@@ -202,8 +196,6 @@ func (u *Updater) performUpdate(docRevPairs []sgreplicate.DocumentRevisionPair) 
 		return updatedDocs, err
 	}
 
-	logger.Info("performUpdateOK", "updatedDocs", updatedDocs)
-
 	return updatedDocs, nil
 }
 
@@ -222,11 +214,7 @@ func (u *Updater) findDocAssignedToUpdaterById(docId string) Document {
 // Tell this updater that the following docs (which presumably are in its list of
 // docs that it's responsible for updating) have been inserted into Sync Gateway
 func (u *Updater) NotifyDocsReadyToUpdate(docs []sgreplicate.DocumentRevisionPair) {
-
-	logger.Info("NotifyDocsReadyToUpdate", "docs", docs)
 	u.DocsToUpdate <- docs
-	logger.Info("/NotifyDocsReadyToUpdate")
-
 }
 
 func (u Updater) LookupCurrentRevisions(docsToLookup []Document) ([]sgreplicate.DocumentRevisionPair, error) {

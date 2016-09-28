@@ -328,7 +328,6 @@ func (s SGDataStore) BulkGetDocuments(r sgreplicate.BulkGetRequest) ([]sgreplica
 			continue
 		}
 		delta := time.Since(createAtRFC3339Nano)
-		logger.Info("gateload_roundtrip", "delta", delta)
 		s.pushTimingStat("gateload_roundtrip", delta)
 	}
 
