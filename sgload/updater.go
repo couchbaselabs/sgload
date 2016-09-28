@@ -82,10 +82,12 @@ func (u *Updater) Run() {
 		}
 
 		// Push the update
-		err := u.performUpdate(docBatch)
+		docRevPairsUpdated, err := u.performUpdate(docBatch)
 		if err != nil {
 			panic(fmt.Sprintf("Error performing update: %v", err))
 		}
+
+		u.updateDocStatuses(docRevPairsUpdated)
 
 	}
 
@@ -113,6 +115,21 @@ func (u Updater) noMoreExpectedDocsToUpdate() bool {
 	// all to the num updates required of us.  Therefore, no more doc updates
 	// expected/required of us
 	return true
+
+}
+
+// The given docrevpairs were just updated *one* rev.  We need to update
+// the doc statuses
+func (u *Updater) updateDocStatuses(docRevPairsUpdated []sgreplicate.DocumentRevisionPair) {
+	for _, docRevPair := range docRevPairsUpdated {
+		docStatus, ok := u.DocUpdateStatuses[docRevPair.Id]
+		if !ok {
+			panic(fmt.Sprintf("Could not find doc status: %+v", docRevPair))
+		}
+		docStatus.NumUpdates += 1
+		docStatus.LatestRev = docRevPair.Revision
+		u.DocUpdateStatuses[docRevPair.Id] = docStatus
+	}
 
 }
 
@@ -151,9 +168,9 @@ func getDocsReadyToUpdate(batchSize, maxUpdatesPerDoc int, s map[string]DocUpdat
 
 }
 
-func (u *Updater) performUpdate(docRevPairs []sgreplicate.DocumentRevisionPair) error {
+func (u *Updater) performUpdate(docRevPairs []sgreplicate.DocumentRevisionPair) ([]sgreplicate.DocumentRevisionPair, error) {
+
 	logger.Info("Updater.performUpdate", "numdocs", len(docRevPairs), "docs", docRevPairs)
-	// <-time.After(time.Second * 5)
 
 	bulkDocs := []Document{}
 	for _, docRevPair := range docRevPairs {
@@ -165,12 +182,12 @@ func (u *Updater) performUpdate(docRevPairs []sgreplicate.DocumentRevisionPair) 
 	}
 	updatedDocs, err := u.DataStore.BulkCreateDocuments(bulkDocs)
 	if err != nil {
-		return err
+		return updatedDocs, err
 	}
 
 	logger.Info("performUpdateOK", "updatedDocs", updatedDocs)
 
-	return nil
+	return updatedDocs, nil
 }
 
 // Tell this updater that the following docs (which presumably are in its list of
