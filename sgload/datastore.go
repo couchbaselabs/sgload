@@ -42,6 +42,18 @@ func (d Document) Revision() string {
 	return d["_rev"].(string)
 }
 
+func (d Document) SetRevision(revision string) {
+	d["_rev"] = revision
+}
+
+func (d Document) Copy() Document {
+	doc := Document{}
+	for k, v := range d {
+		doc[k] = v
+	}
+	return doc
+}
+
 type Change interface{} // TODO: spec this out further
 
 type BulkDocs struct {

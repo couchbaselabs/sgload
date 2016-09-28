@@ -178,35 +178,26 @@ func (u *Updater) performUpdate(docRevPairs []sgreplicate.DocumentRevisionPair) 
 
 	logger.Info("Updater.performUpdate", "numdocs", len(docRevPairs), "docs", docRevPairs)
 
-	// TODO: remove this, need to pass channels/docs withing sgload
-	bulkGetRequest := sgreplicate.BulkGetRequest{
-		Docs: docRevPairs,
-	}
-	docs, err := u.DataStore.BulkGetDocuments(bulkGetRequest)
-	if err != nil {
-		return nil, err
-	}
+	bulkDocs := []Document{}
+	for _, docRevPair := range docRevPairs {
 
-	/*
-		bulkDocs := []Document{}
-		for _, docRevPair := range docRevPairs {
-			doc := Document{}
-			doc["_id"] = docRevPair.Id
-			doc["_rev"] = docRevPair.Revision
-			doc["body"] = "updatedbody" // TODO
-			bulkDocs = append(bulkDocs, doc)
-		}
-	*/
+		// Get the original doc passed to the updater when created, which
+		// has all the fields like channels, body, etc
+		sourceDoc := u.findDocAssignedToUpdaterById(docRevPair.Id)
 
-	// Silly workaround for juggling Document and sgreplicate.Document types
-	docsToUpdate := []Document{}
-	for _, doc := range docs {
-		docToUpdate := Document(doc.Body)
-		docToUpdate["body"] = "updatedbody"
-		docsToUpdate = append(docsToUpdate, docToUpdate)
+		// Copy the document into a new document
+		doc := sourceDoc.Copy()
+
+		// Update the revision the latest known revision
+		doc.SetRevision(docRevPair.Revision)
+
+		// Add something onto the body so that it's a meaningful update
+		doc["body"] = fmt.Sprintf("%s-%s", doc["body"], docRevPair.Revision)
+
+		bulkDocs = append(bulkDocs, doc)
 	}
 
-	updatedDocs, err := u.DataStore.BulkCreateDocuments(docsToUpdate)
+	updatedDocs, err := u.DataStore.BulkCreateDocuments(bulkDocs)
 	if err != nil {
 		return updatedDocs, err
 	}
@@ -214,6 +205,18 @@ func (u *Updater) performUpdate(docRevPairs []sgreplicate.DocumentRevisionPair) 
 	logger.Info("performUpdateOK", "updatedDocs", updatedDocs)
 
 	return updatedDocs, nil
+}
+
+// Lookup doc in DocsAssignedToUpdater slice by ID by iterating
+// over the entire slice.
+// TODO: use a map
+func (u *Updater) findDocAssignedToUpdaterById(docId string) Document {
+	for _, doc := range u.DocsAssignedToUpdater {
+		if doc.Id() == docId {
+			return doc
+		}
+	}
+	panic(fmt.Sprintf("Could not find doc by id: %v", docId))
 }
 
 // Tell this updater that the following docs (which presumably are in its list of
