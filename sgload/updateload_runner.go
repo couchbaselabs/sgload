@@ -37,6 +37,7 @@ func (ulr UpdateLoadRunner) Run() error {
 		return err
 	}
 
+	// Generate the mapping between docs+channels and updaters
 	channelNames := ulr.generateChannelNames()
 	updaterAgentUsernames := getUpdaterAgentUsernames(userCreds)
 	docsToChannelsAndUpdaters := createAndAssignDocs(
@@ -48,7 +49,7 @@ func (ulr UpdateLoadRunner) Run() error {
 	)
 
 	// Create updater goroutines
-	updaters, err := ulr.createUpdaters(&wg, userCreds)
+	updaters, err := ulr.createUpdaters(&wg, userCreds, docsToChannelsAndUpdaters)
 	if err != nil {
 		return err
 	}
@@ -93,7 +94,7 @@ func (ulr UpdateLoadRunner) createUserCreds() ([]UserCred, error) {
 
 }
 
-func (ulr UpdateLoadRunner) createUpdaters(wg *sync.WaitGroup, userCreds []UserCred) ([]*Updater, error) {
+func (ulr UpdateLoadRunner) createUpdaters(wg *sync.WaitGroup, userCreds []UserCred, docMapping map[string][]Document) ([]*Updater, error) {
 
 	updaters := []*Updater{}
 
@@ -101,12 +102,14 @@ func (ulr UpdateLoadRunner) createUpdaters(wg *sync.WaitGroup, userCreds []UserC
 		userCred := userCreds[userId]
 		dataStore := ulr.createDataStore()
 		dataStore.SetUserCreds(userCred)
+		docsForUpdater := docMapping[userCred.Username]
 		updater := NewUpdater(
 			wg,
 			userId,
 			userCred,
 			dataStore,
 			ulr.UpdateLoadSpec.NumRevsPerDoc,
+			docsForUpdater,
 		)
 		updater.SetStatsdClient(ulr.StatsdClient)
 		updaters = append(updaters, updater)

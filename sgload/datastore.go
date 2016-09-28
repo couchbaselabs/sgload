@@ -34,6 +34,14 @@ func (u UserCred) Empty() bool {
 
 type Document map[string]interface{}
 
+func (d Document) Id() string {
+	return d["_id"].(string)
+}
+
+func (d Document) Revision() string {
+	return d["_rev"].(string)
+}
+
 type Change interface{} // TODO: spec this out further
 
 type BulkDocs struct {

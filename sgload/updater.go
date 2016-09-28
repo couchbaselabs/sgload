@@ -3,14 +3,13 @@ package sgload
 import (
 	"fmt"
 	"sync"
-	"time"
 
 	sgreplicate "github.com/couchbaselabs/sg-replicate"
 )
 
 type Updater struct {
 	Agent
-	DocsAssignedToUpdater    []Document                              //
+	DocsAssignedToUpdater    []Document                              // The full list of documents that this updater is responsible for updating
 	DocsToUpdate             chan []sgreplicate.DocumentRevisionPair // This is a channel that this updater listens to for docs that are ready to be updated
 	NumUpdatesPerDocRequired int                                     // The number of updates this updater is supposed to do for each doc.
 	DocUpdateStatuses        map[string]DocUpdateStatus              // The number of updates and latest rev that have been done per doc id.  Key = doc id, value = number of updates and latest rev
@@ -23,7 +22,7 @@ type DocUpdateStatus struct {
 	LatestRev  string
 }
 
-func NewUpdater(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, n int) *Updater {
+func NewUpdater(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, n int, da []Document) *Updater {
 
 	docsToUpdate := make(chan []sgreplicate.DocumentRevisionPair, 100)
 
@@ -38,6 +37,7 @@ func NewUpdater(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, n int) *Upd
 		NumUpdatesPerDocRequired: n,
 		DocUpdateStatuses:        map[string]DocUpdateStatus{},
 		BatchSize:                5, // TODO: parameterize
+		DocsAssignedToUpdater:    da,
 	}
 
 }
@@ -70,25 +70,49 @@ func (u *Updater) Run() {
 				}
 
 			}
-		case <-time.After(time.Second * 1):
+		default:
 			logger.Info("No more docs in DocsToUpdate")
 		}
 
 		// Grab a batch of docs that need to be updated
 		docBatch := u.getDocsReadyToUpdate()
-		if len(docBatch) == 0 {
-			// If all docs have been updated to their max revisions and batch is empty we're done
+		if len(docBatch) == 0 && u.noMoreExpectedDocsToUpdate() {
 			logger.Info("Updater finished", "updater", u)
 			return
 		}
 
-		// Otherwise, update the docs in the batch and update the NumUpdatesPerDoc map
+		// Push the update
 		err := u.performUpdate(docBatch)
 		if err != nil {
 			panic(fmt.Sprintf("Error performing update: %v", err))
 		}
 
 	}
+
+}
+
+func (u Updater) noMoreExpectedDocsToUpdate() bool {
+	// We know all of the doc id's we're supposed to be updating.
+	// If those are all represented in DocUpdateStatuses and
+	// they are all maxed out, then we're done
+	for _, docAssignedToUpdater := range u.DocsAssignedToUpdater {
+		docId := docAssignedToUpdater.Id()
+		docStatus, ok := u.DocUpdateStatuses[docId]
+		if !ok {
+			// didn't find this doc that was assigned to this updater, so
+			// therefore we are expecting more docs to update
+			return false
+		}
+		if docStatus.NumUpdates < u.NumUpdatesPerDocRequired {
+			// more updates required on this doc
+			return false
+		}
+	}
+
+	// Iterated through all docs assigned to us, and we've updated them
+	// all to the num updates required of us.  Therefore, no more doc updates
+	// expected/required of us
+	return true
 
 }
 
