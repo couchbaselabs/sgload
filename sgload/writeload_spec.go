@@ -7,20 +7,13 @@ import (
 
 type WriteLoadSpec struct {
 	LoadSpec
-	CreateWriters bool   // Whether or not to create users for writers
-	WriterCreds   string // The usernames / passwords to use if CreateWriters is set to false
+	CreateWriters bool // Whether or not to create users for writers
 	NumWriters    int
 }
 
 func (wls WriteLoadSpec) Validate() error {
 	if wls.NumWriters <= 0 {
 		return fmt.Errorf("NumWriters must be greater than zero")
-	}
-
-	if len(wls.WriterCreds) > 0 {
-		if wls.CreateWriters == true {
-			return fmt.Errorf("Cannot only set user credentials if createwriters is set to false")
-		}
 	}
 
 	if err := wls.LoadSpec.Validate(); err != nil {

@@ -21,8 +21,9 @@ var (
 // readloadCmd respresents the readload command
 var readloadCmd = &cobra.Command{
 	Use:   "readload",
-	Short: "Generate a read load",
-	Long:  `Generate a read load`,
+	Short: "Generate a read-only load",
+	Long: `Generate a read-only load.  This will kick off a write load by default, 
+or it can pass a test session id from a previously run write load.`,
 	Run: func(cmd *cobra.Command, args []string) {
 
 		// Setup logger

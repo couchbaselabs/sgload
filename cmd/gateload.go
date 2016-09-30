@@ -12,7 +12,6 @@ import (
 var (
 	glNumReaders        *int
 	glNumWriters        *int
-	glWriterCreds       *string
 	glNumChansPerReader *int
 	glCreateReaders     *bool
 	glCreateWriters     *bool

@@ -13,7 +13,7 @@ const (
 
 	CREATE_WRITERS_CMD_NAME    = "createwriters"
 	CREATE_WRITERS_CMD_DEFAULT = false
-	CREATE_WRITERS_CMD_DESC    = "Add this flag if you need the test to create SG users for writers.  Otherwise you'll need to specify writercreds"
+	CREATE_WRITERS_CMD_DESC    = "Add this flag if you need the test to create SG users for writers."
 
 	NUM_CHANS_PER_READER_CMD_NAME    = "num-chans-per-reader"
 	NUM_CHANS_PER_READER_CMD_DEFAULT = 1
@@ -21,7 +21,7 @@ const (
 
 	CREATE_READERS_CMD_NAME    = "createreaders"
 	CREATE_READERS_CMD_DEFAULT = false
-	CREATE_READERS_CMD_DESC    = "Add this flag if you need the test to create SG users for readers.  Otherwise you'll need to specify readercreds"
+	CREATE_READERS_CMD_DESC    = "Add this flag if you need the test to create SG users for readers."
 
 	SKIP_WRITELOAD_CMD_NAME    = "skipwriteload"
 	SKIP_WRITELOAD_CMD_DEFAULT = false
