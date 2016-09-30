@@ -11,7 +11,6 @@ import (
 var (
 	numWriters    *int
 	createWriters *bool
-	writerCreds   *string
 )
 
 // writeloadCmd respresents the writeload command
@@ -30,7 +29,6 @@ var writeloadCmd = &cobra.Command{
 			LoadSpec:      loadSpec,
 			NumWriters:    *numWriters,
 			CreateWriters: *createWriters,
-			WriterCreds:   *writerCreds,
 		}
 		if err := writeLoadSpec.Validate(); err != nil {
 
@@ -58,12 +56,6 @@ func init() {
 		CREATE_WRITERS_CMD_NAME,
 		CREATE_WRITERS_CMD_DEFAULT,
 		CREATE_WRITERS_CMD_DESC,
-	)
-
-	writerCreds = writeloadCmd.PersistentFlags().String(
-		"writercreds",
-		"",
-		"The usernames/passwords of the SG users to use for writers in a JSON array form, eg: [{\"foo\":\"passw0rd\"}].  Must be equal to number of writers.  Leave this flag off if using the createwriters flag to create writers",
 	)
 
 }

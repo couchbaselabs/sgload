@@ -12,11 +12,9 @@ var (
 	numReaders            *int
 	numChansPerReader     *int
 	createReaders         *bool
-	readerCreds           *string
 	skipWriteload         *bool
 	readLoadNumWriters    *int
 	readLoadCreateWriters *bool
-	readLoadWriterCreds   *string
 	logger                log15.Logger
 )
 
@@ -38,7 +36,6 @@ var readloadCmd = &cobra.Command{
 			NumReaders:         *numReaders,
 			NumChansPerReader:  *numChansPerReader,
 			CreateReaders:      *createReaders,
-			ReaderCreds:        *readerCreds,
 			SkipWriteLoadSetup: *skipWriteload,
 		}
 
@@ -76,7 +73,6 @@ func runWriteLoadScenarioReadLoad(loadSpec sgload.LoadSpec) error {
 		LoadSpec:      loadSpec,
 		NumWriters:    *readLoadNumWriters,
 		CreateWriters: *readLoadCreateWriters,
-		WriterCreds:   *readLoadWriterCreds,
 	}
 	if err := writeLoadSpec.Validate(); err != nil {
 		logger.Crit("Invalid loadspec", "error", err, "writeLoadSpec", writeLoadSpec)
@@ -109,12 +105,6 @@ func init() {
 		CREATE_READERS_CMD_DESC,
 	)
 
-	readerCreds = readloadCmd.PersistentFlags().String(
-		"readercreds",
-		"",
-		"The usernames/passwords of the SG users to use for readers in a JSON array form, eg: [{\"foo\":\"passw0rd\"}].  Must be equal to number of readers.  Leave this flag off if using the createwriters flag to create readers",
-	)
-
 	skipWriteload = readloadCmd.PersistentFlags().Bool(
 		SKIP_WRITELOAD_CMD_NAME,
 		SKIP_WRITELOAD_CMD_DEFAULT,
@@ -131,12 +121,6 @@ func init() {
 		CREATE_WRITERS_CMD_NAME,
 		CREATE_WRITERS_CMD_DEFAULT,
 		CREATE_WRITERS_CMD_DESC,
-	)
-
-	readLoadWriterCreds = readloadCmd.PersistentFlags().String(
-		"writercreds",
-		"",
-		"The usernames/passwords of the SG users to use for writers in a JSON array form, eg: [{\"foo\":\"passw0rd\"}].  Must be equal to number of writers.  Leave this flag off if using the createwriters flag to create writers",
 	)
 
 }
