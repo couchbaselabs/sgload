@@ -1,6 +1,10 @@
 package sgload
 
-import sgreplicate "github.com/couchbaselabs/sg-replicate"
+import (
+	"fmt"
+
+	sgreplicate "github.com/couchbaselabs/sg-replicate"
+)
 
 type DataStore interface {
 
@@ -80,4 +84,35 @@ func (d Document) channelNames() []string {
 		channelNames = append(channelNames, chanName)
 	}
 	return channelNames
+}
+
+func docsMustBeInExpectedChannels(docs []sgreplicate.Document, expectedChannels []string) {
+
+	for _, doc := range docs {
+		channels := doc.Body.ChannelNames()
+		for _, channel := range channels {
+			if !containedIn(channel, expectedChannels) {
+				panic(
+					fmt.Sprintf("Doc %v has channel %v which is not in expected channels: %v",
+						docs,
+						channel,
+						expectedChannels,
+					),
+				)
+			}
+		}
+	}
+
+}
+
+func containedIn(s string, expectedIn []string) bool {
+
+	for _, expectedItem := range expectedIn {
+		if s == expectedItem {
+			return true
+		}
+	}
+
+	return false
+
 }

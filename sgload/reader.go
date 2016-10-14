@@ -165,6 +165,8 @@ func (r *Reader) pullMoreDocs(since Sincer) (pullMoreDocsResult, error) {
 			return false, fmt.Errorf("Expected %d docs, got %d", len(bulkGetRequest.Docs), len(docs)), result
 		}
 
+		docsMustBeInExpectedChannels(docs, r.SGChannels)
+
 		result.since = newSince.(StringSincer)
 		result.numDocsPulled = len(docs)
 		return false, nil, result
