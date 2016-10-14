@@ -22,12 +22,9 @@ func (a *Agent) createSGUserIfNeeded(channels []string) {
 
 	if a.CreateDataStoreUser == true {
 
-		// Just give writers access to all channels
-		allChannels := []string{"*"}
-
 		logger.Info("Creating SG user", "username", a.UserCred.Username, "channels", channels)
 
-		if err := a.DataStore.CreateUser(a.UserCred, allChannels); err != nil {
+		if err := a.DataStore.CreateUser(a.UserCred, channels); err != nil {
 			panic(fmt.Sprintf("Error creating user in datastore.  User: %v, Err: %v", a.UserCred, err))
 		}
 	}
