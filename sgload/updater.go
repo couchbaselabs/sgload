@@ -23,7 +23,7 @@ type DocUpdateStatus struct {
 	LatestRev  string
 }
 
-func NewUpdater(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, n int, da []Document) *Updater {
+func NewUpdater(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, n int, da []Document, batchsize int) *Updater {
 
 	docsToUpdate := make(chan []sgreplicate.DocumentRevisionPair, 100)
 
@@ -37,7 +37,7 @@ func NewUpdater(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, n int, da [
 		DocsToUpdate:             docsToUpdate,
 		NumUpdatesPerDocRequired: n,
 		DocUpdateStatuses:        map[string]DocUpdateStatus{},
-		BatchSize:                5, // TODO: parameterize
+		BatchSize:                batchsize,
 		DocsAssignedToUpdater:    da,
 	}
 

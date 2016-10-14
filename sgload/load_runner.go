@@ -39,6 +39,7 @@ func (lr LoadRunner) createDataStore() DataStore {
 		lr.LoadSpec.SyncGatewayUrl,
 		lr.LoadSpec.SyncGatewayAdminPort,
 		lr.StatsdClient,
+		lr.LoadSpec.CompressionEnabled,
 	)
 
 	return sgDataStore
