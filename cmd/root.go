@@ -9,17 +9,18 @@ import (
 )
 
 var (
-	cfgFile        string
-	sgUrl          *string
-	sgAdminPort    *int
-	mockDataStore  *bool
-	statsdEndpoint *string
-	statsdEnabled  *bool
-	testSessionID  *string
-	numChannels    *int
-	numDocs        *int
-	docSizeBytes   *int
-	batchSize      *int
+	cfgFile            string
+	sgUrl              *string
+	sgAdminPort        *int
+	mockDataStore      *bool
+	statsdEndpoint     *string
+	statsdEnabled      *bool
+	testSessionID      *string
+	numChannels        *int
+	numDocs            *int
+	docSizeBytes       *int
+	batchSize          *int
+	compressionEnabled *bool
 )
 
 // This represents the base command when called without any subcommands
@@ -108,6 +109,12 @@ func init() {
 		"batchsize",
 		1,
 		"The batch size that will be used for writing docs via bulk_docs endpoint",
+	)
+
+	compressionEnabled = RootCmd.PersistentFlags().Bool(
+		"compressionenabled",
+		false,
+		"Whether gzip compression is enabled",
 	)
 
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.sgload.yaml)")

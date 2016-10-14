@@ -19,6 +19,7 @@ type LoadSpec struct {
 	NumChannels          int    // How many channels to create/use during this test
 	DocSizeBytes         int    // Doc size in bytes to create during this test
 	NumDocs              int    // Number of docs to read/write during this test
+	CompressionEnabled   bool   // Whether requests and responses should be compressed (when supported)
 }
 
 func (ls LoadSpec) Validate() error {

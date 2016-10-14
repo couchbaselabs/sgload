@@ -2,6 +2,7 @@ package sgload
 
 import (
 	"bytes"
+	"fmt"
 	"sync"
 )
 
@@ -142,4 +143,16 @@ func createBodyContentWithSize(docSizeBytes int) string {
 		buf.WriteString("a")
 	}
 	return buf.String()
+}
+
+// Create body content as map of 100 byte entries.  Rounds up to the nearest 100 bytes
+func createBodyContentAsMapWithSize(docSizeBytes int) map[string]string {
+
+	numEntries := int(docSizeBytes/100) + 1
+	body := make(map[string]string, numEntries)
+	for i := 0; i < numEntries; i++ {
+		key := fmt.Sprintf("field_%d", i)
+		body[key] = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	}
+	return body
 }

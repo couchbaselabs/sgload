@@ -49,6 +49,7 @@ func createLoadSpecFromArgs() sgload.LoadSpec {
 		NumChannels:          *numChannels,
 		DocSizeBytes:         *docSizeBytes,
 		NumDocs:              *numDocs,
+		CompressionEnabled:   *compressionEnabled,
 	}
 	loadSpec.TestSessionID = sgload.NewUuid()
 	return loadSpec

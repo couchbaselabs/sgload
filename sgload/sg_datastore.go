@@ -2,6 +2,7 @@ package sgload
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -32,13 +33,15 @@ type SGDataStore struct {
 	SyncGatewayAdminPort int
 	UserCreds            UserCred
 	StatsdClient         *g2s.Statsd
+	CompressionEnabled   bool
 }
 
-func NewSGDataStore(sgUrl string, sgAdminPort int, statsdClient *g2s.Statsd) *SGDataStore {
+func NewSGDataStore(sgUrl string, sgAdminPort int, statsdClient *g2s.Statsd, compressionEnabled bool) *SGDataStore {
 	return &SGDataStore{
 		SyncGatewayUrl:       sgUrl,
 		SyncGatewayAdminPort: sgAdminPort,
 		StatsdClient:         statsdClient,
+		CompressionEnabled:   compressionEnabled,
 	}
 }
 
@@ -223,12 +226,27 @@ func (s SGDataStore) BulkCreateDocuments(docs []Document) ([]sgreplicate.Documen
 	if err != nil {
 		return bulkDocsResponse, err
 	}
-	buf := bytes.NewBuffer(docBytes)
+	var buf *bytes.Buffer
+	if s.CompressionEnabled {
+		buf = &bytes.Buffer{}
+		gzipWriter := gzip.NewWriter(buf)
+		if _, err := gzipWriter.Write(docBytes); err != nil {
+			return bulkDocsResponse, err
+		}
+		if err = gzipWriter.Close(); err != nil {
+			return bulkDocsResponse, err
+		}
+	} else {
+		buf = bytes.NewBuffer(docBytes)
+	}
 
 	req, err := http.NewRequest("POST", bulkDocsEndpoint, buf)
 	s.addAuthIfNeeded(req)
 
 	req.Header.Set("Content-Type", "application/json")
+	if s.CompressionEnabled {
+		req.Header.Set("Content-Encoding", "gzip")
+	}
 
 	client := http.DefaultClient
 
