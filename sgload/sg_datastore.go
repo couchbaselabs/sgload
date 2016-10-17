@@ -342,9 +342,57 @@ func (s SGDataStore) BulkGetDocuments(r sgreplicate.BulkGetRequest) ([]sgreplica
 		}
 		delta := time.Since(createAtRFC3339Nano)
 		s.pushTimingStat("gateload_roundtrip", delta)
+
+		possiblyLogVerboseWarning(delta, doc)
+
 	}
 
 	return documents, nil
+
+}
+
+// If the round trip time is over a certain threshold, log a verbose
+// warning.  Trying to debug https://github.com/couchbaselabs/sgload/issues/12
+func possiblyLogVerboseWarning(delta time.Duration, doc sgreplicate.Document) {
+
+	maxSecondsExpected := time.Duration(60)
+	if delta > time.Duration(time.Second*maxSecondsExpected) {
+
+		createAtRFC3339NanoIface, ok := doc.Body["created_at"]
+		if !ok {
+			logger.Warn("Document missing created_at field", "doc.Body", doc.Body)
+		}
+		createAtRFC3339NanoStr, ok := createAtRFC3339NanoIface.(string)
+		if !ok {
+			logger.Warn("Document created_at not a string", "doc.Body", doc.Body)
+		}
+		createAtRFC3339Nano, err := time.Parse(
+			time.RFC3339Nano,
+			createAtRFC3339NanoStr,
+		)
+		if err != nil {
+			logger.Warn("Could not parse doc.created_at field into time", "createAtRFC3339Nano", createAtRFC3339Nano)
+		}
+
+		logger.Warn(
+			"Gateload roundtrip time exceeeded expected time",
+			"maxSecondsExpected",
+			maxSecondsExpected,
+			"delta",
+			delta,
+			"createAtRFC3339NanoStr",
+			createAtRFC3339NanoStr,
+			"createAtRFC3339Nano",
+			createAtRFC3339Nano,
+			"time.Since(createAtRFC3339Nano)",
+			time.Since(createAtRFC3339Nano),
+			"now",
+			time.Now(),
+			"now RFC3339Nano",
+			time.Now().Format(time.RFC3339Nano),
+		)
+
+	}
 
 }
 
