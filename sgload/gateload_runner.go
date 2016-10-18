@@ -82,7 +82,8 @@ func (glr GateLoadRunner) Run() error {
 	}
 
 	// Start Readers
-	if err := glr.startReaders(); err != nil {
+	readerWaitGroup, err := glr.startReaders()
+	if err != nil {
 		return err
 	}
 
@@ -112,6 +113,11 @@ func (glr GateLoadRunner) Run() error {
 		return err
 	}
 	logger.Info("Writers finished")
+
+	// Wait until readers finish
+	logger.Info("Wait until readers finish")
+	readerWaitGroup.Wait()
+	logger.Info("Readers finished")
 
 	// Wait until updaters finish
 	// Close glr.PushedDocs channel
@@ -218,21 +224,20 @@ func (glr GateLoadRunner) startWriters() (*sync.WaitGroup, []*Writer, error) {
 	return &wg, writers, nil
 }
 
-func (glr GateLoadRunner) startReaders() error {
+func (glr GateLoadRunner) startReaders() (*sync.WaitGroup, error) {
 
-	// Create a wait group that is currently ignored
-	var wg sync.WaitGroup
+	wg := sync.WaitGroup{}
 
 	// Create reader goroutines
 	readers, err := glr.createReaders(&wg)
 	if err != nil {
-		return fmt.Errorf("Error creating readers: %v", err)
+		return nil, fmt.Errorf("Error creating readers: %v", err)
 	}
 	for _, reader := range readers {
 		go reader.Run()
 	}
 
-	return nil
+	return &wg, nil
 }
 
 func (glr GateLoadRunner) startDocFeeder(writers []*Writer, docsToChannelsAndWriters map[string][]Document) error {
