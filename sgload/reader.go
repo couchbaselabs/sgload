@@ -104,6 +104,20 @@ func (r *Reader) Run() {
 
 		addNewUniqueDocIdsPulled(uniqueDocIdsPulled, result)
 
+		if len(result.uniqueDocIds) > 0 {
+			logger.Info(
+				"Reader pulled more docs",
+				"reader",
+				r.Agent.UserCred.Username,
+				"pulled",
+				len(result.uniqueDocIds),
+				"totalpulled",
+				len(uniqueDocIdsPulled),
+				"expecteddocs",
+				r.NumDocsExpected,
+			)
+		}
+
 	}
 
 }
