@@ -68,6 +68,14 @@ func (w *Writer) Run() {
 			}
 
 			numDocsPushed += len(docs)
+			logger.Info(
+				"Writer pushed docs",
+				"writer",
+				w.Agent.UserCred.Username,
+				"numpushed",
+				numDocsPushed,
+			)
+
 		}
 
 	}

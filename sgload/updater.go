@@ -91,6 +91,14 @@ func (u *Updater) Run() {
 
 		u.updateDocStatuses(docRevPairsUpdated)
 
+		logger.Info(
+			"Updater pushed changes",
+			"updater",
+			u.Agent.UserCred.Username,
+			"numdocs",
+			len(docRevPairsUpdated),
+		)
+
 	}
 
 }
