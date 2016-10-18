@@ -130,7 +130,7 @@ func (r *Reader) pullMoreDocs(since Sincer) (pullMoreDocsResult, error) {
 
 	// Create a retry sleeper which controls how many times to retry
 	// and how long to wait in between retries
-	numRetries := 14
+	numRetries := 7
 	sleepMsBetweenRetry := 500
 	retrySleeper := CreateDoublingSleeperFunc(numRetries, sleepMsBetweenRetry)
 
