@@ -168,7 +168,7 @@ func (s SGDataStore) Changes(sinceVal Sincer, limit int) (changes sgreplicate.Ch
 	}
 	s.pushTimingStat("changes_feed", time.Since(startTime))
 	if resp.StatusCode < 200 || resp.StatusCode > 201 {
-		return sgreplicate.Changes{}, sinceVal, fmt.Errorf("Unexpected response status for POST request: %d", resp.StatusCode)
+		return sgreplicate.Changes{}, sinceVal, fmt.Errorf("Unexpected response status for changes_feed GET request: %d", resp.StatusCode)
 	}
 
 	defer resp.Body.Close()
