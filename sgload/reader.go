@@ -75,15 +75,15 @@ func (r *Reader) pushPostRunTimingStats(numDocsPulled int, timeStartedCreatingDo
 
 func (r *Reader) Run() {
 
-	numDocsPulled := 0
 	since := StringSincer{}
 	result := pullMoreDocsResult{}
+	uniqueDocIdsPulled := map[string]struct{}{}
 	var err error
 	var timeStartedCreatingDocs time.Time
 
 	defer r.FinishedWg.Done()
 	defer func() {
-		r.pushPostRunTimingStats(numDocsPulled, timeStartedCreatingDocs)
+		r.pushPostRunTimingStats(len(uniqueDocIdsPulled), timeStartedCreatingDocs)
 	}()
 
 	r.createSGUserIfNeeded(r.SGChannels)
@@ -92,7 +92,7 @@ func (r *Reader) Run() {
 
 	for {
 
-		if r.isFinished(numDocsPulled) {
+		if r.isFinished(len(uniqueDocIdsPulled)) {
 			break
 		}
 		result, err = r.pullMoreDocs(since)
@@ -101,7 +101,8 @@ func (r *Reader) Run() {
 			panic(fmt.Sprintf("Error calling pullMoreDoc: %v", err))
 		}
 		since = result.since
-		numDocsPulled += result.numDocsPulled
+
+		addNewUniqueDocIdsPulled(uniqueDocIdsPulled, result)
 
 	}
 
@@ -121,8 +122,8 @@ func (r *Reader) isFinished(numDocsPulled int) bool {
 }
 
 type pullMoreDocsResult struct {
-	since         StringSincer
-	numDocsPulled int
+	since        StringSincer
+	uniqueDocIds map[string]sgreplicate.DocumentRevisionPair
 }
 
 func (r *Reader) pullMoreDocs(since Sincer) (pullMoreDocsResult, error) {
@@ -155,7 +156,7 @@ func (r *Reader) pullMoreDocs(since Sincer) (pullMoreDocsResult, error) {
 		// since they are user docs and we don't care about them
 		changes = stripUserDocChanges(changes)
 
-		bulkGetRequest := getBulkGetRequest(changes)
+		bulkGetRequest, uniqueDocIds := getBulkGetRequest(changes)
 
 		docs, err := r.DataStore.BulkGetDocuments(bulkGetRequest)
 		if err != nil {
@@ -168,7 +169,7 @@ func (r *Reader) pullMoreDocs(since Sincer) (pullMoreDocsResult, error) {
 		docsMustBeInExpectedChannels(docs, r.SGChannels)
 
 		result.since = newSince.(StringSincer)
-		result.numDocsPulled = len(docs)
+		result.uniqueDocIds = uniqueDocIds
 		return false, nil, result
 
 	}
@@ -183,7 +184,9 @@ func (r *Reader) pullMoreDocs(since Sincer) (pullMoreDocsResult, error) {
 
 }
 
-func getBulkGetRequest(changes sgreplicate.Changes) sgreplicate.BulkGetRequest {
+func getBulkGetRequest(changes sgreplicate.Changes) (sgreplicate.BulkGetRequest, map[string]sgreplicate.DocumentRevisionPair) {
+
+	uniqueDocIds := map[string]sgreplicate.DocumentRevisionPair{}
 
 	bulkGetRequest := sgreplicate.BulkGetRequest{}
 	docs := []sgreplicate.DocumentRevisionPair{}
@@ -192,9 +195,36 @@ func getBulkGetRequest(changes sgreplicate.Changes) sgreplicate.BulkGetRequest {
 		docRevPair.Id = change.Id
 		docRevPair.Revision = change.ChangedRevs[0].Revision
 		docs = append(docs, docRevPair)
+		uniqueDocIds[docRevPair.Id] = docRevPair
 	}
 	bulkGetRequest.Docs = docs
-	return bulkGetRequest
+
+	// Validate expectation that doc id's only appear once in the changes feed response
+	if len(uniqueDocIds) != len(docs) {
+		logger.Error(
+			"len(uniqueDocIds) != len(docs)",
+			"len(uniqueDocIds)",
+			len(uniqueDocIds),
+			"len(docs)",
+			len(docs),
+		)
+		for docId, docRevPair := range uniqueDocIds {
+			logger.Error("uniqueDocIds", "docId", docId, "docRevPair", docRevPair)
+		}
+		for _, doc := range docs {
+			logger.Error("docs", "doc", doc, "doc.id", doc.Id, "doc.rev", doc.Revision)
+		}
+		panic(
+			fmt.Sprintf(
+				"len(uniqueDocIds) != len(docs), %d != %d",
+				len(uniqueDocIds),
+				len(docs),
+			),
+		)
+
+	}
+
+	return bulkGetRequest, uniqueDocIds
 
 }
 
@@ -266,5 +296,13 @@ func CreateDoublingSleeperFunc(maxNumAttempts, initialTimeToSleepMs int) RetrySl
 		return true, timeToSleepMs
 	}
 	return sleeper
+
+}
+
+func addNewUniqueDocIdsPulled(uniqueDocIdsPulled map[string]struct{}, r pullMoreDocsResult) {
+
+	for docId, _ := range r.uniqueDocIds {
+		uniqueDocIdsPulled[docId] = struct{}{}
+	}
 
 }
