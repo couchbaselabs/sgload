@@ -11,10 +11,10 @@ import (
 
 type Reader struct {
 	Agent
-	SGChannels      []string // The Sync Gateway channels this reader is assigned to pull from
-	NumDocsExpected int      // The total number of docs this reader is expected to pull
-	BatchSize       int      // The number of docs to pull in batch (_changes feed and bulk_get)
-
+	SGChannels                []string // The Sync Gateway channels this reader is assigned to pull from
+	NumDocsExpected           int      // The total number of docs this reader is expected to pull'
+	NumRevGenerationsExpected int      // The expected generate that each doc is expected to reach
+	BatchSize                 int      // The number of docs to pull in batch (_changes feed and bulk_get)
 }
 
 func NewReader(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, batchsize int) *Reader {
@@ -27,6 +27,7 @@ func NewReader(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, batchsize in
 			DataStore:  d,
 			BatchSize:  batchsize,
 		},
+		NumRevGenerationsExpected: 1,
 	}
 
 	return &reader
@@ -39,6 +40,10 @@ func (r *Reader) SetChannels(sgChannels []string) {
 
 func (r *Reader) SetNumDocsExpected(n int) {
 	r.NumDocsExpected = n
+}
+
+func (r *Reader) SetNumRevGenerationsExpected(n int) {
+	r.NumRevGenerationsExpected = n
 }
 
 func (r *Reader) SetBatchSize(batchSize int) {
@@ -73,17 +78,25 @@ func (r *Reader) pushPostRunTimingStats(numDocsPulled int, timeStartedCreatingDo
 
 }
 
+// Main loop of reader goroutine
 func (r *Reader) Run() {
 
 	since := StringSincer{}
 	result := pullMoreDocsResult{}
-	uniqueDocIdsPulled := map[string]struct{}{}
+	latestDocIdRevs := map[string]int{}
 	var err error
 	var timeStartedCreatingDocs time.Time
 
 	defer r.FinishedWg.Done()
 	defer func() {
-		r.pushPostRunTimingStats(len(uniqueDocIdsPulled), timeStartedCreatingDocs)
+		r.pushPostRunTimingStats(len(latestDocIdRevs), timeStartedCreatingDocs)
+	}()
+	defer func() {
+		logger.Info(
+			"Reader finished",
+			"reader",
+			r.Agent.UserCred.Username,
+		)
 	}()
 
 	r.createSGUserIfNeeded(r.SGChannels)
@@ -92,7 +105,7 @@ func (r *Reader) Run() {
 
 	for {
 
-		if r.isFinished(len(uniqueDocIdsPulled)) {
+		if r.isFinished(latestDocIdRevs) {
 			break
 		}
 		result, err = r.pullMoreDocs(since)
@@ -102,7 +115,10 @@ func (r *Reader) Run() {
 		}
 		since = result.since
 
-		addNewUniqueDocIdsPulled(uniqueDocIdsPulled, result)
+		err = storeLatestDocRev(latestDocIdRevs, result)
+		if err != nil {
+			panic(fmt.Sprintf("Error geting the latest docs and revisions: %v", err))
+		}
 
 		if len(result.uniqueDocIds) > 0 {
 			logger.Info(
@@ -112,7 +128,7 @@ func (r *Reader) Run() {
 				"pulled",
 				len(result.uniqueDocIds),
 				"totalpulled",
-				len(uniqueDocIdsPulled),
+				len(latestDocIdRevs),
 				"expecteddocs",
 				r.NumDocsExpected,
 			)
@@ -122,16 +138,37 @@ func (r *Reader) Run() {
 
 }
 
-func (r *Reader) isFinished(numDocsPulled int) bool {
+func (r *Reader) isFinished(latestDocIdRevs map[string]int) bool {
 
-	switch {
-	case numDocsPulled > r.NumDocsExpected:
-		panic(fmt.Sprintf("Reader was only expected to pull %d docs, but pulled %d.", r.NumDocsExpected, numDocsPulled))
-	case numDocsPulled == r.NumDocsExpected:
-		return true
-	default:
+	if len(latestDocIdRevs) > r.NumDocsExpected {
+		panic(fmt.Sprintf("Reader was only expected to pull %d docs, but pulled %d.", r.NumDocsExpected, len(latestDocIdRevs)))
+	}
+
+	// Haven't seen all expected docs yet
+	if len(latestDocIdRevs) < r.NumDocsExpected {
 		return false
 	}
+
+	// We have seen all docs, verify that the revs are expected generation
+	for _, generation := range latestDocIdRevs {
+
+		if generation > r.NumRevGenerationsExpected {
+			panic(
+				fmt.Sprintf(
+					"Pulled generation (%d) larger than expected generation (%d).",
+					generation,
+					r.NumRevGenerationsExpected,
+				),
+			)
+		}
+
+		if generation < r.NumRevGenerationsExpected {
+			return false
+		}
+	}
+
+	// We have found the expected number of docs and each doc has the expected rev generation
+	return true
 
 }
 
@@ -313,10 +350,29 @@ func CreateDoublingSleeperFunc(maxNumAttempts, initialTimeToSleepMs int) RetrySl
 
 }
 
-func addNewUniqueDocIdsPulled(uniqueDocIdsPulled map[string]struct{}, r pullMoreDocsResult) {
+func storeLatestDocRev(latestDocIdRevs map[string]int, r pullMoreDocsResult) error {
 
-	for docId, _ := range r.uniqueDocIds {
-		uniqueDocIdsPulled[docId] = struct{}{}
+	for docId, docRevPair := range r.uniqueDocIds {
+		generation, err := docRevPair.GetGeneration()
+		if err != nil {
+			return err
+		}
+
+		existingGeneration, ok := latestDocIdRevs[docId]
+		if ok {
+			// This should never happen
+			if generation < existingGeneration {
+				panic(
+					fmt.Sprintf("New new generation (%d) was less than existing generation (%d)",
+						generation,
+						existingGeneration,
+					),
+				)
+			}
+		}
+
+		latestDocIdRevs[docId] = generation
 	}
+	return nil
 
 }

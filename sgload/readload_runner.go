@@ -79,7 +79,7 @@ func (rlr ReadLoadRunner) createReaders(wg *sync.WaitGroup) ([]*Reader, error) {
 		// get channels that should be assigned to this reader
 		sgChannels := assignChannelsToReader(
 			rlr.ReadLoadSpec.NumChansPerReader,
-			rlr.generateChannelNames(),
+			rlr.generateChannelNames(), // TODO: pass this in rather than re-generating
 		)
 
 		reader := NewReader(
@@ -90,6 +90,7 @@ func (rlr ReadLoadRunner) createReaders(wg *sync.WaitGroup) ([]*Reader, error) {
 			rlr.ReadLoadSpec.BatchSize,
 		)
 		reader.SetChannels(sgChannels)
+		reader.SetNumRevGenerationsExpected(rlr.ReadLoadSpec.NumRevGenerationsExpected)
 		reader.SetBatchSize(rlr.ReadLoadSpec.BatchSize)
 		reader.SetNumDocsExpected(numDocsExpectedPerReader)
 		reader.SetStatsdClient(rlr.StatsdClient)

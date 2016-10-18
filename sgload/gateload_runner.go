@@ -53,12 +53,6 @@ func NewGateLoadRunner(gls GateLoadSpec) *GateLoadRunner {
 
 func (glr GateLoadRunner) Run() error {
 
-	// TODO -------------------
-
-	// TODO: 1) writers need to add timestamp in doc of when they wrote the doc
-	// TODO: 2) readers need to calculate RT latency delta and push to statsd
-	// TODO: 3) instead of finishing when writers finish, block until readers have read all docs written)
-
 	logger.Info(
 		"Running Gateload Scenario",
 		"numdocs",

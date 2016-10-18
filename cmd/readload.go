@@ -33,11 +33,12 @@ or it can pass a test session id from a previously run write load.`,
 		loadSpec := createLoadSpecFromArgs()
 
 		readLoadSpec := sgload.ReadLoadSpec{
-			LoadSpec:           loadSpec,
-			NumReaders:         *numReaders,
-			NumChansPerReader:  *numChansPerReader,
-			CreateReaders:      *createReaders,
-			SkipWriteLoadSetup: *skipWriteload,
+			LoadSpec:                  loadSpec,
+			NumReaders:                *numReaders,
+			NumChansPerReader:         *numChansPerReader,
+			CreateReaders:             *createReaders,
+			SkipWriteLoadSetup:        *skipWriteload,
+			NumRevGenerationsExpected: 1, // Expect writer to add one rev
 		}
 
 		if *skipWriteload == false {

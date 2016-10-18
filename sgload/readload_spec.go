@@ -4,10 +4,11 @@ import "log"
 
 type ReadLoadSpec struct {
 	LoadSpec
-	CreateReaders      bool // Whether or not to create users for readers
-	NumReaders         int
-	NumChansPerReader  int
-	SkipWriteLoadSetup bool // By default the readload scenario runs the writeload scenario first.  If this is true, it will skip the writeload scenario.
+	CreateReaders             bool // Whether or not to create users for readers
+	NumReaders                int
+	NumChansPerReader         int
+	NumRevGenerationsExpected int
+	SkipWriteLoadSetup        bool // By default the readload scenario runs the writeload scenario first.  If this is true, it will skip the writeload scenario.
 }
 
 func (rls ReadLoadSpec) Validate() error {

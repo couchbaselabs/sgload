@@ -36,11 +36,14 @@ var gateloadCmd = &cobra.Command{
 			CreateWriters: *glCreateWriters,
 		}
 
+		// The '+ 1' accounts for the initial revision when creating the document
+		numRevGenerationsExpected := *glNumRevsPerDoc + 1
 		readLoadSpec := sgload.ReadLoadSpec{
-			LoadSpec:          loadSpec,
-			NumReaders:        *glNumReaders,
-			NumChansPerReader: *glNumChansPerReader,
-			CreateReaders:     *glCreateReaders,
+			LoadSpec:                  loadSpec,
+			NumReaders:                *glNumReaders,
+			NumChansPerReader:         *glNumChansPerReader,
+			CreateReaders:             *glCreateReaders,
+			NumRevGenerationsExpected: numRevGenerationsExpected,
 		}
 
 		updateLoadSpec := sgload.UpdateLoadSpec{
@@ -60,6 +63,8 @@ var gateloadCmd = &cobra.Command{
 
 			panic(fmt.Sprintf("Invalid parameters: %+v. Error: %v", gateLoadSpec, err))
 		}
+
+		// Run gateload runner with provided spec
 		gateLoadRunner := sgload.NewGateLoadRunner(gateLoadSpec)
 		if err := gateLoadRunner.Run(); err != nil {
 			panic(fmt.Sprintf("Gateload.Run() failed with: %v", err))
