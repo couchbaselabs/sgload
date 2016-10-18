@@ -76,18 +76,21 @@ func (glr GateLoadRunner) Run() error {
 	)
 
 	// Start Writers
+	logger.Info("Starting writers")
 	writerWaitGroup, writers, err := glr.startWriters()
 	if err != nil {
 		return err
 	}
 
 	// Start Readers
+	logger.Info("Starting readers")
 	readerWaitGroup, err := glr.startReaders()
 	if err != nil {
 		return err
 	}
 
 	// Start Doc Feeder
+	logger.Info("Starting docfeeder")
 	channelNames := glr.generateChannelNames()
 	writerAgentIds := getWriterAgentIds(writers)
 	docsToChannelsAndWriters := createAndAssignDocs(
@@ -102,6 +105,7 @@ func (glr GateLoadRunner) Run() error {
 	}
 
 	// Start updaters
+	logger.Info("Starting updaters")
 	updaterWaitGroup, _, err := glr.startUpdaters(len(writers), docsToChannelsAndWriters)
 	if err != nil {
 		return err

@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/couchbaselabs/sgload/sgload"
 	"github.com/inconshreveable/log15"
@@ -24,7 +23,6 @@ var gateloadCmd = &cobra.Command{
 	Short: "Run the gateload scenario using sgload",
 	Long:  `Run the gateload scenario using sgload`,
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Printf("glNumReaders: %d", *glNumReaders)
 
 		// Setup logger
 		logger = log15.New()
