@@ -400,6 +400,7 @@ func possiblyLogVerboseWarning(delta time.Duration, doc sgreplicate.Document) {
 func (s SGDataStore) addAuthIfNeeded(req *http.Request) {
 	if !s.UserCreds.Empty() {
 		req.SetBasicAuth(s.UserCreds.Username, s.UserCreds.Password)
+		req.Header.Set("X-sgload-username", s.UserCreds.Username)
 	}
 }
 
