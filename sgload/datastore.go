@@ -1,6 +1,8 @@
 package sgload
 
 import (
+	"crypto/md5"
+	"encoding/json"
 	"fmt"
 
 	sgreplicate "github.com/couchbaselabs/sg-replicate"
@@ -15,7 +17,7 @@ type DataStore interface {
 	CreateDocument(d Document) (sgreplicate.DocumentRevisionPair, error)
 
 	// Bulk creates a set of documents in the data store
-	BulkCreateDocuments(d []Document) ([]sgreplicate.DocumentRevisionPair, error)
+	BulkCreateDocuments(d []Document, newEdits bool) ([]sgreplicate.DocumentRevisionPair, error)
 
 	// Sets the user credentials to use for all subsequent requests
 	SetUserCreds(u UserCred)
@@ -48,6 +50,15 @@ func (d Document) Revision() string {
 
 func (d Document) SetRevision(revision string) {
 	d["_rev"] = revision
+}
+
+// Standard CouchDB encoding of a revision list: digests without numeric generation prefixes go in
+// the "ids" property, and the first (largest) generation number in the "start" property.
+func (d Document) SetRevisions(start int, digests []string) {
+	revisions := Document{}
+	revisions["start"] = start
+	revisions["ids"] = digests
+	d["_revisions"] = revisions
 }
 
 func (d Document) Copy() Document {
@@ -115,4 +126,50 @@ func containedIn(s string, expectedIn []string) bool {
 
 	return false
 
+}
+
+func createRevID(generation int, parentRevID string, body Document) string {
+	digester := md5.New()
+	digester.Write([]byte{byte(len(parentRevID))})
+	digester.Write([]byte(parentRevID))
+	digester.Write(canonicalEncoding(stripSpecialProperties(body)))
+	return fmt.Sprintf("%d-%x", generation, digester.Sum(nil))
+}
+
+func stripSpecialProperties(body Document) Document {
+	stripped := Document{}
+	for key, value := range body {
+		if key == "" || key[0] != '_' || key == "_attachments" || key == "_deleted" {
+			stripped[key] = value
+		}
+	}
+	return stripped
+}
+
+func canonicalEncoding(body Document) []byte {
+	encoded, err := json.Marshal(body)
+	if err != nil {
+		panic(fmt.Sprintf("Couldn't encode body %v", body))
+	}
+	return encoded
+}
+
+// Splits a revision ID into generation number and hex digest.
+func parseRevID(revid string) (int, string) {
+	if revid == "" {
+		return 0, ""
+	}
+	var generation int
+	var id string
+	n, _ := fmt.Sscanf(revid, "%d-%s", &generation, &id)
+	if n < 1 || generation < 1 {
+		return -1, ""
+	}
+	return generation, id
+}
+
+func generateFakeDigest(i int) string {
+	digester := md5.New()
+	digester.Write([]byte(fmt.Sprintf("%d", i)))
+	return fmt.Sprintf("%x", digester.Sum(nil))
 }

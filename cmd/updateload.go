@@ -10,7 +10,8 @@ import (
 )
 
 var (
-	numRevsPerDoc           *int
+	numUpdatesPerDoc        *int
+	numRevsPerUpdate        *int
 	numUpdaters             *int
 	updateLoadSkipWriteload *bool
 	updateLoadNumWriters    *int
@@ -30,9 +31,10 @@ var updateloadCmd = &cobra.Command{
 
 		loadSpec := createLoadSpecFromArgs()
 		updateLoadSpec := sgload.UpdateLoadSpec{
-			LoadSpec:      loadSpec,
-			NumRevsPerDoc: *numRevsPerDoc,
-			NumUpdaters:   *numUpdaters,
+			LoadSpec:         loadSpec,
+			NumUpdatesPerDoc: *numUpdatesPerDoc,
+			NumRevsPerUpdate: *numRevsPerUpdate,
+			NumUpdaters:      *numUpdaters,
 		}
 		logger.Info("created update loadspec", "updateLoadSpec", fmt.Sprintf("%+v", updateLoadSpec))
 
@@ -85,10 +87,16 @@ func init() {
 		SKIP_WRITELOAD_CMD_DESC,
 	)
 
-	numRevsPerDoc = updateloadCmd.PersistentFlags().Int(
+	numUpdatesPerDoc = updateloadCmd.PersistentFlags().Int(
 		NUM_REVS_PER_DOC_CMD_NAME,
 		NUM_REVS_PER_DOC_CMD_DEFAULT,
 		NUM_REVS_PER_DOC_CMD_DESC,
+	)
+
+	numRevsPerUpdate = updateloadCmd.PersistentFlags().Int(
+		NUM_REVS_PER_UPDATE_CMD_NAME,
+		NUM_REVS_PER_UPDATE_CMD_DEFAULT,
+		NUM_REVS_PER_UPDATE_CMD_DESC,
 	)
 
 	numUpdaters = updateloadCmd.PersistentFlags().Int(
