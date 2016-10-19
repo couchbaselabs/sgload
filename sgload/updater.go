@@ -14,7 +14,8 @@ type Updater struct {
 	DocsToUpdate             chan []sgreplicate.DocumentRevisionPair // This is a channel that this updater listens to for docs that are ready to be updated
 	NumUpdatesPerDocRequired int                                     // The number of updates this updater is supposed to do for each doc.
 	DocUpdateStatuses        map[string]DocUpdateStatus              // The number of updates and latest rev that have been done per doc id.  Key = doc id, value = number of updates and latest rev
-	BatchSize                int                                     // How many docs to update in a batch
+	BatchSize                int                                     // How many docs to update per bulk_docs request
+	RevsPerUpdate            int                                     // How many revisions to include in each document update
 
 }
 
@@ -23,7 +24,7 @@ type DocUpdateStatus struct {
 	LatestRev  string
 }
 
-func NewUpdater(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, n int, da []Document, batchsize int) *Updater {
+func NewUpdater(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, numUpdates int, da []Document, batchsize int, revsPerUpdate int) *Updater {
 
 	docsToUpdate := make(chan []sgreplicate.DocumentRevisionPair, 100)
 
@@ -35,9 +36,10 @@ func NewUpdater(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, n int, da [
 			DataStore:  d,
 		},
 		DocsToUpdate:             docsToUpdate,
-		NumUpdatesPerDocRequired: n,
+		NumUpdatesPerDocRequired: numUpdates,
 		DocUpdateStatuses:        map[string]DocUpdateStatus{},
 		BatchSize:                batchsize,
+		RevsPerUpdate:            revsPerUpdate,
 		DocsAssignedToUpdater:    da,
 	}
 
@@ -190,16 +192,45 @@ func (u *Updater) performUpdate(docRevPairs []sgreplicate.DocumentRevisionPair) 
 		// Copy the document into a new document
 		doc := sourceDoc.Copy()
 
-		// Update the revision the latest known revision
-		doc.SetRevision(docRevPair.Revision)
+		// Modify a property so that it's a meaningful update
+		doc["modifiedProperty"] = docRevPair.Revision
 
-		// Add something onto the body so that it's a meaningful update
-		doc["body"] = fmt.Sprintf("%s-%s", doc["body"], docRevPair.Revision)
+		// Initialize generation and digest based on the previous revision
+		generation, parentDigest := parseRevID(docRevPair.Revision)
+
+		// If RevsPerUpdate > 1, mock up a revision history, representing multiple updates made on the client prior to sync
+		digests := []string{parentDigest}
+		for i := 0; i < u.RevsPerUpdate-1; i++ {
+			fakeDigest := generateFakeDigest(i)
+			// Prepend to the digests collection
+			digests = append(digests, "")
+			copy(digests[1:], digests)
+			digests[0] = fakeDigest
+			// Update generation count and most recent ancestor for use in final rev id calculation
+			generation++
+			parentDigest = fakeDigest
+		}
+
+		// Generate new rev id
+		parentRevId := fmt.Sprintf("%s-%s", generation, parentDigest)
+		generation++
+		newRevId := createRevID(generation, parentRevId, doc)
+		//log.Printf("parentRevId, newRevId: (%s, %s)", parentRevId, newRevId)
+
+		_, currentDigest := parseRevID(newRevId)
+		// Prepend currentDigest to the digests collection
+		digests = append(digests, "")
+		copy(digests[1:], digests)
+		digests[0] = currentDigest
+
+		// Set the _revisions and _rev for the new_edits=false update
+		doc.SetRevisions(generation, digests)
+		doc.SetRevision(newRevId)
 
 		bulkDocs = append(bulkDocs, doc)
 	}
 
-	updatedDocs, err := u.DataStore.BulkCreateDocuments(bulkDocs)
+	updatedDocs, err := u.DataStore.BulkCreateDocuments(bulkDocs, false)
 	if err != nil {
 		return updatedDocs, err
 	}
@@ -231,7 +262,7 @@ func (u Updater) LookupCurrentRevisions(docsToLookup []Document) ([]sgreplicate.
 	bulkGetRequest := sgreplicate.BulkGetRequest{}
 	bulkGetRequestDocs := []sgreplicate.DocumentRevisionPair{}
 	for _, docToLookup := range docsToLookup {
-		logger.Info("LookupCurrentRevisions", "docToLookup", fmt.Sprintf("%+v", docToLookup))
+		logger.Info("LookupCurrentRevisions", "docToLookup", fmt.Sprintf("%+v", docToLookup.Id()))
 		docRevPair := sgreplicate.DocumentRevisionPair{}
 		docRevPair.Id = docToLookup["_id"].(string)
 		bulkGetRequestDocs = append(bulkGetRequestDocs, docRevPair)

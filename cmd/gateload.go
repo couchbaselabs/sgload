@@ -47,9 +47,9 @@ var gateloadCmd = &cobra.Command{
 		}
 
 		updateLoadSpec := sgload.UpdateLoadSpec{
-			LoadSpec:      loadSpec,
-			NumRevsPerDoc: *glNumRevsPerDoc,
-			NumUpdaters:   *glNumUpdaters,
+			LoadSpec:         loadSpec,
+			NumUpdatesPerDoc: *glNumRevsPerDoc,
+			NumUpdaters:      *glNumUpdaters,
 		}
 
 		gateLoadSpec := sgload.GateLoadSpec{

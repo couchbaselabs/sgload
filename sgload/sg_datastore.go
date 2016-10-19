@@ -191,7 +191,7 @@ func (s SGDataStore) Changes(sinceVal Sincer, limit int) (changes sgreplicate.Ch
 // Create a single document in Sync Gateway
 func (s SGDataStore) CreateDocument(d Document) (sgreplicate.DocumentRevisionPair, error) {
 
-	docRevisionPairs, err := s.BulkCreateDocuments([]Document{d})
+	docRevisionPairs, err := s.BulkCreateDocuments([]Document{d}, true)
 	if err != nil {
 		return sgreplicate.DocumentRevisionPair{}, err
 	}
@@ -203,7 +203,7 @@ func (s SGDataStore) CreateDocument(d Document) (sgreplicate.DocumentRevisionPai
 }
 
 // Bulk create a set of documents in Sync Gateway
-func (s SGDataStore) BulkCreateDocuments(docs []Document) ([]sgreplicate.DocumentRevisionPair, error) {
+func (s SGDataStore) BulkCreateDocuments(docs []Document, newEdits bool) ([]sgreplicate.DocumentRevisionPair, error) {
 
 	defer s.pushCounter("create_document_counter", len(docs))
 
@@ -220,8 +220,9 @@ func (s SGDataStore) BulkCreateDocuments(docs []Document) ([]sgreplicate.Documen
 
 	bulkDocs := BulkDocs{
 		Documents: docs,
-		NewEdits:  true,
+		NewEdits:  newEdits,
 	}
+
 	docBytes, err := json.Marshal(bulkDocs)
 	if err != nil {
 		return bulkDocsResponse, err

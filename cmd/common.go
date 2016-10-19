@@ -33,7 +33,11 @@ const (
 
 	NUM_REVS_PER_DOC_CMD_NAME    = "numrevsperdoc"
 	NUM_REVS_PER_DOC_CMD_DEFAULT = 100
-	NUM_REVS_PER_DOC_CMD_DESC    = "The number of revisions per doc to add updates for"
+	NUM_REVS_PER_DOC_CMD_DESC    = "The number of updates per doc (total revs will be numrevsperdoc * numrevsperupdate)"
+
+	NUM_REVS_PER_UPDATE_CMD_NAME    = "numrevsperupdate"
+	NUM_REVS_PER_UPDATE_CMD_DEFAULT = 1
+	NUM_REVS_PER_UPDATE_CMD_DESC    = "The number of revisions per doc to add in each update"
 )
 
 func createLoadSpecFromArgs() sgload.LoadSpec {

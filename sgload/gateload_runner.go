@@ -66,7 +66,7 @@ func (glr GateLoadRunner) Run() error {
 		"numchannels",
 		glr.GateLoadSpec.NumChannels,
 		"numrevsperdoc",
-		glr.GateLoadSpec.NumRevsPerDoc,
+		glr.GateLoadSpec.NumUpdatesPerDoc,
 	)
 
 	// Start Writers

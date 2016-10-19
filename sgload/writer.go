@@ -59,7 +59,7 @@ func (w *Writer) Run() {
 				w.notifyDocPushed(docRevPair)
 
 			default:
-				docRevPairs, err := w.DataStore.BulkCreateDocuments(docs)
+				docRevPairs, err := w.DataStore.BulkCreateDocuments(docs, true)
 				if err != nil {
 					panic(fmt.Sprintf("Error creating docs in datastore.  Docs: %v, Err: %v", docs, err))
 				}

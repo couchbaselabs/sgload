@@ -22,7 +22,7 @@ func (m MockDataStore) CreateDocument(d Document) (sgreplicate.DocumentRevisionP
 	return sgreplicate.DocumentRevisionPair{}, nil
 }
 
-func (m MockDataStore) BulkCreateDocuments(docs []Document) ([]sgreplicate.DocumentRevisionPair, error) {
+func (m MockDataStore) BulkCreateDocuments(docs []Document, newEdits bool) ([]sgreplicate.DocumentRevisionPair, error) {
 	log.Printf("MockDataStore BulkCreateDocuments called with %d docs", len(docs))
 	return []sgreplicate.DocumentRevisionPair{}, nil
 }

@@ -4,8 +4,9 @@ import "log"
 
 type UpdateLoadSpec struct {
 	LoadSpec
-	NumRevsPerDoc int // The number of revisions to add per doc
-	NumUpdaters   int // The number of updater goroutines
+	NumUpdatesPerDoc int // The total number of revisions to add per doc
+	NumRevsPerUpdate int // The number of revisions to add per update
+	NumUpdaters      int // The number of updater goroutines
 }
 
 func (uls UpdateLoadSpec) Validate() error {
