@@ -1,0 +1,6 @@
+build:
+  image: golang
+  commands:
+    - go get -v -t
+    - go build -o sgloadbinary
+    - go test -v ./...

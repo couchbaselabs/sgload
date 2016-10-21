@@ -1,5 +1,5 @@
 	
-[![Join the chat at https://gitter.im/couchbase/mobile](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/couchbase/discuss?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![GoDoc](https://godoc.org/github.com/couchbaselabs/sgload?status.png)](https://godoc.org/github.com/couchbaselabs/sgload) [![Go Report Card](https://goreportcard.com/badge/github.com/couchbaselabs/sgload)](https://goreportcard.com/report/github.com/couchbaselabs/sgload)
+[![Build Status](http://drone.couchbase.io/api/badges/couchbaselabs/sgload/status.svg)](http://drone.couchbase.io/couchbaselabs/sgload) [![GoDoc](https://godoc.org/github.com/couchbaselabs/sgload?status.png)](https://godoc.org/github.com/couchbaselabs/sgload) [![Go Report Card](https://goreportcard.com/badge/github.com/couchbaselabs/sgload)](https://goreportcard.com/report/github.com/couchbaselabs/sgload) [![Join the chat at https://gitter.im/couchbase/mobile](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/couchbase/discuss?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 Load testing tool for Sync Gateway intended to allow more flexible scenarios than [gateload](https://github.com/couchbaselabs/gateload) 
 
