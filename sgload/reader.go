@@ -131,6 +131,8 @@ func (r *Reader) Run() {
 				len(latestDocIdRevs),
 				"expecteddocs",
 				r.NumDocsExpected,
+				"NumRevGenerationsExpected",
+				r.NumRevGenerationsExpected,
 			)
 		}
 
