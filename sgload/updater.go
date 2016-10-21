@@ -212,7 +212,7 @@ func (u *Updater) performUpdate(docRevPairs []sgreplicate.DocumentRevisionPair) 
 		}
 
 		// Generate new rev id
-		parentRevId := fmt.Sprintf("%s-%s", generation, parentDigest)
+		parentRevId := fmt.Sprintf("%d-%s", generation, parentDigest)
 		generation++
 		newRevId := createRevID(generation, parentRevId, doc)
 		//log.Printf("parentRevId, newRevId: (%s, %s)", parentRevId, newRevId)

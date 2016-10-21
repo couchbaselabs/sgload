@@ -36,14 +36,12 @@ var gateloadCmd = &cobra.Command{
 			CreateWriters: *glCreateWriters,
 		}
 
-		// The '+ 1' accounts for the initial revision when creating the document
-		numRevGenerationsExpected := *glNumRevsPerDoc + 1
 		readLoadSpec := sgload.ReadLoadSpec{
 			LoadSpec:                  loadSpec,
 			NumReaders:                *glNumReaders,
 			NumChansPerReader:         *glNumChansPerReader,
 			CreateReaders:             *glCreateReaders,
-			NumRevGenerationsExpected: numRevGenerationsExpected,
+			NumRevGenerationsExpected: calcNumRevGenerationsExpected(),
 		}
 
 		updateLoadSpec := sgload.UpdateLoadSpec{
@@ -71,6 +69,17 @@ var gateloadCmd = &cobra.Command{
 		}
 
 	},
+}
+
+func calcNumRevGenerationsExpected() int {
+	// We always have at least one rev generation, because the writer
+	numRevGenerationsExpected := 1
+	if *glNumUpdaters > 0 {
+		// If we have at least one updater, we can expect the docs
+		// to get bumped up *glNumRevsPerDoc more rev generations
+		numRevGenerationsExpected += *glNumRevsPerDoc
+	}
+	return numRevGenerationsExpected
 }
 
 func init() {

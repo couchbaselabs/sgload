@@ -12,6 +12,11 @@ import (
 // This returns a map keyed on writer which points to doc slice for that writer
 func createAndAssignDocs(agentIds []string, channelNames []string, numDocs, docSizeBytes int, docIdSuffix string) map[string][]Document {
 
+	if len(agentIds) == 0 {
+		logger.Warn("createAndAssignDocs called with empty agentIds")
+		return nil
+	}
+
 	// Create Documents
 	docsToWrite := createDocsToWrite(
 		numDocs,
@@ -57,6 +62,12 @@ func assignDocsToChannels(channelNames []string, inputDocs []Document) []Documen
 func assignDocsToAgents(d []Document, agentIds []string) map[string][]Document {
 
 	docAssignmentMapping := map[string][]Document{}
+
+	if len(agentIds) == 0 {
+		logger.Warn("assignDocsToAgents called w/ no agents")
+		return docAssignmentMapping
+	}
+
 	for _, agentId := range agentIds {
 		docAssignmentMapping[agentId] = []Document{}
 	}

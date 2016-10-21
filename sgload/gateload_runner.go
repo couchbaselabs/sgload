@@ -100,7 +100,7 @@ func (glr GateLoadRunner) Run() error {
 
 	// Start updaters
 	logger.Info("Starting updaters")
-	updaterWaitGroup, _, err := glr.startUpdaters(len(writers), docsToChannelsAndWriters)
+	updaterWaitGroup, _, err := glr.startUpdaters(docsToChannelsAndWriters)
 	if err != nil {
 		return err
 	}
@@ -134,7 +134,7 @@ func getWriterAgentIds(writers []*Writer) []string {
 	return writerAgentIds
 }
 
-func (glr GateLoadRunner) startUpdaters(numWriters int, docsToChannelsAndWriters map[string][]Document) (*sync.WaitGroup, []*Updater, error) {
+func (glr GateLoadRunner) startUpdaters(docsToChannelsAndWriters map[string][]Document) (*sync.WaitGroup, []*Updater, error) {
 
 	// Create a wait group to see when all the updater goroutines have finished
 	var wg sync.WaitGroup
@@ -168,6 +168,13 @@ func (glr GateLoadRunner) startUpdaters(numWriters int, docsToChannelsAndWriters
 	// Start docUpdaterRouter that reads off of glr.PushedDocs chan
 	go func() {
 		for pushedDocRevPairs := range glr.PushedDocs {
+
+			// If we don't have any updaters consuming notifications
+			// about pushed docs, then just ignore them
+			if len(updaters) == 0 {
+				continue
+			}
+
 			for _, docRevPair := range pushedDocRevPairs {
 				// route it to appropriate updater
 				updaterAgentUsername, err := findAgentAssignedToDoc(docRevPair, docsToChannelsAndUpdaters)
