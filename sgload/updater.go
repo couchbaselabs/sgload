@@ -44,6 +44,10 @@ func NewUpdater(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, numUpdates 
 	}
 
 	updater.setupExpVarStats(updaters)
+	updater.ExpVarStats.Add(
+		"TotalUpdatesExpected",
+		int64(len(da)*updater.NumUpdatesPerDocRequired),
+	)
 
 	return updater
 
@@ -97,6 +101,8 @@ func (u *Updater) Run() {
 
 		u.updateDocStatuses(docRevPairsUpdated)
 
+		u.updateExpVars(docRevPairsUpdated)
+
 		logger.Info(
 			"Updater pushed changes",
 			"updater",
@@ -147,6 +153,10 @@ func (u *Updater) updateDocStatuses(docRevPairsUpdated []sgreplicate.DocumentRev
 		u.DocUpdateStatuses[docRevPair.Id] = docStatus
 	}
 
+}
+
+func (u *Updater) updateExpVars(docRevPairsUpdated []sgreplicate.DocumentRevisionPair) {
+	u.ExpVarStats.Add("NumDocRevUpdates", int64(len(docRevPairsUpdated)))
 }
 
 func (u *Updater) getDocsReadyToUpdate() []sgreplicate.DocumentRevisionPair {
