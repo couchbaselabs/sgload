@@ -30,6 +30,8 @@ func NewReader(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, batchsize in
 		NumRevGenerationsExpected: 1,
 	}
 
+	reader.setupExpVarStats(readers)
+
 	return &reader
 
 }
@@ -146,6 +148,10 @@ func (r *Reader) isFinished(latestDocIdRevs map[string]int) bool {
 		panic(fmt.Sprintf("Reader was only expected to pull %d docs, but pulled %d.", r.NumDocsExpected, len(latestDocIdRevs)))
 	}
 
+	r.ExpVarStats.Add("NumDocsPulled", int64(len(latestDocIdRevs)))
+	r.ExpVarStats.Add("NumDocsExpected", int64(r.NumDocsExpected))
+	r.ExpVarStats.Add("NumRevGenerationsExpected", int64(r.NumRevGenerationsExpected))
+
 	// Haven't seen all expected docs yet
 	if len(latestDocIdRevs) < r.NumDocsExpected {
 		return false
@@ -164,9 +170,12 @@ func (r *Reader) isFinished(latestDocIdRevs map[string]int) bool {
 			)
 		}
 
+		defer r.ExpVarStats.Add("NumDocsAllRevsPulled", 1)
+
 		if generation < r.NumRevGenerationsExpected {
 			return false
 		}
+
 	}
 
 	// We have found the expected number of docs and each doc has the expected rev generation

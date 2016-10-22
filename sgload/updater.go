@@ -28,7 +28,7 @@ func NewUpdater(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, numUpdates 
 
 	docsToUpdate := make(chan []sgreplicate.DocumentRevisionPair, 100)
 
-	return &Updater{
+	updater := &Updater{
 		Agent: Agent{
 			FinishedWg: wg,
 			UserCred:   u,
@@ -42,6 +42,10 @@ func NewUpdater(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, numUpdates 
 		RevsPerUpdate:            revsPerUpdate,
 		DocsAssignedToUpdater:    da,
 	}
+
+	updater.setupExpVarStats(updaters)
+
+	return updater
 
 }
 
