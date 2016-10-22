@@ -90,9 +90,9 @@ func (rlr ReadLoadRunner) createReaders(wg *sync.WaitGroup) ([]*Reader, error) {
 			rlr.ReadLoadSpec.BatchSize,
 		)
 		reader.SetChannels(sgChannels)
-		reader.SetNumRevGenerationsExpected(rlr.ReadLoadSpec.NumRevGenerationsExpected)
 		reader.SetBatchSize(rlr.ReadLoadSpec.BatchSize)
 		reader.SetNumDocsExpected(numDocsExpectedPerReader)
+		reader.SetNumRevGenerationsExpected(rlr.ReadLoadSpec.NumRevGenerationsExpected)
 		reader.SetStatsdClient(rlr.StatsdClient)
 		reader.CreateDataStoreUser = rlr.ReadLoadSpec.CreateReaders
 		readers = append(readers, reader)
