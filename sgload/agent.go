@@ -36,3 +36,10 @@ func (a *Agent) createSGUserIfNeeded(channels []string) {
 func (a *Agent) SetStatsdClient(statsdClient *g2s.Statsd) {
 	a.StatsdClient = statsdClient
 }
+
+func (a *Agent) setupExpVarStats(expvarMap *expvar.Map) {
+	expVarStats := &expvar.Map{}
+	expVarStats.Init()
+	a.ExpVarStats = expVarStats
+	expvarMap.Set(a.Username, expVarStats)
+}

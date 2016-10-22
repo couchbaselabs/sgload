@@ -1,7 +1,6 @@
 package sgload
 
 import (
-	"expvar"
 	"fmt"
 	"sync"
 	"time"
@@ -31,11 +30,7 @@ func NewWriter(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, batchsize in
 		OutboundDocs: outboundDocs,
 	}
 
-	// Expose to expvars
-	expVarStats := &expvar.Map{}
-	expVarStats.Init()
-	writer.ExpVarStats = expVarStats
-	writers.Set(u.Username, expVarStats)
+	writer.setupExpVarStats(writers)
 
 	return writer
 }
