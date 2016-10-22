@@ -46,6 +46,7 @@ func (r *Reader) SetNumDocsExpected(n int) {
 
 func (r *Reader) SetNumRevGenerationsExpected(n int) {
 	r.NumRevGenerationsExpected = n
+	r.ExpVarStats.Add("NumRevGenerationsExpected", int64(n))
 }
 
 func (r *Reader) SetBatchSize(batchSize int) {
@@ -150,7 +151,6 @@ func (r *Reader) isFinished(latestDocIdRevs map[string]int) bool {
 
 	r.ExpVarStats.Add("NumDocsPulled", int64(len(latestDocIdRevs)))
 	r.ExpVarStats.Add("NumDocsExpected", int64(r.NumDocsExpected))
-	r.ExpVarStats.Add("NumRevGenerationsExpected", int64(r.NumRevGenerationsExpected))
 
 	// Haven't seen all expected docs yet
 	if len(latestDocIdRevs) < r.NumDocsExpected {
