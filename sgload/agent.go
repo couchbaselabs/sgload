@@ -1,6 +1,7 @@
 package sgload
 
 import (
+	"expvar"
 	"fmt"
 	"sync"
 
@@ -16,6 +17,7 @@ type Agent struct {
 	DataStore           DataStore   // The target data store where docs will be written
 	BatchSize           int         // bulk_get or bulk_docs batch size
 	StatsdClient        *g2s.Statsd // The statsd client instance to use to push stats to statdsd
+	ExpVarStats         *expvar.Map
 }
 
 func (a *Agent) createSGUserIfNeeded(channels []string) {
