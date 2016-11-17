@@ -30,10 +30,12 @@ func NewUpdater(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, numUpdates 
 
 	updater := &Updater{
 		Agent: Agent{
-			FinishedWg: wg,
-			UserCred:   u,
-			ID:         ID,
-			DataStore:  d,
+			AgentSpec: AgentSpec{
+				FinishedWg: wg,
+				UserCred:   u,
+				ID:         ID,
+				DataStore:  d,
+			},
 		},
 		DocsToUpdate:             docsToUpdate,
 		NumUpdatesPerDocRequired: numUpdates,

@@ -21,11 +21,13 @@ func NewWriter(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, batchsize in
 
 	writer := &Writer{
 		Agent: Agent{
-			FinishedWg: wg,
-			UserCred:   u,
-			ID:         ID,
-			DataStore:  d,
-			BatchSize:  batchsize,
+			AgentSpec: AgentSpec{
+				FinishedWg: wg,
+				UserCred:   u,
+				ID:         ID,
+				DataStore:  d,
+				BatchSize:  batchsize,
+			},
 		},
 		OutboundDocs: outboundDocs,
 	}
