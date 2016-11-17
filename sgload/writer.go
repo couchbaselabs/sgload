@@ -2,7 +2,6 @@ package sgload
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/couchbaselabs/sg-replicate"
@@ -15,19 +14,13 @@ type Writer struct {
 	ExpectedDocsWritten []Document
 }
 
-func NewWriter(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, batchsize int) *Writer {
+func NewWriter(agentSpec AgentSpec) *Writer {
 
 	outboundDocs := make(chan []Document, 100)
 
 	writer := &Writer{
 		Agent: Agent{
-			AgentSpec: AgentSpec{
-				FinishedWg: wg,
-				UserCred:   u,
-				ID:         ID,
-				DataStore:  d,
-				BatchSize:  batchsize,
-			},
+			AgentSpec: agentSpec,
 		},
 		OutboundDocs: outboundDocs,
 	}

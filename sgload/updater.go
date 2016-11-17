@@ -2,7 +2,6 @@ package sgload
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
 	sgreplicate "github.com/couchbaselabs/sg-replicate"
@@ -30,18 +29,13 @@ type DocUpdateStatus struct {
 	LatestRev  string
 }
 
-func NewUpdater(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, numUpdates int, da []Document, batchsize int, revsPerUpdate int) *Updater {
+func NewUpdater(agentSpec AgentSpec, numUpdates int, da []Document, batchsize int, revsPerUpdate int) *Updater {
 
 	docsToUpdate := make(chan []sgreplicate.DocumentRevisionPair, 100)
 
 	updater := &Updater{
 		Agent: Agent{
-			AgentSpec: AgentSpec{
-				FinishedWg: wg,
-				UserCred:   u,
-				ID:         ID,
-				DataStore:  d,
-			},
+			AgentSpec: agentSpec,
 		},
 		UpdaterSpec: UpdaterSpec{
 			NumUpdatesPerDocRequired: numUpdates,

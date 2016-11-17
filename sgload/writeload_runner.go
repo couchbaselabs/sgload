@@ -94,12 +94,15 @@ func (wlr WriteLoadRunner) createWriters(wg *sync.WaitGroup) ([]*Writer, error) 
 		userCred := userCreds[userId]
 		dataStore := wlr.createDataStore()
 		dataStore.SetUserCreds(userCred)
+
 		writer := NewWriter(
-			wg,
-			userId,
-			userCred,
-			dataStore,
-			wlr.WriteLoadSpec.BatchSize,
+			AgentSpec{
+				FinishedWg: wg,
+				UserCred:   userCred,
+				ID:         userId,
+				DataStore:  dataStore,
+				BatchSize:  wlr.WriteLoadSpec.BatchSize,
+			},
 		)
 		writer.SetStatsdClient(wlr.StatsdClient)
 		writer.CreateDataStoreUser = wlr.WriteLoadSpec.CreateWriters
