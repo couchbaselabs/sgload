@@ -9,18 +9,19 @@ import (
 )
 
 var (
-	cfgFile            string
-	sgUrl              *string
-	sgAdminPort        *int
-	mockDataStore      *bool
-	statsdEndpoint     *string
-	statsdEnabled      *bool
-	testSessionID      *string
-	numChannels        *int
-	numDocs            *int
-	docSizeBytes       *int
-	batchSize          *int
-	compressionEnabled *bool
+	cfgFile               string
+	sgUrl                 *string
+	sgAdminPort           *int
+	mockDataStore         *bool
+	statsdEndpoint        *string
+	statsdEnabled         *bool
+	testSessionID         *string
+	numChannels           *int
+	numDocs               *int
+	docSizeBytes          *int
+	batchSize             *int
+	compressionEnabled    *bool
+	expvarProgressEnabled *bool
 )
 
 // This represents the base command when called without any subcommands
@@ -115,6 +116,12 @@ func init() {
 		"compressionenabled",
 		false,
 		"Whether gzip compression is enabled",
+	)
+
+	expvarProgressEnabled = RootCmd.PersistentFlags().Bool(
+		"expvarprogressenabled",
+		false,
+		"Publish progress stats to expvars",
 	)
 
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.sgload.yaml)")

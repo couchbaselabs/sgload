@@ -43,7 +43,7 @@ func NewUpdater(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, numUpdates 
 		DocsAssignedToUpdater:    da,
 	}
 
-	updater.setupExpVarStats(updaters)
+	updater.setupExpVarStats(updatersProgressStats)
 	updater.ExpVarStats.Add(
 		"TotalUpdatesExpected",
 		int64(len(da)*updater.NumUpdatesPerDocRequired),

@@ -30,7 +30,7 @@ func NewWriter(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, batchsize in
 		OutboundDocs: outboundDocs,
 	}
 
-	writer.setupExpVarStats(writers)
+	writer.setupExpVarStats(writersProgressStats)
 
 	return writer
 }

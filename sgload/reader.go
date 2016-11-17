@@ -31,7 +31,7 @@ func NewReader(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, batchsize in
 		NumRevGenerationsExpected: 1,
 	}
 
-	reader.setupExpVarStats(readers)
+	reader.setupExpVarStats(readersProgressStats)
 
 	return &reader
 

@@ -3,13 +3,13 @@ package sgload
 import "expvar"
 
 var (
-	writers  *expvar.Map
-	readers  *expvar.Map
-	updaters *expvar.Map
+	writersProgressStats  *expvar.Map
+	readersProgressStats  *expvar.Map
+	updatersProgressStats *expvar.Map
 )
 
 func init() {
-	writers = expvar.NewMap("writers")
-	readers = expvar.NewMap("readers")
-	updaters = expvar.NewMap("updaters")
+	writersProgressStats = expvar.NewMap("writers")
+	readersProgressStats = expvar.NewMap("readers")
+	updatersProgressStats = expvar.NewMap("updaters")
 }
