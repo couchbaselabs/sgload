@@ -35,17 +35,14 @@ func (wlr WriteLoadRunner) Run() error {
 	// Create a wait group to see when all the writer goroutines have finished
 	var wg sync.WaitGroup
 
-	// Create writer goroutines
+	// Create writers
 	writers, err := wlr.createWriters(&wg)
 	if err != nil {
 		return err
 	}
-	for _, writer := range writers {
-		go writer.Run()
-	}
+	writerAgentIds := getWriterAgentIds(writers)
 
 	channelNames := wlr.generateChannelNames()
-	writerAgentIds := getWriterAgentIds(writers)
 	docsToChannelsAndWriters := createAndAssignDocs(
 		writerAgentIds,
 		channelNames,
@@ -53,6 +50,17 @@ func (wlr WriteLoadRunner) Run() error {
 		wlr.WriteLoadSpec.DocSizeBytes,
 		wlr.WriteLoadSpec.TestSessionID,
 	)
+
+	// Update writer with expected docs list
+	for _, writer := range writers {
+		expectedDocs := docsToChannelsAndWriters[writer.UserCred.Username]
+		writer.SetExpectedDocsWritten(expectedDocs)
+	}
+
+	// Create writer goroutines
+	for _, writer := range writers {
+		go writer.Run()
+	}
 
 	// Create doc feeder goroutine
 	go wlr.feedDocsToWriters(writers, docsToChannelsAndWriters)
@@ -86,12 +94,16 @@ func (wlr WriteLoadRunner) createWriters(wg *sync.WaitGroup) ([]*Writer, error) 
 		userCred := userCreds[userId]
 		dataStore := wlr.createDataStore()
 		dataStore.SetUserCreds(userCred)
+
 		writer := NewWriter(
-			wg,
-			userId,
-			userCred,
-			dataStore,
-			wlr.WriteLoadSpec.BatchSize,
+			AgentSpec{
+				FinishedWg:            wg,
+				UserCred:              userCred,
+				ID:                    userId,
+				DataStore:             dataStore,
+				BatchSize:             wlr.WriteLoadSpec.BatchSize,
+				ExpvarProgressEnabled: wlr.LoadRunner.LoadSpec.ExpvarProgressEnabled,
+			},
 		)
 		writer.SetStatsdClient(wlr.StatsdClient)
 		writer.CreateDataStoreUser = wlr.WriteLoadSpec.CreateWriters

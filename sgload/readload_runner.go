@@ -82,17 +82,20 @@ func (rlr ReadLoadRunner) createReaders(wg *sync.WaitGroup) ([]*Reader, error) {
 			rlr.generateChannelNames(), // TODO: pass this in rather than re-generating
 		)
 
-		reader := NewReader(
-			wg,
-			userId,
-			userCred,
-			dataStore,
-			rlr.ReadLoadSpec.BatchSize,
-		)
+		agentSpec := AgentSpec{
+			FinishedWg:            wg,
+			UserCred:              userCred,
+			ID:                    userId,
+			DataStore:             dataStore,
+			BatchSize:             rlr.ReadLoadSpec.BatchSize,
+			ExpvarProgressEnabled: rlr.LoadRunner.LoadSpec.ExpvarProgressEnabled,
+		}
+
+		reader := NewReader(agentSpec)
 		reader.SetChannels(sgChannels)
-		reader.SetNumRevGenerationsExpected(rlr.ReadLoadSpec.NumRevGenerationsExpected)
 		reader.SetBatchSize(rlr.ReadLoadSpec.BatchSize)
 		reader.SetNumDocsExpected(numDocsExpectedPerReader)
+		reader.SetNumRevGenerationsExpected(rlr.ReadLoadSpec.NumRevGenerationsExpected)
 		reader.SetStatsdClient(rlr.StatsdClient)
 		reader.CreateDataStoreUser = rlr.ReadLoadSpec.CreateReaders
 		readers = append(readers, reader)

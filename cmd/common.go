@@ -43,17 +43,18 @@ const (
 func createLoadSpecFromArgs() sgload.LoadSpec {
 
 	loadSpec := sgload.LoadSpec{
-		SyncGatewayUrl:       *sgUrl,
-		SyncGatewayAdminPort: *sgAdminPort,
-		MockDataStore:        *mockDataStore,
-		StatsdEnabled:        *statsdEnabled,
-		StatsdEndpoint:       *statsdEndpoint,
-		TestSessionID:        *testSessionID,
-		BatchSize:            *batchSize,
-		NumChannels:          *numChannels,
-		DocSizeBytes:         *docSizeBytes,
-		NumDocs:              *numDocs,
-		CompressionEnabled:   *compressionEnabled,
+		SyncGatewayUrl:        *sgUrl,
+		SyncGatewayAdminPort:  *sgAdminPort,
+		MockDataStore:         *mockDataStore,
+		StatsdEnabled:         *statsdEnabled,
+		StatsdEndpoint:        *statsdEndpoint,
+		TestSessionID:         *testSessionID,
+		BatchSize:             *batchSize,
+		NumChannels:           *numChannels,
+		DocSizeBytes:          *docSizeBytes,
+		NumDocs:               *numDocs,
+		CompressionEnabled:    *compressionEnabled,
+		ExpvarProgressEnabled: *expvarProgressEnabled,
 	}
 	loadSpec.TestSessionID = sgload.NewUuid()
 	return loadSpec

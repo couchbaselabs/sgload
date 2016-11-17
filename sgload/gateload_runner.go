@@ -98,6 +98,13 @@ func (glr GateLoadRunner) Run() error {
 		return err
 	}
 
+	// Set docs expected on writers
+	for _, writer := range writers {
+		writer.SetExpectedDocsWritten(
+			docsToChannelsAndWriters[writer.UserCred.Username],
+		)
+	}
+
 	// Start updaters
 	logger.Info("Starting updaters")
 	updaterWaitGroup, _, err := glr.startUpdaters(docsToChannelsAndWriters)

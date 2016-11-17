@@ -3,7 +3,6 @@ package sgload
 import (
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 
 	sgreplicate "github.com/couchbaselabs/sg-replicate"
@@ -15,20 +14,19 @@ type Reader struct {
 	NumDocsExpected           int      // The total number of docs this reader is expected to pull'
 	NumRevGenerationsExpected int      // The expected generate that each doc is expected to reach
 	BatchSize                 int      // The number of docs to pull in batch (_changes feed and bulk_get)
+	lastNumRevs               int
 }
 
-func NewReader(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, batchsize int) *Reader {
+func NewReader(agentSpec AgentSpec) *Reader {
 
 	reader := Reader{
 		Agent: Agent{
-			FinishedWg: wg,
-			UserCred:   u,
-			ID:         ID,
-			DataStore:  d,
-			BatchSize:  batchsize,
+			AgentSpec: agentSpec,
 		},
 		NumRevGenerationsExpected: 1,
 	}
+
+	reader.setupExpVarStats(readersProgressStats)
 
 	return &reader
 
@@ -40,10 +38,17 @@ func (r *Reader) SetChannels(sgChannels []string) {
 
 func (r *Reader) SetNumDocsExpected(n int) {
 	r.NumDocsExpected = n
+
 }
 
 func (r *Reader) SetNumRevGenerationsExpected(n int) {
 	r.NumRevGenerationsExpected = n
+	// r.ExpVarStats.Add("NumRevGenerationsExpected", int64(n))
+	r.ExpVarStats.Add(
+		"TotalRevsExpected",
+		int64(r.NumDocsExpected*r.NumRevGenerationsExpected),
+	)
+
 }
 
 func (r *Reader) SetBatchSize(batchSize int) {
@@ -140,11 +145,27 @@ func (r *Reader) Run() {
 
 }
 
+func getNumRevs(latestDocIdRevs map[string]int) int {
+	numRevs := 0
+	for _, generation := range latestDocIdRevs {
+		numRevs += generation
+	}
+	return numRevs
+}
+
 func (r *Reader) isFinished(latestDocIdRevs map[string]int) bool {
 
 	if len(latestDocIdRevs) > r.NumDocsExpected {
 		panic(fmt.Sprintf("Reader was only expected to pull %d docs, but pulled %d.", r.NumDocsExpected, len(latestDocIdRevs)))
 	}
+
+	numRevs := getNumRevs(latestDocIdRevs)
+	delta := numRevs - r.lastNumRevs
+	r.ExpVarStats.Add(
+		"NumLatestDocIdRevs",
+		int64(delta),
+	)
+	r.lastNumRevs = numRevs
 
 	// Haven't seen all expected docs yet
 	if len(latestDocIdRevs) < r.NumDocsExpected {
@@ -167,6 +188,7 @@ func (r *Reader) isFinished(latestDocIdRevs map[string]int) bool {
 		if generation < r.NumRevGenerationsExpected {
 			return false
 		}
+
 	}
 
 	// We have found the expected number of docs and each doc has the expected rev generation

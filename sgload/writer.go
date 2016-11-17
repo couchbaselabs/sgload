@@ -2,7 +2,6 @@ package sgload
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/couchbaselabs/sg-replicate"
@@ -10,24 +9,25 @@ import (
 
 type Writer struct {
 	Agent
-	OutboundDocs chan []Document                         // The Docfeeder pushes outbound docs to the writer
-	PushedDocs   chan []sgreplicate.DocumentRevisionPair // After docs are sent, push to this channel
+	OutboundDocs        chan []Document                         // The Docfeeder pushes outbound docs to the writer
+	PushedDocs          chan []sgreplicate.DocumentRevisionPair // After docs are sent, push to this channel
+	ExpectedDocsWritten []Document
 }
 
-func NewWriter(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, batchsize int) *Writer {
+func NewWriter(agentSpec AgentSpec) *Writer {
 
 	outboundDocs := make(chan []Document, 100)
 
-	return &Writer{
+	writer := &Writer{
 		Agent: Agent{
-			FinishedWg: wg,
-			UserCred:   u,
-			ID:         ID,
-			DataStore:  d,
-			BatchSize:  batchsize,
+			AgentSpec: agentSpec,
 		},
 		OutboundDocs: outboundDocs,
 	}
+
+	writer.setupExpVarStats(writersProgressStats)
+
+	return writer
 }
 
 func (w *Writer) Run() {
@@ -68,6 +68,7 @@ func (w *Writer) Run() {
 			}
 
 			numDocsPushed += len(docs)
+			w.ExpVarStats.Add("NumDocsPushed", int64(len(docs)))
 			logger.Info(
 				"Writer pushed docs",
 				"writer",
@@ -90,6 +91,12 @@ func updateCreatedAtTimestamp(docs []Document) {
 
 func (w *Writer) notifyDocPushed(doc sgreplicate.DocumentRevisionPair) {
 	w.notifyDocsPushed([]sgreplicate.DocumentRevisionPair{doc})
+}
+
+func (w *Writer) SetExpectedDocsWritten(docs []Document) {
+	w.ExpectedDocsWritten = docs
+	w.ExpVarStats.Add("TotalDocs", int64(len(docs)))
+	logger.Debug("Writer SetExpectedDocsWritten", "totaldocs", len(docs))
 }
 
 func (w *Writer) notifyDocsPushed(docs []sgreplicate.DocumentRevisionPair) {

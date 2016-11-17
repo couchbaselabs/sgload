@@ -2,20 +2,25 @@ package sgload
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
 	sgreplicate "github.com/couchbaselabs/sg-replicate"
 )
 
+type UpdaterSpec struct {
+	NumUpdatesPerDocRequired int        // The number of updates this updater is supposed to do for each doc.
+	BatchSize                int        // How many docs to update per bulk_docs request
+	RevsPerUpdate            int        // How many revisions to include in each document update
+	DocsAssignedToUpdater    []Document // The full list of documents that this updater is responsible for updating
+}
+
 type Updater struct {
 	Agent
-	DocsAssignedToUpdater    []Document                              // The full list of documents that this updater is responsible for updating
-	DocsToUpdate             chan []sgreplicate.DocumentRevisionPair // This is a channel that this updater listens to for docs that are ready to be updated
-	NumUpdatesPerDocRequired int                                     // The number of updates this updater is supposed to do for each doc.
-	DocUpdateStatuses        map[string]DocUpdateStatus              // The number of updates and latest rev that have been done per doc id.  Key = doc id, value = number of updates and latest rev
-	BatchSize                int                                     // How many docs to update per bulk_docs request
-	RevsPerUpdate            int                                     // How many revisions to include in each document update
+	UpdaterSpec
+
+	DocsToUpdate chan []sgreplicate.DocumentRevisionPair // This is a channel that this updater listens to for docs that are ready to be updated
+
+	DocUpdateStatuses map[string]DocUpdateStatus // The number of updates and latest rev that have been done per doc id.  Key = doc id, value = number of updates and latest rev
 
 }
 
@@ -24,24 +29,31 @@ type DocUpdateStatus struct {
 	LatestRev  string
 }
 
-func NewUpdater(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, numUpdates int, da []Document, batchsize int, revsPerUpdate int) *Updater {
+func NewUpdater(agentSpec AgentSpec, numUpdates int, da []Document, batchsize int, revsPerUpdate int) *Updater {
 
 	docsToUpdate := make(chan []sgreplicate.DocumentRevisionPair, 100)
 
-	return &Updater{
+	updater := &Updater{
 		Agent: Agent{
-			FinishedWg: wg,
-			UserCred:   u,
-			ID:         ID,
-			DataStore:  d,
+			AgentSpec: agentSpec,
 		},
-		DocsToUpdate:             docsToUpdate,
-		NumUpdatesPerDocRequired: numUpdates,
-		DocUpdateStatuses:        map[string]DocUpdateStatus{},
-		BatchSize:                batchsize,
-		RevsPerUpdate:            revsPerUpdate,
-		DocsAssignedToUpdater:    da,
+		UpdaterSpec: UpdaterSpec{
+			NumUpdatesPerDocRequired: numUpdates,
+			BatchSize:                batchsize,
+			RevsPerUpdate:            revsPerUpdate,
+			DocsAssignedToUpdater:    da,
+		},
+		DocsToUpdate:      docsToUpdate,
+		DocUpdateStatuses: map[string]DocUpdateStatus{},
 	}
+
+	updater.setupExpVarStats(updatersProgressStats)
+	updater.ExpVarStats.Add(
+		"TotalUpdatesExpected",
+		int64(len(da)*updater.NumUpdatesPerDocRequired),
+	)
+
+	return updater
 
 }
 
@@ -93,6 +105,8 @@ func (u *Updater) Run() {
 
 		u.updateDocStatuses(docRevPairsUpdated)
 
+		u.updateExpVars(docRevPairsUpdated)
+
 		logger.Info(
 			"Updater pushed changes",
 			"updater",
@@ -143,6 +157,10 @@ func (u *Updater) updateDocStatuses(docRevPairsUpdated []sgreplicate.DocumentRev
 		u.DocUpdateStatuses[docRevPair.Id] = docStatus
 	}
 
+}
+
+func (u *Updater) updateExpVars(docRevPairsUpdated []sgreplicate.DocumentRevisionPair) {
+	u.ExpVarStats.Add("NumDocRevUpdates", int64(len(docRevPairsUpdated)))
 }
 
 func (u *Updater) getDocsReadyToUpdate() []sgreplicate.DocumentRevisionPair {

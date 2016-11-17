@@ -103,11 +103,15 @@ func (ulr UpdateLoadRunner) createUpdaters(wg *sync.WaitGroup, userCreds []UserC
 		dataStore := ulr.createDataStore()
 		dataStore.SetUserCreds(userCred)
 		docsForUpdater := docMapping[userCred.Username]
+
 		updater := NewUpdater(
-			wg,
-			userId,
-			userCred,
-			dataStore,
+			AgentSpec{
+				FinishedWg:            wg,
+				UserCred:              userCred,
+				ID:                    userId,
+				DataStore:             dataStore,
+				ExpvarProgressEnabled: ulr.LoadRunner.LoadSpec.ExpvarProgressEnabled,
+			},
 			ulr.UpdateLoadSpec.NumUpdatesPerDoc,
 			docsForUpdater,
 			ulr.UpdateLoadSpec.BatchSize,
