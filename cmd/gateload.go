@@ -30,8 +30,6 @@ var gateloadCmd = &cobra.Command{
 
 		loadSpec := createLoadSpecFromArgs()
 
-		logger.Info("loadspec", "loadspec", loadSpec)
-
 		writeLoadSpec := sgload.WriteLoadSpec{
 			LoadSpec:      loadSpec,
 			NumWriters:    *glNumWriters,
