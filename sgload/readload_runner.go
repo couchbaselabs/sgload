@@ -83,11 +83,12 @@ func (rlr ReadLoadRunner) createReaders(wg *sync.WaitGroup) ([]*Reader, error) {
 		)
 
 		agentSpec := AgentSpec{
-			FinishedWg: wg,
-			UserCred:   userCred,
-			ID:         userId,
-			DataStore:  dataStore,
-			BatchSize:  rlr.ReadLoadSpec.BatchSize,
+			FinishedWg:            wg,
+			UserCred:              userCred,
+			ID:                    userId,
+			DataStore:             dataStore,
+			BatchSize:             rlr.ReadLoadSpec.BatchSize,
+			ExpvarProgressEnabled: rlr.LoadRunner.LoadSpec.ExpvarProgressEnabled,
 		}
 
 		reader := NewReader(agentSpec)

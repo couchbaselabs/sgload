@@ -106,10 +106,11 @@ func (ulr UpdateLoadRunner) createUpdaters(wg *sync.WaitGroup, userCreds []UserC
 
 		updater := NewUpdater(
 			AgentSpec{
-				FinishedWg: wg,
-				UserCred:   userCred,
-				ID:         userId,
-				DataStore:  dataStore,
+				FinishedWg:            wg,
+				UserCred:              userCred,
+				ID:                    userId,
+				DataStore:             dataStore,
+				ExpvarProgressEnabled: ulr.LoadRunner.LoadSpec.ExpvarProgressEnabled,
 			},
 			ulr.UpdateLoadSpec.NumUpdatesPerDoc,
 			docsForUpdater,
