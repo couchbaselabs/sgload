@@ -3,7 +3,6 @@ package sgload
 import (
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 
 	sgreplicate "github.com/couchbaselabs/sg-replicate"
@@ -18,17 +17,11 @@ type Reader struct {
 	lastNumRevs               int
 }
 
-func NewReader(wg *sync.WaitGroup, ID int, u UserCred, d DataStore, batchsize int) *Reader {
+func NewReader(agentSpec AgentSpec) *Reader {
 
 	reader := Reader{
 		Agent: Agent{
-			AgentSpec: AgentSpec{
-				FinishedWg: wg,
-				UserCred:   u,
-				ID:         ID,
-				DataStore:  d,
-				BatchSize:  batchsize,
-			},
+			AgentSpec: agentSpec,
 		},
 		NumRevGenerationsExpected: 1,
 	}
