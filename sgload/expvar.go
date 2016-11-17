@@ -22,6 +22,7 @@ type ExpVarStatsCollector interface {
 	Add(key string, delta int64)
 }
 
+// An impl of ExpVarStatsCollector which ignores every operation
 type NoOpExpvarStatsCollector struct{}
 
 func (e NoOpExpvarStatsCollector) Set(key string, av expvar.Var) {}
