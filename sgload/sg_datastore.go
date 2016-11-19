@@ -26,7 +26,19 @@ var (
 	// want 1% of the samples pushed to statsd.  Useful for
 	// not overwhelming stats if you have too many samples.
 	statsdSampleRate float32 = 1.0
+
+	sgClient *http.Client
 )
+
+func init() {
+
+	tr := &http.Transport{
+		// Experimenting ..
+		MaxIdleConnsPerHost: 1000,
+	}
+	sgClient = &http.Client{Transport: tr}
+
+}
 
 type SGDataStore struct {
 	SyncGatewayUrl       string
@@ -78,7 +90,7 @@ func (s SGDataStore) CreateUser(u UserCred, channelNames []string) error {
 
 	req.Header.Set("Content-Type", "application/json")
 
-	client := http.DefaultClient
+	client := getHttpClient()
 
 	startTime := time.Now()
 	resp, err := client.Do(req)
@@ -159,7 +171,7 @@ func (s SGDataStore) Changes(sinceVal Sincer, limit int) (changes sgreplicate.Ch
 
 	req.Header.Set("Content-Type", "application/json")
 
-	client := http.DefaultClient
+	client := getHttpClient()
 
 	startTime := time.Now()
 	resp, err := client.Do(req)
@@ -250,7 +262,7 @@ func (s SGDataStore) BulkCreateDocuments(docs []Document, newEdits bool) ([]sgre
 		req.Header.Set("Content-Encoding", "gzip")
 	}
 
-	client := http.DefaultClient
+	client := getHttpClient()
 
 	startTime := time.Now()
 	resp, err := client.Do(req)
@@ -301,7 +313,7 @@ func (s SGDataStore) BulkGetDocuments(r sgreplicate.BulkGetRequest) ([]sgreplica
 
 	req.Header.Set("Content-Type", "application/json")
 
-	client := http.DefaultClient
+	client := getHttpClient()
 
 	startTime := time.Now()
 	resp, err := client.Do(req)
@@ -455,4 +467,9 @@ func timeDeltaPerDocument(numDocs int, timeDeltaAllDocs time.Duration) time.Dura
 		return timeDeltaAllDocs
 	}
 	return time.Duration(int64(timeDeltaAllDocs) / int64(numDocs))
+}
+
+func getHttpClient() *http.Client {
+	// return http.DefaultClient
+	return sgClient
 }
