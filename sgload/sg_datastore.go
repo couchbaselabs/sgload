@@ -32,11 +32,29 @@ var (
 
 func init() {
 
+	/*	tr := &http.Transport{
+			// Experimenting ..
+			MaxIdleConnsPerHost: 1000,
+			// IdleConnTimeout:     time.Duration(time.Second * 120),
+		}
+	*/
+
 	tr := &http.Transport{
-		// Experimenting ..
-		MaxIdleConnsPerHost: 1000,
-		IdleConnTimeout:     time.Duration(time.Second * 120),
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		MaxIdleConns:          30000,
+		MaxIdleConnsPerHost:   30000,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
 	}
+
+	log.Printf("tr: %+v", tr)
+	log.Printf("tr.IdleConnTimeout: %v", tr.IdleConnTimeout)
+
 	sgClient = &http.Client{Transport: tr}
 
 }
