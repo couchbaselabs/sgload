@@ -85,13 +85,13 @@ func (s SGDataStore) CreateUser(u UserCred, channelNames []string) error {
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	s.pushTimingStat("create_user", time.Since(startTime))
 
 	if resp.StatusCode < 200 || resp.StatusCode > 201 {
 		return fmt.Errorf("Unexpected response status for POST request: %d", resp.StatusCode)
 	}
 
-	defer resp.Body.Close()
 	io.Copy(ioutil.Discard, resp.Body)
 
 	return nil
@@ -166,12 +166,13 @@ func (s SGDataStore) Changes(sinceVal Sincer, limit int) (changes sgreplicate.Ch
 	if err != nil {
 		return sgreplicate.Changes{}, sinceVal, err
 	}
+	defer resp.Body.Close()
+
 	s.pushTimingStat("changes_feed", time.Since(startTime))
 	if resp.StatusCode < 200 || resp.StatusCode > 201 {
 		return sgreplicate.Changes{}, sinceVal, fmt.Errorf("Unexpected response status for changes_feed GET request: %d", resp.StatusCode)
 	}
 
-	defer resp.Body.Close()
 	decoder := json.NewDecoder(resp.Body)
 	err = decoder.Decode(&changes)
 	if err != nil {
@@ -256,12 +257,12 @@ func (s SGDataStore) BulkCreateDocuments(docs []Document, newEdits bool) ([]sgre
 	if err != nil {
 		return bulkDocsResponse, err
 	}
+	defer resp.Body.Close()
+
 	s.pushTimingStat("create_document", timeDeltaPerDocument(len(docs), time.Since(startTime)))
 	if resp.StatusCode < 200 || resp.StatusCode > 201 {
 		return bulkDocsResponse, fmt.Errorf("Unexpected response status for POST request: %d", resp.StatusCode)
 	}
-
-	defer resp.Body.Close()
 
 	decoder := json.NewDecoder(resp.Body)
 	if err = decoder.Decode(&bulkDocsResponse); err != nil {
@@ -307,13 +308,14 @@ func (s SGDataStore) BulkGetDocuments(r sgreplicate.BulkGetRequest) ([]sgreplica
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
+
 	s.pushTimingStat("get_document", timeDeltaPerDocument(len(r.Docs), time.Since(startTime)))
 	if resp.StatusCode < 200 || resp.StatusCode > 201 {
 		return nil, fmt.Errorf("Unexpected response status for POST request: %d", resp.StatusCode)
 	}
 
 	// Parse the response and make sure that we got all the docs we requested
-	defer resp.Body.Close()
 
 	// Logger function that ignores any logging from the ReadBulkGetResponse method
 	loggerFunc := func(key string, format string, args ...interface{}) {}
