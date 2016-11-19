@@ -35,6 +35,7 @@ func init() {
 	tr := &http.Transport{
 		// Experimenting ..
 		MaxIdleConnsPerHost: 1000,
+		IdleConnTimeout:     time.Duration(time.Second * 120),
 	}
 	sgClient = &http.Client{Transport: tr}
 
