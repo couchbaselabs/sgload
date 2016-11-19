@@ -134,15 +134,14 @@ func (wlr WriteLoadRunner) feedDocsToWriters(writers []*Writer, docsToChannelsAn
 			writer.Agent.UserCred.Username,
 		)
 
-		docsToWrite := docsToWrite // Give this goroutine it's own copy of this variable so it doesn't change underfoot
-		go func() {
-			writer.AddToDataStore(docsToWrite)
-			logger.Info("Feeding terminal doc to writer", "writer", writer.Agent.UserCred.Username)
+		go func(w *Writer, docs []Document) {
+			w.AddToDataStore(docs)
+			logger.Info("Feeding terminal doc to writer", "writer", w.Agent.UserCred.Username)
 			d := Document{}
 			d["_terminal"] = true
-			writer.AddToDataStore([]Document{d})
+			w.AddToDataStore([]Document{d})
 			wg.Done()
-		}()
+		}(writer, docsToWrite)
 
 		wg.Add(1)
 	}
