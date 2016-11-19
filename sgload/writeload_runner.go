@@ -121,6 +121,8 @@ func (wlr WriteLoadRunner) generateUserCreds() []UserCred {
 
 func (wlr WriteLoadRunner) feedDocsToWriters(writers []*Writer, docsToChannelsAndWriters map[string][]Document) error {
 
+	wg := sync.WaitGroup{}
+
 	// Loop over doc assignment map and tell each writer to push to data store
 	for writerAgentUsername, docsToWrite := range docsToChannelsAndWriters {
 		writer := findWriterByAgentUsername(writers, writerAgentUsername)
@@ -131,17 +133,32 @@ func (wlr WriteLoadRunner) feedDocsToWriters(writers []*Writer, docsToChannelsAn
 			"writer",
 			writer.Agent.UserCred.Username,
 		)
-		writer.AddToDataStore(docsToWrite)
+
+		docsToWrite := docsToWrite // Give this goroutine it's own copy of this variable so it doesn't change underfoot
+		go func() {
+			writer.AddToDataStore(docsToWrite)
+			logger.Info("Feeding terminal doc to writer", "writer", writer.Agent.UserCred.Username)
+			d := Document{}
+			d["_terminal"] = true
+			writer.AddToDataStore([]Document{d})
+			wg.Done()
+		}()
+
+		wg.Add(1)
 	}
+
+	wg.Wait()
 
 	// Send terminal docs which will shutdown writers after they've
 	// processed all the normal docs
-	for _, writer := range writers {
-		logger.Info("Feeding terminal doc to writer", "writer", writer.Agent.UserCred.Username)
-		d := Document{}
-		d["_terminal"] = true
-		writer.AddToDataStore([]Document{d})
-	}
+	/*
+		for _, writer := range writers {
+			logger.Info("Feeding terminal doc to writer", "writer", writer.Agent.UserCred.Username)
+			d := Document{}
+			d["_terminal"] = true
+			writer.AddToDataStore([]Document{d})
+		}
+	*/
 
 	return nil
 
