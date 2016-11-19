@@ -389,7 +389,7 @@ func (s SGDataStore) BulkGetDocuments(r sgreplicate.BulkGetRequest) ([]sgreplica
 // warning.  Trying to debug https://github.com/couchbaselabs/sgload/issues/12
 func possiblyLogVerboseWarning(delta time.Duration, doc sgreplicate.Document) {
 
-	maxSecondsExpected := time.Duration(60)
+	maxSecondsExpected := time.Duration(60 * time.Second)
 	if delta > time.Duration(time.Second*maxSecondsExpected) {
 
 		createAtRFC3339NanoIface, ok := doc.Body["created_at"]
