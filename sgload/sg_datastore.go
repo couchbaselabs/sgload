@@ -26,7 +26,14 @@ var (
 	// want 1% of the samples pushed to statsd.  Useful for
 	// not overwhelming stats if you have too many samples.
 	statsdSampleRate float32 = 1.0
+
+	sgClient *http.Client
 )
+
+func init() {
+	customDefaultTransport := customDefaultTransportWithConnPool(1000)
+	sgClient = &http.Client{Transport: customDefaultTransport}
+}
 
 type SGDataStore struct {
 	SyncGatewayUrl       string
@@ -78,7 +85,7 @@ func (s SGDataStore) CreateUser(u UserCred, channelNames []string) error {
 
 	req.Header.Set("Content-Type", "application/json")
 
-	client := http.DefaultClient
+	client := getHttpClient()
 
 	startTime := time.Now()
 	resp, err := client.Do(req)
@@ -159,7 +166,7 @@ func (s SGDataStore) Changes(sinceVal Sincer, limit int) (changes sgreplicate.Ch
 
 	req.Header.Set("Content-Type", "application/json")
 
-	client := http.DefaultClient
+	client := getHttpClient()
 
 	startTime := time.Now()
 	resp, err := client.Do(req)
@@ -250,7 +257,7 @@ func (s SGDataStore) BulkCreateDocuments(docs []Document, newEdits bool) ([]sgre
 		req.Header.Set("Content-Encoding", "gzip")
 	}
 
-	client := http.DefaultClient
+	client := getHttpClient()
 
 	startTime := time.Now()
 	resp, err := client.Do(req)
@@ -301,7 +308,7 @@ func (s SGDataStore) BulkGetDocuments(r sgreplicate.BulkGetRequest) ([]sgreplica
 
 	req.Header.Set("Content-Type", "application/json")
 
-	client := http.DefaultClient
+	client := getHttpClient()
 
 	startTime := time.Now()
 	resp, err := client.Do(req)
@@ -455,4 +462,23 @@ func timeDeltaPerDocument(numDocs int, timeDeltaAllDocs time.Duration) time.Dura
 		return timeDeltaAllDocs
 	}
 	return time.Duration(int64(timeDeltaAllDocs) / int64(numDocs))
+}
+
+func getHttpClient() *http.Client {
+	// return http.DefaultClient
+	return sgClient
+}
+
+func customDefaultTransportWithConnPool(numConnections int) *http.Transport {
+	// Customize the Transport to have larger connection pool
+	defaultRoundTripper := http.DefaultTransport
+	defaultTransportPointer, ok := defaultRoundTripper.(*http.Transport)
+	if !ok {
+		panic(fmt.Sprintf("defaultRoundTripper not an *http.Transport"))
+	}
+	defaultTransport := *defaultTransportPointer // dereference it to get a copy of the struct that the pointer points to
+	defaultTransport.MaxIdleConns = numConnections
+	defaultTransport.MaxIdleConnsPerHost = numConnections
+	return &defaultTransport
+
 }
