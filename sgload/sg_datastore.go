@@ -17,6 +17,7 @@ import (
 	"time"
 
 	sgreplicate "github.com/couchbaselabs/sg-replicate"
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/peterbourgon/g2s"
 )
 
@@ -27,12 +28,14 @@ var (
 	// not overwhelming stats if you have too many samples.
 	statsdSampleRate float32 = 1.0
 
-	sgClient *http.Client
+	sgClient *retryablehttp.Client
 )
 
 func init() {
 	transport := transportWithConnPool(1000)
-	sgClient = &http.Client{Transport: transport}
+	sgClient = retryablehttp.NewClient()
+	sgClient.RetryMax = 10
+	sgClient.HTTPClient.Transport = transport
 }
 
 type SGDataStore struct {
@@ -79,9 +82,9 @@ func (s SGDataStore) CreateUser(u UserCred, channelNames []string) error {
 	if err != nil {
 		return err
 	}
-	buf := bytes.NewBuffer(docBytes)
+	buf := bytes.NewReader(docBytes)
 
-	req, err := http.NewRequest("POST", adminUrlUserEndpoint, buf)
+	req, err := retryablehttp.NewRequest("POST", adminUrlUserEndpoint, buf)
 
 	req.Header.Set("Content-Type", "application/json")
 
@@ -161,7 +164,7 @@ func (s SGDataStore) Changes(sinceVal Sincer, limit int) (changes sgreplicate.Ch
 		changesFeedParams,
 	)
 
-	req, err := http.NewRequest("GET", changesFeedUrl, nil)
+	req, err := retryablehttp.NewRequest("GET", changesFeedUrl, nil)
 	s.addAuthIfNeeded(req)
 
 	req.Header.Set("Content-Type", "application/json")
@@ -235,9 +238,9 @@ func (s SGDataStore) BulkCreateDocuments(docs []Document, newEdits bool) ([]sgre
 	if err != nil {
 		return bulkDocsResponse, err
 	}
-	var buf *bytes.Buffer
+	var reader *bytes.Reader
 	if s.CompressionEnabled {
-		buf = &bytes.Buffer{}
+		buf := &bytes.Buffer{}
 		gzipWriter := gzip.NewWriter(buf)
 		if _, err := gzipWriter.Write(docBytes); err != nil {
 			return bulkDocsResponse, err
@@ -245,11 +248,16 @@ func (s SGDataStore) BulkCreateDocuments(docs []Document, newEdits bool) ([]sgre
 		if err = gzipWriter.Close(); err != nil {
 			return bulkDocsResponse, err
 		}
+		compressedBytes, err := ioutil.ReadAll(buf)
+		if err != nil {
+			return bulkDocsResponse, err
+		}
+		reader = bytes.NewReader(compressedBytes)
 	} else {
-		buf = bytes.NewBuffer(docBytes)
+		reader = bytes.NewReader(docBytes)
 	}
 
-	req, err := http.NewRequest("POST", bulkDocsEndpoint, buf)
+	req, err := retryablehttp.NewRequest("POST", bulkDocsEndpoint, reader)
 	s.addAuthIfNeeded(req)
 
 	req.Header.Set("Content-Type", "application/json")
@@ -301,9 +309,9 @@ func (s SGDataStore) BulkGetDocuments(r sgreplicate.BulkGetRequest) ([]sgreplica
 		return nil, fmt.Errorf("BulkGetDocuemnts failed to marshal request: %v", err)
 	}
 
-	buf := bytes.NewBuffer(bulkGetBytes)
+	buf := bytes.NewReader(bulkGetBytes)
 
-	req, err := http.NewRequest("POST", bulkGetEndpoint, buf)
+	req, err := retryablehttp.NewRequest("POST", bulkGetEndpoint, buf)
 	s.addAuthIfNeeded(req)
 
 	req.Header.Set("Content-Type", "application/json")
@@ -407,7 +415,7 @@ func possiblyLogVerboseWarning(delta time.Duration, doc sgreplicate.Document) {
 }
 
 // add BasicAuth header for user if needed
-func (s SGDataStore) addAuthIfNeeded(req *http.Request) {
+func (s SGDataStore) addAuthIfNeeded(req *retryablehttp.Request) {
 	if !s.UserCreds.Empty() {
 		req.SetBasicAuth(s.UserCreds.Username, s.UserCreds.Password)
 		req.Header.Set("X-sgload-username", s.UserCreds.Username)
@@ -458,8 +466,7 @@ func timeDeltaPerDocument(numDocs int, timeDeltaAllDocs time.Duration) time.Dura
 	return time.Duration(int64(timeDeltaAllDocs) / int64(numDocs))
 }
 
-func getHttpClient() *http.Client {
-	// return http.DefaultClient
+func getHttpClient() *retryablehttp.Client {
 	return sgClient
 }
 
