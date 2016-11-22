@@ -31,8 +31,8 @@ var (
 )
 
 func init() {
-	customDefaultTransport := customDefaultTransportWithConnPool(1000)
-	sgClient = &http.Client{Transport: customDefaultTransport}
+	transport := transportWithConnPool(1000)
+	sgClient = &http.Client{Transport: transport}
 }
 
 type SGDataStore struct {
@@ -469,16 +469,16 @@ func getHttpClient() *http.Client {
 	return sgClient
 }
 
-func customDefaultTransportWithConnPool(numConnections int) *http.Transport {
-	// Customize the Transport to have larger connection pool
-	defaultRoundTripper := http.DefaultTransport
-	defaultTransportPointer, ok := defaultRoundTripper.(*http.Transport)
+// Customize the DefaultTransport to have larger connection pool
+func transportWithConnPool(numConnections int) *http.Transport {
+
+	defaultTransport, ok := http.DefaultTransport.(*http.Transport)
 	if !ok {
-		panic(fmt.Sprintf("defaultRoundTripper not an *http.Transport"))
+		panic(fmt.Sprintf("http.DefaultTransport not an *http.Transport"))
 	}
-	defaultTransport := *defaultTransportPointer // dereference it to get a copy of the struct that the pointer points to
-	defaultTransport.MaxIdleConns = numConnections
-	defaultTransport.MaxIdleConnsPerHost = numConnections
-	return &defaultTransport
+	customTransport := *defaultTransport
+	customTransport.MaxIdleConns = numConnections
+	customTransport.MaxIdleConnsPerHost = numConnections
+	return &customTransport
 
 }
