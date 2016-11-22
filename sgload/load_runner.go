@@ -8,12 +8,12 @@ import (
 
 type LoadRunner struct {
 	LoadSpec     LoadSpec
-	StatsdClient *g2s.Statsd
+	StatsdClient g2s.Statter
 }
 
 func (lr *LoadRunner) CreateStatsdClient() {
 
-	var statsdClient *g2s.Statsd
+	var statsdClient g2s.Statter
 	var err error
 
 	if lr.LoadSpec.StatsdEnabled {
@@ -23,6 +23,8 @@ func (lr *LoadRunner) CreateStatsdClient() {
 		if err != nil {
 			panic("Couldn't connect to statsd!")
 		}
+	} else {
+		statsdClient = MockStatter{}
 	}
 
 	lr.StatsdClient = statsdClient
