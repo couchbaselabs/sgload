@@ -39,11 +39,11 @@ type SGDataStore struct {
 	SyncGatewayUrl       string
 	SyncGatewayAdminPort int
 	UserCreds            UserCred
-	StatsdClient         *g2s.Statsd
+	StatsdClient         g2s.Statter
 	CompressionEnabled   bool
 }
 
-func NewSGDataStore(sgUrl string, sgAdminPort int, statsdClient *g2s.Statsd, compressionEnabled bool) *SGDataStore {
+func NewSGDataStore(sgUrl string, sgAdminPort int, statsdClient g2s.Statter, compressionEnabled bool) *SGDataStore {
 	return &SGDataStore{
 		SyncGatewayUrl:       sgUrl,
 		SyncGatewayAdminPort: sgAdminPort,
@@ -415,9 +415,6 @@ func (s SGDataStore) addAuthIfNeeded(req *http.Request) {
 }
 
 func (s SGDataStore) pushTimingStat(key string, delta time.Duration) {
-	if s.StatsdClient == nil {
-		return
-	}
 	s.StatsdClient.Timing(
 		statsdSampleRate,
 		key,
@@ -426,9 +423,6 @@ func (s SGDataStore) pushTimingStat(key string, delta time.Duration) {
 }
 
 func (s SGDataStore) pushCounter(key string, n int) {
-	if s.StatsdClient == nil {
-		return
-	}
 	s.StatsdClient.Counter(
 		statsdSampleRate,
 		key,
