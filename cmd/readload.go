@@ -27,8 +27,8 @@ or it can pass a test session id from a previously run write load.`,
 	Run: func(cmd *cobra.Command, args []string) {
 
 		// Setup logger
-		logger = log15.New()
-		sgload.SetLogger(logger)
+		logger := sgload.Logger()
+		logger.Info("Running readload scenario")
 
 		loadSpec := createLoadSpecFromArgs()
 
