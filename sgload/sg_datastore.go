@@ -67,7 +67,7 @@ func initSgHttpClientOnce(statsdClient g2s.Statter) {
 
 		// Record retries in statsd
 		sgClient.RequestLogHook = logHook
-
+		sgClient.Logger = log.New(ioutil.Discard, "", 0) // suppress retryablehttp client logs
 		sgClient.RetryMax = 10
 		sgClient.HTTPClient.Transport = transportWithConnPool(1000)
 
