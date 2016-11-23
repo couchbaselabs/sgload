@@ -14,6 +14,7 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	sgreplicate "github.com/couchbaselabs/sg-replicate"
@@ -28,20 +29,51 @@ var (
 	// not overwhelming stats if you have too many samples.
 	statsdSampleRate float32 = 1.0
 
+	initializeSgHttpClientOnce *sync.Once = &sync.Once{}
+
 	sgClient *retryablehttp.Client
 )
 
-func init() {
-	transport := transportWithConnPool(1000)
-	sgClient = retryablehttp.NewClient()
+func initSgHttpClientOnce(statsdClient g2s.Statter) {
 
-	// want to be able to push counters to statsd for retries .. but
-	// we don't have a statsd at this point yet
-	// type RequestLogHook func(*log.Logger, *http.Request, int)
-	// sgClient.RequestLogHook = ?
+	// This is done _once_ because we only want one single client instance
+	// that is shared among all of the goroutines
 
-	sgClient.RetryMax = 10
-	sgClient.HTTPClient.Transport = transport
+	doOnceFunc := func() {
+
+		sgClient = retryablehttp.NewClient()
+
+		logHook := func(
+			ignoredLogger *log.Logger,
+			req *http.Request,
+			numAttempts int) {
+
+			if numAttempts > 0 {
+				logger.Warn(
+					"HttpClientRetry",
+					"url",
+					req.URL,
+					"numAttempts",
+					numAttempts,
+				)
+				statsdClient.Counter(
+					statsdSampleRate,
+					"retries",
+					1,
+				)
+			}
+
+		}
+
+		// Record retries in statsd
+		sgClient.RequestLogHook = logHook
+
+		sgClient.RetryMax = 10
+		sgClient.HTTPClient.Transport = transportWithConnPool(1000)
+
+	}
+
+	initializeSgHttpClientOnce.Do(doOnceFunc)
 }
 
 type SGDataStore struct {
@@ -53,6 +85,9 @@ type SGDataStore struct {
 }
 
 func NewSGDataStore(sgUrl string, sgAdminPort int, statsdClient g2s.Statter, compressionEnabled bool) *SGDataStore {
+
+	initSgHttpClientOnce(statsdClient)
+
 	return &SGDataStore{
 		SyncGatewayUrl:       sgUrl,
 		SyncGatewayAdminPort: sgAdminPort,
