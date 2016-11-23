@@ -1,6 +1,9 @@
 package cmd
 
-import "github.com/couchbaselabs/sgload/sgload"
+import (
+	"github.com/couchbaselabs/sgload/sgload"
+	"github.com/inconshreveable/log15"
+)
 
 const (
 	NUM_READERS_CMD_NAME    = "numreaders"
@@ -56,6 +59,20 @@ func createLoadSpecFromArgs() sgload.LoadSpec {
 		CompressionEnabled:    *compressionEnabled,
 		ExpvarProgressEnabled: *expvarProgressEnabled,
 	}
+
+	switch *logLevelStr {
+	case "critical":
+		loadSpec.LogLevel = log15.LvlCrit
+	case "error":
+		loadSpec.LogLevel = log15.LvlError
+	case "warn":
+		loadSpec.LogLevel = log15.LvlWarn
+	case "info":
+		loadSpec.LogLevel = log15.LvlInfo
+	case "debug":
+		loadSpec.LogLevel = log15.LvlDebug
+	}
+
 	loadSpec.TestSessionID = sgload.NewUuid()
 	return loadSpec
 }

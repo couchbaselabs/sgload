@@ -28,9 +28,9 @@ or it can pass a test session id from a previously run write load.`,
 
 		// Setup logger
 		logger := sgload.Logger()
-		logger.Info("Running readload scenario")
 
 		loadSpec := createLoadSpecFromArgs()
+		sgload.SetLogLevel(loadSpec.LogLevel)
 
 		readLoadSpec := sgload.ReadLoadSpec{
 			LoadSpec:                  loadSpec,
@@ -40,6 +40,8 @@ or it can pass a test session id from a previously run write load.`,
 			SkipWriteLoadSetup:        *skipWriteload,
 			NumRevGenerationsExpected: 1, // Expect writer to add one rev
 		}
+
+		logger.Info("Running readload scenario", "readLoadSpec", readLoadSpec)
 
 		if *skipWriteload == false {
 
