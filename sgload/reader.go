@@ -173,7 +173,7 @@ func (r *Reader) isFinished(latestDocIdRevs map[string]int) bool {
 	}
 
 	// We have seen all docs, verify that the revs are expected generation
-	for _, generation := range latestDocIdRevs {
+	for docId, generation := range latestDocIdRevs {
 
 		if generation > r.NumRevGenerationsExpected {
 			panic(
@@ -186,6 +186,17 @@ func (r *Reader) isFinished(latestDocIdRevs map[string]int) bool {
 		}
 
 		if generation < r.NumRevGenerationsExpected {
+			logger.Debug(
+				"Reader still waiting for revs",
+				"reader",
+				r.Agent.ID,
+				"docId",
+				docId,
+				"generation",
+				generation,
+				"expected-generation",
+				r.NumRevGenerationsExpected,
+			)
 			return false
 		}
 
@@ -231,7 +242,11 @@ func (r *Reader) pullMoreDocs(since Sincer) (pullMoreDocsResult, error) {
 		// since they are user docs and we don't care about them
 		changes = stripUserDocChanges(changes)
 
-		bulkGetRequest, uniqueDocIds := getBulkGetRequest(changes)
+		bulkGetRequest, uniqueDocIds, err := createBulkGetRequest(changes)
+		if err != nil {
+			logger.Warn("Error creating bulk get request from _changes result.  Retrying", "reader", r.Agent.ID, "err", err)
+			return true, nil, result
+		}
 
 		docs, err := r.DataStore.BulkGetDocuments(bulkGetRequest)
 		if err != nil {
@@ -259,7 +274,7 @@ func (r *Reader) pullMoreDocs(since Sincer) (pullMoreDocsResult, error) {
 
 }
 
-func getBulkGetRequest(changes sgreplicate.Changes) (sgreplicate.BulkGetRequest, map[string]sgreplicate.DocumentRevisionPair) {
+func createBulkGetRequest(changes sgreplicate.Changes) (sgreplicate.BulkGetRequest, map[string]sgreplicate.DocumentRevisionPair, error) {
 
 	uniqueDocIds := map[string]sgreplicate.DocumentRevisionPair{}
 
@@ -289,17 +304,14 @@ func getBulkGetRequest(changes sgreplicate.Changes) (sgreplicate.BulkGetRequest,
 		for _, doc := range docs {
 			logger.Error("docs", "doc", doc, "doc.id", doc.Id, "doc.rev", doc.Revision)
 		}
-		panic(
-			fmt.Sprintf(
-				"len(uniqueDocIds) != len(docs), %d != %d",
-				len(uniqueDocIds),
-				len(docs),
-			),
-		)
+
+		err := fmt.Errorf("Unexpected unumber of uniqueDocsIds in changes feed")
+
+		return bulkGetRequest, uniqueDocIds, err
 
 	}
 
-	return bulkGetRequest, uniqueDocIds
+	return bulkGetRequest, uniqueDocIds, nil
 
 }
 
