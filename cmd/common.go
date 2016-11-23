@@ -35,7 +35,7 @@ const (
 	NUM_UPDATERS_CMD_DESC    = "The number of unique users that will update documents.  Each updater runs concurrently in it's own goroutine"
 
 	NUM_REVS_PER_DOC_CMD_NAME    = "numrevsperdoc"
-	NUM_REVS_PER_DOC_CMD_DEFAULT = 100
+	NUM_REVS_PER_DOC_CMD_DEFAULT = 5
 	NUM_REVS_PER_DOC_CMD_DESC    = "The number of updates per doc (total revs will be numrevsperdoc * numrevsperupdate)"
 
 	NUM_REVS_PER_UPDATE_CMD_NAME    = "numrevsperupdate"
