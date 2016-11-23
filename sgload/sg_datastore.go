@@ -34,6 +34,12 @@ var (
 func init() {
 	transport := transportWithConnPool(1000)
 	sgClient = retryablehttp.NewClient()
+
+	// want to be able to push counters to statsd for retries .. but
+	// we don't have a statsd at this point yet
+	// type RequestLogHook func(*log.Logger, *http.Request, int)
+	// sgClient.RequestLogHook = ?
+
 	sgClient.RetryMax = 10
 	sgClient.HTTPClient.Transport = transport
 }
