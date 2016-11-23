@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/couchbaselabs/sgload/sgload"
-	"github.com/inconshreveable/log15"
 	"github.com/spf13/cobra"
 )
 
@@ -26,8 +25,7 @@ var updateloadCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 
 		// Setup logger
-		logger = log15.New()
-		sgload.SetLogger(logger)
+		logger := sgload.Logger()
 
 		loadSpec := createLoadSpecFromArgs()
 		updateLoadSpec := sgload.UpdateLoadSpec{

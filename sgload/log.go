@@ -1,33 +1,24 @@
 package sgload
 
-import (
-	"sync"
-
-	"github.com/inconshreveable/log15"
-)
+import "github.com/inconshreveable/log15"
 
 var (
 	// Package wide logger instance
-	logger      log15.Logger
-	loggerMutex sync.Mutex
+	logger log15.Logger
 )
 
 func init() {
 
-	loggerMutex.Lock()
-	defer loggerMutex.Unlock()
-
 	// This will initialize a default logger for the package
 	logger = log15.New()
+
 }
 
-// Allow clients of this package to set the package-wide logger.
-// This should be done before any other calls to functions/methods in the package
-func SetLogger(loggerToUse log15.Logger) {
+func Logger() log15.Logger {
+	return logger
+}
 
-	loggerMutex.Lock()
-	defer loggerMutex.Unlock()
-
-	logger = loggerToUse
-
+func SetLogLevel(level log15.Lvl) {
+	filteredHandler := log15.LvlFilterHandler(level, logger.GetHandler())
+	logger.SetHandler(filteredHandler)
 }
