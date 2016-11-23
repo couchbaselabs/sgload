@@ -23,6 +23,8 @@ var writeloadCmd = &cobra.Command{
 		logger = sgload.Logger()
 
 		loadSpec := createLoadSpecFromArgs()
+		sgload.SetLogLevel(loadSpec.LogLevel)
+
 		writeLoadSpec := sgload.WriteLoadSpec{
 			LoadSpec:      loadSpec,
 			NumWriters:    *numWriters,

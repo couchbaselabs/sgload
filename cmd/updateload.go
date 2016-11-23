@@ -28,13 +28,16 @@ var updateloadCmd = &cobra.Command{
 		logger := sgload.Logger()
 
 		loadSpec := createLoadSpecFromArgs()
+		sgload.SetLogLevel(loadSpec.LogLevel)
+
 		updateLoadSpec := sgload.UpdateLoadSpec{
 			LoadSpec:         loadSpec,
 			NumUpdatesPerDoc: *numUpdatesPerDoc,
 			NumRevsPerUpdate: *numRevsPerUpdate,
 			NumUpdaters:      *numUpdaters,
 		}
-		logger.Info("created update loadspec", "updateLoadSpec", fmt.Sprintf("%+v", updateLoadSpec))
+
+		logger.Info("Running UpdateLoad", "updateLoadSpec", updateLoadSpec)
 
 		if *updateLoadSkipWriteload == false {
 
@@ -55,6 +58,8 @@ var updateloadCmd = &cobra.Command{
 		if err := updateLoadRunner.Run(); err != nil {
 			panic(fmt.Sprintf("UpdateLoad.Run() failed with: %v", err))
 		}
+
+		logger.Info("Finished running UpdateLoad")
 
 	},
 }

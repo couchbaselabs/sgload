@@ -25,9 +25,9 @@ var gateloadCmd = &cobra.Command{
 
 		// Setup logger
 		logger := sgload.Logger()
-		logger.Info("Running gateload scenario")
 
 		loadSpec := createLoadSpecFromArgs()
+		sgload.SetLogLevel(loadSpec.LogLevel)
 
 		writeLoadSpec := sgload.WriteLoadSpec{
 			LoadSpec:      loadSpec,
@@ -55,6 +55,8 @@ var gateloadCmd = &cobra.Command{
 			UpdateLoadSpec: updateLoadSpec,
 			ReadLoadSpec:   readLoadSpec,
 		}
+
+		logger.Info("Running gateload scenario", "gateLoadSpec", gateLoadSpec)
 
 		if err := gateLoadSpec.Validate(); err != nil {
 

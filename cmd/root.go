@@ -22,6 +22,7 @@ var (
 	batchSize             *int
 	compressionEnabled    *bool
 	expvarProgressEnabled *bool
+	logLevelStr           *string
 )
 
 // This represents the base command when called without any subcommands
@@ -122,6 +123,12 @@ func init() {
 		"expvarprogressenabled",
 		false,
 		"Publish progress stats to expvars",
+	)
+
+	logLevelStr = RootCmd.PersistentFlags().String(
+		"loglevel",
+		"warn",
+		"Will show all levels up to and including this log level.  Values: critical, error, warn, info, debug",
 	)
 
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.sgload.yaml)")
