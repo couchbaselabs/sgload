@@ -111,7 +111,7 @@ func (u *Updater) Run() {
 			"Updater pushed changes",
 			"updater",
 			u.Agent.UserCred.Username,
-			"numdocs",
+			"numDocRevPairsUpdated",
 			len(docRevPairsUpdated),
 		)
 
