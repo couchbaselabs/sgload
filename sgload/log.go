@@ -19,6 +19,7 @@ func Logger() log15.Logger {
 }
 
 func SetLogLevel(level log15.Lvl) {
+	logger.Info("Setting loglevel", "level", level)
 	filteredHandler := log15.LvlFilterHandler(level, logger.GetHandler())
 	logger.SetHandler(filteredHandler)
 }

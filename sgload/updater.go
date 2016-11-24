@@ -107,7 +107,7 @@ func (u *Updater) Run() {
 
 		u.updateExpVars(docRevPairsUpdated)
 
-		logger.Info(
+		logger.Debug(
 			"Updater pushed changes",
 			"updater",
 			u.Agent.UserCred.Username,

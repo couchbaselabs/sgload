@@ -126,7 +126,7 @@ func (r *Reader) Run() {
 		}
 
 		if len(result.uniqueDocIds) > 0 {
-			logger.Info(
+			logger.Debug(
 				"Reader pulled more docs",
 				"reader",
 				r.Agent.UserCred.Username,
