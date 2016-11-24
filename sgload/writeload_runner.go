@@ -124,7 +124,7 @@ func (wlr WriteLoadRunner) feedDocsToWriters(writers []*Writer, docsToChannelsAn
 	// Loop over doc assignment map and tell each writer to push to data store
 	for writerAgentUsername, docsToWrite := range docsToChannelsAndWriters {
 		writer := findWriterByAgentUsername(writers, writerAgentUsername)
-		logger.Info(
+		logger.Debug(
 			"Feeding docs to writer",
 			"numdocs",
 			len(docsToWrite),
@@ -137,7 +137,7 @@ func (wlr WriteLoadRunner) feedDocsToWriters(writers []*Writer, docsToChannelsAn
 	// Send terminal docs which will shutdown writers after they've
 	// processed all the normal docs
 	for _, writer := range writers {
-		logger.Info("Feeding terminal doc to writer", "writer", writer.Agent.UserCred.Username)
+		logger.Debug("Feeding terminal doc to writer", "writer", writer.Agent.UserCred.Username)
 		d := Document{}
 		d["_terminal"] = true
 		writer.AddToDataStore([]Document{d})

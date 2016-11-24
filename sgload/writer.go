@@ -69,7 +69,7 @@ func (w *Writer) Run() {
 
 			numDocsPushed += len(docs)
 			w.ExpVarStats.Add("NumDocsPushed", int64(len(docs)))
-			logger.Info(
+			logger.Debug(
 				"Writer pushed docs",
 				"writer",
 				w.Agent.UserCred.Username,

@@ -127,7 +127,7 @@ func init() {
 
 	logLevelStr = RootCmd.PersistentFlags().String(
 		"loglevel",
-		"warn",
+		"info",
 		"Will show all levels up to and including this log level.  Values: critical, error, warn, info, debug",
 	)
 
