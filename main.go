@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	_ "expvar"
@@ -11,16 +12,32 @@ import (
 
 func main() {
 
-	logger := sgload.Logger()
-
-	// Expose expvars via http -- needed by mobile-testkit to figure out
-	// when the process is finished.
-	go func() {
-		err := http.ListenAndServe(":9876", http.DefaultServeMux)
-		if err != nil {
-			logger.Warn("Unable to listen on port 9876.  Expvars won't be exposed", "err", err)
-		}
-	}()
+	exposeExpvars(9876)
 
 	cmd.Execute()
+}
+
+// Exposes expvars on a port.  Starts with startingPort, but will
+// keep incrementing until it finds one.  After a certain number of failed
+// attempts it panics
+func exposeExpvars(startingPort int) {
+
+	logger := sgload.Logger()
+
+	maxAttempts := 100
+	go func() {
+		for i := 0; i < maxAttempts; i++ {
+			portToTry := startingPort + i
+			listenUrl := fmt.Sprintf(":%v", portToTry) // eg: :9876
+			logger.Info("Attempting to expose expvars", "port", portToTry)
+			err := http.ListenAndServe(listenUrl, http.DefaultServeMux)
+			if err != nil {
+				logger.Warn("Unable to listen on port.  Will try another port", "port", portToTry)
+			}
+		}
+
+		panic(fmt.Sprintf("Unable to bind to any ports for expvars"))
+
+	}()
+
 }
