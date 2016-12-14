@@ -1,7 +1,6 @@
 package sgload
 
 import (
-	"bytes"
 	"fmt"
 	"sync"
 )
@@ -155,14 +154,6 @@ func findWriterByAgentUsername(writers []*Writer, writerAgentUsername string) *W
 		}
 	}
 	return nil
-}
-
-func createBodyContentWithSize(docSizeBytes int) string {
-	buf := bytes.Buffer{}
-	for i := 0; i < docSizeBytes; i++ {
-		buf.WriteString("a")
-	}
-	return buf.String()
 }
 
 // Create body content as map of 100 byte entries.  Rounds up to the nearest 100 bytes
