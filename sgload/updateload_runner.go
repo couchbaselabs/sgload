@@ -40,6 +40,10 @@ func (ulr UpdateLoadRunner) Run() error {
 	// Generate the mapping between docs+channels and updaters
 	channelNames := ulr.generateChannelNames()
 	updaterAgentUsernames := getUpdaterAgentUsernames(userCreds)
+
+	// pre-allocates all of the docs.  if it wasn't pre-allocated, currently what
+	// is needed to be pre-calculated is:
+	//   - the updaters need the doc ids assigned to them, but not entire docs
 	docsToChannelsAndUpdaters := createAndAssignDocs(
 		updaterAgentUsernames,
 		channelNames,

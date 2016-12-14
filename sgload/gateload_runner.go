@@ -87,6 +87,10 @@ func (glr GateLoadRunner) Run() error {
 	logger.Info("Starting docfeeder")
 	channelNames := glr.generateChannelNames()
 	writerAgentIds := getWriterAgentIds(writers)
+
+	// if not pre-allocated
+	//  - updater needs to know list of doc ids for each updater
+	//  - writer needs to know how many docs to expect
 	docsToChannelsAndWriters := createAndAssignDocs(
 		writerAgentIds,
 		channelNames,
@@ -141,7 +145,7 @@ func getWriterAgentIds(writers []*Writer) []string {
 	return writerAgentIds
 }
 
-func (glr GateLoadRunner) startUpdaters(docsToChannelsAndWriters map[string][]Document) (*sync.WaitGroup, []*Updater, error) {
+func (glr GateLoadRunner) startUpdaters(igoredWriterDocs map[string][]Document) (*sync.WaitGroup, []*Updater, error) {
 
 	// Create a wait group to see when all the updater goroutines have finished
 	var wg sync.WaitGroup
@@ -155,6 +159,9 @@ func (glr GateLoadRunner) startUpdaters(docsToChannelsAndWriters map[string][]Do
 	// Generate the mapping between docs+channels and updaters
 	channelNames := glr.generateChannelNames()
 	updaterAgentUsernames := getUpdaterAgentUsernames(userCreds)
+
+	// If not pre-allocated, would need
+	//   - updaters need to have full list of doc ids
 	docsToChannelsAndUpdaters := createAndAssignDocs(
 		updaterAgentUsernames,
 		channelNames,
