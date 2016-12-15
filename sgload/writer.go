@@ -16,7 +16,7 @@ type Writer struct {
 
 func NewWriter(agentSpec AgentSpec) *Writer {
 
-	outboundDocs := make(chan []Document, 100)
+	outboundDocs := make(chan []Document)
 
 	writer := &Writer{
 		Agent: Agent{
@@ -110,12 +110,14 @@ func (w *Writer) AddToDataStore(docs []Document) {
 	switch w.BatchSize {
 	case 1:
 		for _, doc := range docs {
+			logger.Debug("Push single doc to writer", "writer", w.UserCred.Username)
 			w.OutboundDocs <- []Document{doc}
 		}
 
 	default:
 		docBatches := breakIntoBatches(w.BatchSize, docs)
 		for _, docBatch := range docBatches {
+			logger.Debug("Push doc batch to writer", "writer", w.UserCred.Username, "batchsize", len(docBatch))
 			w.OutboundDocs <- docBatch
 		}
 	}

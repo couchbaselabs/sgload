@@ -66,7 +66,7 @@ func (wlr WriteLoadRunner) Run() error {
 	}
 
 	// Create doc feeder goroutine
-	go wlr.feedDocsToWriters(writers, docsToChannelsAndWriters)
+	go wlr.startDocFeeders(writers, docsToChannelsAndWriters)
 
 	// Wait for writers to finish
 	logger.Info("Waiting for writers to finish", "numwriters", len(writers))
@@ -75,6 +75,19 @@ func (wlr WriteLoadRunner) Run() error {
 
 	return nil
 
+}
+
+func (wlr WriteLoadRunner) startDocFeeders(writers []*Writer, docsToChannelsAndWriters map[string][]Document) error {
+
+	// Create doc feeder goroutines
+	for _, writer := range writers {
+		docsToWrite, ok := docsToChannelsAndWriters[writer.UserCred.Username]
+		if !ok {
+			return fmt.Errorf("Could not find any docs for writer: %v", writer)
+		}
+		go wlr.feedDocsToWriter(writer, docsToWrite)
+	}
+	return nil
 }
 
 func (wlr WriteLoadRunner) createWriters(wg *sync.WaitGroup) ([]*Writer, error) {
@@ -122,29 +135,21 @@ func (wlr WriteLoadRunner) generateUserCreds() []UserCred {
 	return wlr.LoadRunner.generateUserCreds(wlr.WriteLoadSpec.NumWriters, USER_PREFIX_WRITER)
 }
 
-func (wlr WriteLoadRunner) feedDocsToWriters(writers []*Writer, docsToChannelsAndWriters map[string][]Document) error {
+func (wlr WriteLoadRunner) feedDocsToWriter(writer *Writer, docsToWrite []Document) error {
+
+	logger.Debug("Feeding docs to writer", "numdocs", len(docsToWrite), "writer", writer.UserCred.Username)
 
 	// Loop over doc assignment map and tell each writer to push to data store
-	for writerAgentUsername, docsToWrite := range docsToChannelsAndWriters {
-		writer := findWriterByAgentUsername(writers, writerAgentUsername)
-		logger.Debug(
-			"Feeding docs to writer",
-			"numdocs",
-			len(docsToWrite),
-			"writer",
-			writer.Agent.UserCred.Username,
-		)
-		writer.AddToDataStore(docsToWrite)
-	}
+	writer.AddToDataStore(docsToWrite)
 
 	// Send terminal docs which will shutdown writers after they've
 	// processed all the normal docs
-	for _, writer := range writers {
-		logger.Debug("Feeding terminal doc to writer", "writer", writer.Agent.UserCred.Username)
-		d := Document{}
-		d["_terminal"] = true
-		writer.AddToDataStore([]Document{d})
-	}
+	logger.Debug("Feeding terminal doc to writer", "writer", writer.Agent.UserCred.Username)
+	d := Document{}
+	d["_terminal"] = true
+	writer.AddToDataStore([]Document{d})
+
+	logger.Debug("Done feeding docs to writer", "numdocs", len(docsToWrite), "writer", writer.UserCred.Username)
 
 	return nil
 
