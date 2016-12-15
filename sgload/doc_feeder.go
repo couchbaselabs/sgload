@@ -100,7 +100,7 @@ func createDocsToWrite(numDocs, docSizeBytes int, docIdSuffix string) []Document
 			d["_id"] = fmt.Sprintf("%d-%s", docNum, docIdSuffix)
 		}
 		d["docNum"] = docNum
-		d["body"] = createBodyContentAsMapWithSize(docSizeBytes)
+		d["bodysize"] = docSizeBytes
 		d["created_at"] = time.Now().Format(time.RFC3339Nano)
 		docs = append(docs, d)
 	}

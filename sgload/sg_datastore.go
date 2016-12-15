@@ -270,6 +270,8 @@ func (s SGDataStore) BulkCreateDocuments(docs []Document, newEdits bool) ([]sgre
 		return bulkDocsResponse, err
 	}
 
+	s.addDocBodies(docs)
+
 	bulkDocs := BulkDocs{
 		Documents: docs,
 		NewEdits:  newEdits,
@@ -334,6 +336,13 @@ func (s SGDataStore) BulkCreateDocuments(docs []Document, newEdits bool) ([]sgre
 
 	return bulkDocsResponse, nil
 
+}
+
+func (s SGDataStore) addDocBodies(docs []Document) {
+	for _, doc := range docs {
+		docSizeBytes := doc["bodysize"].(int)
+		doc["body"] = createBodyContentAsMapWithSize(docSizeBytes)
+	}
 }
 
 func (s SGDataStore) BulkGetDocuments(r sgreplicate.BulkGetRequest) ([]sgreplicate.Document, error) {

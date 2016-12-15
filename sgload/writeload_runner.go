@@ -1,7 +1,6 @@
 package sgload
 
 import (
-	"bytes"
 	"fmt"
 	"sync"
 )
@@ -43,6 +42,10 @@ func (wlr WriteLoadRunner) Run() error {
 	writerAgentIds := getWriterAgentIds(writers)
 
 	channelNames := wlr.generateChannelNames()
+
+	// pre-allocates all of the docs.  if it wasn't pre-allocated, currently what
+	// is needed to be pre-calculated is:
+	//   - number of expected docs written (per-writer)
 	docsToChannelsAndWriters := createAndAssignDocs(
 		writerAgentIds,
 		channelNames,
@@ -155,14 +158,6 @@ func findWriterByAgentUsername(writers []*Writer, writerAgentUsername string) *W
 		}
 	}
 	return nil
-}
-
-func createBodyContentWithSize(docSizeBytes int) string {
-	buf := bytes.Buffer{}
-	for i := 0; i < docSizeBytes; i++ {
-		buf.WriteString("a")
-	}
-	return buf.String()
 }
 
 // Create body content as map of 100 byte entries.  Rounds up to the nearest 100 bytes

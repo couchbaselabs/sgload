@@ -87,6 +87,11 @@ func (glr GateLoadRunner) Run() error {
 	logger.Info("Starting docfeeder")
 	channelNames := glr.generateChannelNames()
 	writerAgentIds := getWriterAgentIds(writers)
+	writerCreds := getWriterCreds(writers)
+
+	// if not pre-allocated
+	//  - updater needs to know list of doc ids for each updater
+	//  - writer needs to know how many docs to expect
 	docsToChannelsAndWriters := createAndAssignDocs(
 		writerAgentIds,
 		channelNames,
@@ -107,7 +112,7 @@ func (glr GateLoadRunner) Run() error {
 
 	// Start updaters
 	logger.Info("Starting updaters")
-	updaterWaitGroup, _, err := glr.startUpdaters(docsToChannelsAndWriters)
+	updaterWaitGroup, _, err := glr.startUpdaters(writerCreds, docsToChannelsAndWriters)
 	if err != nil {
 		return err
 	}
@@ -141,30 +146,21 @@ func getWriterAgentIds(writers []*Writer) []string {
 	return writerAgentIds
 }
 
-func (glr GateLoadRunner) startUpdaters(docsToChannelsAndWriters map[string][]Document) (*sync.WaitGroup, []*Updater, error) {
+func getWriterCreds(writers []*Writer) []UserCred {
+	writerCreds := []UserCred{}
+	for _, writer := range writers {
+		writerCreds = append(writerCreds, writer.UserCred)
+	}
+	return writerCreds
+}
+
+func (glr GateLoadRunner) startUpdaters(agentCreds []UserCred, docsToChannelsAndWriters map[string][]Document) (*sync.WaitGroup, []*Updater, error) {
 
 	// Create a wait group to see when all the updater goroutines have finished
 	var wg sync.WaitGroup
 
-	// Create usercreds
-	userCreds, err := glr.createUserCreds()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// Generate the mapping between docs+channels and updaters
-	channelNames := glr.generateChannelNames()
-	updaterAgentUsernames := getUpdaterAgentUsernames(userCreds)
-	docsToChannelsAndUpdaters := createAndAssignDocs(
-		updaterAgentUsernames,
-		channelNames,
-		glr.UpdateLoadSpec.NumDocs,
-		glr.UpdateLoadSpec.DocSizeBytes,
-		glr.UpdateLoadSpec.TestSessionID,
-	)
-
 	// Create updater goroutines
-	updaters, err := glr.createUpdaters(&wg, userCreds, docsToChannelsAndUpdaters)
+	updaters, err := glr.createUpdaters(&wg, agentCreds, docsToChannelsAndWriters)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -184,7 +180,7 @@ func (glr GateLoadRunner) startUpdaters(docsToChannelsAndWriters map[string][]Do
 
 			for _, docRevPair := range pushedDocRevPairs {
 				// route it to appropriate updater
-				updaterAgentUsername, err := findAgentAssignedToDoc(docRevPair, docsToChannelsAndUpdaters)
+				updaterAgentUsername, err := findAgentAssignedToDoc(docRevPair, docsToChannelsAndWriters)
 				if err != nil {
 					panic(fmt.Sprintf("Could not find agent for %v", docRevPair))
 				}
