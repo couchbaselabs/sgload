@@ -100,11 +100,16 @@ func (w *Writer) SetExpectedDocsWritten(docs []Document) {
 }
 
 func (w *Writer) notifyDocsPushed(docs []sgreplicate.DocumentRevisionPair) {
-	logger.Debug("Writer notify updater docs pushed", "writer", w.UserCred.Username, "numdocs", len(docs))
+
+	start := time.Now()
 	if w.PushedDocs != nil {
 		w.PushedDocs <- docs
 	}
-	logger.Debug("Writer finished notifying updater docs pushed", "writer", w.UserCred.Username, "numdocs", len(docs))
+	delta := time.Since(start)
+	if delta > time.Second {
+		logger.Warn("Writer took more than 1s notify updater docs pushed", "writer", w.UserCred.Username, "numdocs", len(docs), "delta", delta)
+	}
+
 }
 
 func (w *Writer) AddToDataStore(docs []Document) {
