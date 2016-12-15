@@ -120,6 +120,7 @@ func (u *Updater) Run() {
 }
 
 func (u Updater) noMoreExpectedDocsToUpdate() bool {
+
 	// We know all of the doc id's we're supposed to be updating.
 	// If those are all represented in DocUpdateStatuses and
 	// they are all maxed out, then we're done

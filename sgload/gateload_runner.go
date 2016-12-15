@@ -99,15 +99,17 @@ func (glr GateLoadRunner) Run() error {
 		glr.WriteLoadSpec.DocSizeBytes,
 		glr.WriteLoadSpec.TestSessionID,
 	)
-	if err := glr.startDocFeeder(writers, docsToChannelsAndWriters); err != nil {
-		return err
-	}
 
 	// Set docs expected on writers
 	for _, writer := range writers {
 		writer.SetExpectedDocsWritten(
 			docsToChannelsAndWriters[writer.UserCred.Username],
 		)
+	}
+
+	// Start doc feeders
+	if err := glr.startDocFeeders(writers, docsToChannelsAndWriters); err != nil {
+		return err
 	}
 
 	// Start updaters
@@ -246,12 +248,6 @@ func (glr GateLoadRunner) startReaders() (*sync.WaitGroup, error) {
 	}
 
 	return &wg, nil
-}
-
-func (glr GateLoadRunner) startDocFeeder(writers []*Writer, docsToChannelsAndWriters map[string][]Document) error {
-	// Create doc feeder goroutine
-	go glr.feedDocsToWriters(writers, docsToChannelsAndWriters)
-	return nil
 }
 
 func (glr GateLoadRunner) waitUntilWritersFinish(writerWaitGroup *sync.WaitGroup) error {
