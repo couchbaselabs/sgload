@@ -100,9 +100,11 @@ func (w *Writer) SetExpectedDocsWritten(docs []Document) {
 }
 
 func (w *Writer) notifyDocsPushed(docs []sgreplicate.DocumentRevisionPair) {
+	logger.Debug("Writer notify updater docs pushed", "writer", w.UserCred.Username, "numdocs", len(docs))
 	if w.PushedDocs != nil {
 		w.PushedDocs <- docs
 	}
+	logger.Debug("Writer finished notifying updater docs pushed", "writer", w.UserCred.Username, "numdocs", len(docs))
 }
 
 func (w *Writer) AddToDataStore(docs []Document) {

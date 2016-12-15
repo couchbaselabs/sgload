@@ -40,13 +40,18 @@ func NewGateLoadRunner(gls GateLoadSpec) *GateLoadRunner {
 		UpdateLoadSpec: gls.UpdateLoadSpec,
 	}
 
+	// TODO: this might need to have a proper queue rather than a buffered channel.
+	// The problem with a buffered channel is that we have to pre-allocate the queue
+	// to the high water mark, whereas a queue can grow as needed
+	pushedDocsBufferedChannelSize := 100000
+
 	return &GateLoadRunner{
 		LoadRunner:       loadRunner,
 		WriteLoadRunner:  writeLoadRunner,
 		ReadLoadRunner:   readLoadRunner,
 		UpdateLoadRunner: updateLoadRunner,
 		GateLoadSpec:     gls,
-		PushedDocs:       make(chan []sgreplicate.DocumentRevisionPair),
+		PushedDocs:       make(chan []sgreplicate.DocumentRevisionPair, pushedDocsBufferedChannelSize),
 	}
 
 }
