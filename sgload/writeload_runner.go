@@ -42,6 +42,10 @@ func (wlr WriteLoadRunner) Run() error {
 	writerAgentIds := getWriterAgentIds(writers)
 
 	channelNames := wlr.generateChannelNames()
+
+	// pre-allocates all of the docs.  if it wasn't pre-allocated, currently what
+	// is needed to be pre-calculated is:
+	//   - number of expected docs written (per-writer)
 	docsToChannelsAndWriters := createAndAssignDocs(
 		writerAgentIds,
 		channelNames,
