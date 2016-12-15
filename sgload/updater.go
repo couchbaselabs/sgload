@@ -97,6 +97,15 @@ func (u *Updater) Run() {
 			continue
 		}
 
+		// As long as the number of doc updates remaining is greater than our
+		// batch size, let's only do an update until we fill our batch
+		numExpectedUpdatesPending := u.numExpectedUpdatesPending()
+		if numExpectedUpdatesPending > u.BatchSize {
+			if len(docBatch) < u.BatchSize {
+				continue
+			}
+		}
+
 		// Push the update
 		docRevPairsUpdated, err := u.performUpdate(docBatch)
 		if err != nil {
@@ -119,29 +128,38 @@ func (u *Updater) Run() {
 
 }
 
-func (u Updater) noMoreExpectedDocsToUpdate() bool {
+func (u Updater) numExpectedUpdatesPending() int {
 
-	// We know all of the doc id's we're supposed to be updating.
-	// If those are all represented in DocUpdateStatuses and
-	// they are all maxed out, then we're done
+	// We know all of the doc id's we're supposed to be updating, as well
+	// as how many updates we expect to do per doc id.  This method finds the
+	// "delta" of how many more expected updates are pending overall.
+
+	counter := 0
 	for _, docAssignedToUpdater := range u.DocsAssignedToUpdater {
 		docId := docAssignedToUpdater.Id()
 		docStatus, ok := u.DocUpdateStatuses[docId]
 		if !ok {
-			// didn't find this doc that was assigned to this updater, so
-			// therefore we are expecting more docs to update
-			return false
-		}
-		if docStatus.NumUpdates < u.NumUpdatesPerDocRequired {
-			// more updates required on this doc
-			return false
+			// If we haven't even made any updates to that doc id, then
+			// we still need to make NumUpdatesPerDocRequired updates
+			counter += u.NumUpdatesPerDocRequired
+		} else {
+			// Find the delta of how many updates are required compared
+			// to how many updates we've made so far
+			delta := u.NumUpdatesPerDocRequired - docStatus.NumUpdates
+			counter += delta
 		}
 	}
+	return counter
 
-	// Iterated through all docs assigned to us, and we've updated them
-	// all to the num updates required of us.  Therefore, no more doc updates
-	// expected/required of us
-	return true
+}
+
+func (u Updater) noMoreExpectedDocsToUpdate() bool {
+
+	// Find how many pending updates are still remaining
+	numExpectedUpdatesPending := u.numExpectedUpdatesPending()
+
+	// If no more pending updates remain, we're done
+	return numExpectedUpdatesPending == 0
 
 }
 
