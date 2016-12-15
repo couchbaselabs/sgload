@@ -105,6 +105,15 @@ func (glr GateLoadRunner) Run() error {
 		glr.WriteLoadSpec.TestSessionID,
 	)
 
+	// Make a copy of this map to avoid data races between updaters and writers
+	docsToChannelsAndUpdaters := createAndAssignDocs(
+		writerAgentIds,
+		channelNames,
+		glr.WriteLoadSpec.NumDocs,
+		glr.WriteLoadSpec.DocSizeBytes,
+		glr.WriteLoadSpec.TestSessionID,
+	)
+
 	// Set docs expected on writers
 	for _, writer := range writers {
 		writer.SetExpectedDocsWritten(
@@ -119,7 +128,7 @@ func (glr GateLoadRunner) Run() error {
 
 	// Start updaters
 	logger.Info("Starting updaters")
-	updaterWaitGroup, _, err := glr.startUpdaters(writerCreds, docsToChannelsAndWriters)
+	updaterWaitGroup, _, err := glr.startUpdaters(writerCreds, docsToChannelsAndUpdaters)
 	if err != nil {
 		return err
 	}
