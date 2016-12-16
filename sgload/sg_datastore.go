@@ -43,6 +43,11 @@ func initSgHttpClientOnce(statsdClient g2s.Statter) {
 
 		sgClient = retryablehttp.NewClient()
 
+		// This is the loghook that is called back for retries.
+		// Note that the exception to this is _bulk_docs responses
+		// that have a 201 status code, but have embedded partial
+		// failures.  In that case, a different mechanism must be
+		// used since the retryablehttp only retries 5xx statuses
 		logHook := func(
 			ignoredLogger *log.Logger,
 			req *http.Request,
@@ -67,68 +72,18 @@ func initSgHttpClientOnce(statsdClient g2s.Statter) {
 
 		// Record retries in statsd
 		sgClient.RequestLogHook = logHook
-		sgClient.Logger = log.New(ioutil.Discard, "", 0) // suppress retryablehttp client logs
+
+		// Suppress retryablehttp client logs because they are noisy and
+		// don't use our structured logger.  To log retries, set a custom
+		// CheckRetry function based on the retryablehttp DefaultRetryPolicy
+		sgClient.Logger = log.New(ioutil.Discard, "", 0)
+
 		sgClient.RetryMax = 10
 		sgClient.HTTPClient.Transport = transportWithConnPool(1000)
-		sgClient.CheckRetry = SGLoadRetryPolicy
 
 	}
 
 	initializeSgHttpClientOnce.Do(doOnceFunc)
-}
-
-// Customize the retry http client to have a custom retry policy to take
-// into account partial errors
-func SGLoadRetryPolicy(resp *http.Response, err error) (bool, error) {
-
-	if err != nil {
-		return true, err
-	}
-
-	// If it's the response to a _bulk_docs request, we need to introspect the
-	// response and look for any embedded errors
-	if strings.Contains(resp.Request.URL.Path, "_bulk_docs") {
-
-		var bodyBytes []byte
-		var err error
-		bulkDocsResponse := []sgreplicate.DocumentRevisionPair{}
-
-		if resp.Body != nil {
-			bodyBytes, err = ioutil.ReadAll(resp.Body)
-		}
-		if err != nil {
-			return true, err
-		}
-
-		// Restore the io.ReadCloser to its original state
-		resp.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
-
-		r := bytes.NewBuffer(bodyBytes)
-
-		decoder := json.NewDecoder(r)
-		if err = decoder.Decode(&bulkDocsResponse); err != nil {
-			return true, err
-		}
-
-		// If any of the bulk docs had errors, return an error
-		for _, docRevisionPair := range bulkDocsResponse {
-			if docRevisionPair.Error != "" {
-				logger.Warn("bulkDocsResponse contained errors", "docRevisionPair", docRevisionPair, "error", docRevisionPair.Error)
-				return true, fmt.Errorf("docRevisionPair: %+v had error: %v", docRevisionPair, docRevisionPair.Error)
-			}
-		}
-
-	}
-
-	// Check the response code. We retry on 500-range responses to allow
-	// the server time to recover, as 500's are typically not permanent
-	// errors and may relate to outages on the server side. This will catch
-	// invalid response codes as well, like 0 and 999.
-	if resp.StatusCode == 0 || resp.StatusCode >= 500 {
-		return true, nil
-	}
-
-	return false, nil
 }
 
 type SGDataStore struct {
@@ -296,17 +251,9 @@ func (s SGDataStore) Changes(sinceVal Sincer, limit int) (changes sgreplicate.Ch
 }
 
 // Create a single document in Sync Gateway
-func (s SGDataStore) CreateDocument(d Document) (sgreplicate.DocumentRevisionPair, error) {
+func (s SGDataStore) CreateDocument(d Document) ([]sgreplicate.DocumentRevisionPair, error) {
 
-	docRevisionPairs, err := s.BulkCreateDocuments([]Document{d}, true)
-	if err != nil {
-		return sgreplicate.DocumentRevisionPair{}, err
-	}
-	if len(docRevisionPairs) == 0 {
-		return sgreplicate.DocumentRevisionPair{}, fmt.Errorf("Unexpected response")
-	}
-	return docRevisionPairs[0], nil
-
+	return s.BulkCreateDocuments([]Document{d}, true)
 }
 
 // Bulk create a set of documents in Sync Gateway
@@ -382,14 +329,29 @@ func (s SGDataStore) BulkCreateDocuments(docs []Document, newEdits bool) ([]sgre
 		return bulkDocsResponse, err
 	}
 
-	// If any of the bulk docs had errors, return an error
+	// If any of the bulk docs had errors, remove them from the response so that they
+	// are retried by the writer or updater, which is supposed to only consider the
+	// returned values as the success values
+	bulkDocsResponseSuccessful := []sgreplicate.DocumentRevisionPair{}
+	numPartialErrors := 0
 	for _, docRevisionPair := range bulkDocsResponse {
 		if docRevisionPair.Error != "" {
-			return bulkDocsResponse, fmt.Errorf("%v", docRevisionPair.Error)
+			numPartialErrors += 1
+			logger.Warn("bulkDocsResponse contained errors", "docRevisionPair", docRevisionPair, "error", docRevisionPair.Error)
+		} else {
+			// no errors for this doc, add to result
+			bulkDocsResponseSuccessful = append(bulkDocsResponseSuccessful, docRevisionPair)
 		}
 	}
 
-	return bulkDocsResponse, nil
+	// Since the docs with errors will be retried, update retry stats
+	s.StatsdClient.Counter(
+		statsdSampleRate,
+		"retries",
+		numPartialErrors,
+	)
+
+	return bulkDocsResponseSuccessful, nil
 
 }
 

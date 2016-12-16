@@ -14,7 +14,7 @@ type DataStore interface {
 	CreateUser(u UserCred, channelNames []string) error
 
 	// Creates a document in the data store
-	CreateDocument(d Document) (sgreplicate.DocumentRevisionPair, error)
+	CreateDocument(d Document) ([]sgreplicate.DocumentRevisionPair, error)
 
 	// Bulk creates a set of documents in the data store
 	BulkCreateDocuments(d []Document, newEdits bool) ([]sgreplicate.DocumentRevisionPair, error)
