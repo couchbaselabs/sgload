@@ -251,17 +251,9 @@ func (s SGDataStore) Changes(sinceVal Sincer, limit int) (changes sgreplicate.Ch
 }
 
 // Create a single document in Sync Gateway
-func (s SGDataStore) CreateDocument(d Document) (sgreplicate.DocumentRevisionPair, error) {
+func (s SGDataStore) CreateDocument(d Document) ([]sgreplicate.DocumentRevisionPair, error) {
 
-	docRevisionPairs, err := s.BulkCreateDocuments([]Document{d}, true)
-	if err != nil {
-		return sgreplicate.DocumentRevisionPair{}, err
-	}
-	if len(docRevisionPairs) == 0 {
-		return sgreplicate.DocumentRevisionPair{}, fmt.Errorf("Unexpected response")
-	}
-	return docRevisionPairs[0], nil
-
+	return s.BulkCreateDocuments([]Document{d}, true)
 }
 
 // Bulk create a set of documents in Sync Gateway

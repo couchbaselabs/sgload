@@ -52,12 +52,12 @@ func (w *Writer) Run() {
 					return
 				}
 
-				docRevPair, err := w.DataStore.CreateDocument(doc)
+				docRevPairs, err := w.DataStore.CreateDocument(doc)
 				if err != nil {
 					panic(fmt.Sprintf("Error creating doc in datastore.  Doc: %v, Err: %v", doc, err))
 				}
-				w.notifyDocPushed(docRevPair)
-				numDocsPushed += 1 // what if got 503 temp error partial fail?
+				w.notifyDocsPushed(docRevPairs)
+				numDocsPushed += len(docRevPairs)
 
 			default:
 				docRevPairs, err := w.DataStore.BulkCreateDocuments(docs, true)
@@ -87,10 +87,6 @@ func updateCreatedAtTimestamp(docs []Document) {
 	for _, doc := range docs {
 		doc["created_at"] = time.Now().Format(time.RFC3339Nano)
 	}
-}
-
-func (w *Writer) notifyDocPushed(doc sgreplicate.DocumentRevisionPair) {
-	w.notifyDocsPushed([]sgreplicate.DocumentRevisionPair{doc})
 }
 
 func (w *Writer) SetExpectedDocsWritten(docs []Document) {

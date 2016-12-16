@@ -17,9 +17,12 @@ func (m MockDataStore) CreateUser(u UserCred, channelNames []string) error {
 	return nil
 }
 
-func (m MockDataStore) CreateDocument(d Document) (sgreplicate.DocumentRevisionPair, error) {
+func (m MockDataStore) CreateDocument(d Document) ([]sgreplicate.DocumentRevisionPair, error) {
 	log.Printf("MockDataStore CreateDocument called with %+v", d)
-	return sgreplicate.DocumentRevisionPair{}, nil
+	returnVal := []sgreplicate.DocumentRevisionPair{
+		sgreplicate.DocumentRevisionPair{},
+	}
+	return returnVal, nil
 }
 
 func (m MockDataStore) BulkCreateDocuments(docs []Document, newEdits bool) ([]sgreplicate.DocumentRevisionPair, error) {
