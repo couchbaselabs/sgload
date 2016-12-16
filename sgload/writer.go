@@ -57,6 +57,7 @@ func (w *Writer) Run() {
 					panic(fmt.Sprintf("Error creating doc in datastore.  Doc: %v, Err: %v", doc, err))
 				}
 				w.notifyDocPushed(docRevPair)
+				numDocsPushed += 1 // what if got 503 temp error partial fail?
 
 			default:
 				docRevPairs, err := w.DataStore.BulkCreateDocuments(docs, true)
@@ -64,11 +65,10 @@ func (w *Writer) Run() {
 					panic(fmt.Sprintf("Error creating docs in datastore.  Docs: %v, Err: %v", docs, err))
 				}
 				w.notifyDocsPushed(docRevPairs)
-
+				numDocsPushed += len(docRevPairs)
 			}
 
-			numDocsPushed += len(docs)
-			w.ExpVarStats.Add("NumDocsPushed", int64(len(docs)))
+			w.ExpVarStats.Add("NumDocsPushed", int64(numDocsPushed))
 			logger.Debug(
 				"Writer pushed docs",
 				"writer",
