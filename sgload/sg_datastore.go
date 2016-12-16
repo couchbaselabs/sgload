@@ -521,6 +521,7 @@ func getHttpClient() *retryablehttp.Client {
 }
 
 // Customize the DefaultTransport to have larger connection pool
+// See http://tleyden.github.io/blog/2016/11/21/tuning-the-go-http-client-library-for-load-testing/
 func transportWithConnPool(numConnections int) *http.Transport {
 
 	defaultTransport, ok := http.DefaultTransport.(*http.Transport)
