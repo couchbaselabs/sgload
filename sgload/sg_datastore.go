@@ -113,7 +113,8 @@ func SGLoadRetryPolicy(resp *http.Response, err error) (bool, error) {
 		// If any of the bulk docs had errors, return an error
 		for _, docRevisionPair := range bulkDocsResponse {
 			if docRevisionPair.Error != "" {
-				return true, fmt.Errorf("%v", docRevisionPair.Error)
+				logger.Warn("bulkDocsResponse contained errors", "docRevisionPair", docRevisionPair, "error", docRevisionPair.Error)
+				return true, fmt.Errorf("docRevisionPair: %+v had error: %v", docRevisionPair, docRevisionPair.Error)
 			}
 		}
 
