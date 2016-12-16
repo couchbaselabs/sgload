@@ -70,10 +70,64 @@ func initSgHttpClientOnce(statsdClient g2s.Statter) {
 		sgClient.Logger = log.New(ioutil.Discard, "", 0) // suppress retryablehttp client logs
 		sgClient.RetryMax = 10
 		sgClient.HTTPClient.Transport = transportWithConnPool(1000)
+		sgClient.CheckRetry = SGLoadRetryPolicy
 
 	}
 
 	initializeSgHttpClientOnce.Do(doOnceFunc)
+}
+
+// Customize the retry http client to have a custom retry policy to take
+// into account partial errors
+func SGLoadRetryPolicy(resp *http.Response, err error) (bool, error) {
+
+	if err != nil {
+		return true, err
+	}
+
+	// If it's the response to a _bulk_docs request, we need to introspect the
+	// response and look for any embedded errors
+	if strings.Contains(resp.Request.URL.Path, "_bulk_docs") {
+
+		var bodyBytes []byte
+		var err error
+		bulkDocsResponse := []sgreplicate.DocumentRevisionPair{}
+
+		if resp.Body != nil {
+			bodyBytes, err = ioutil.ReadAll(resp.Body)
+		}
+		if err != nil {
+			return true, err
+		}
+
+		// Restore the io.ReadCloser to its original state
+		resp.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+
+		r := bytes.NewBuffer(bodyBytes)
+
+		decoder := json.NewDecoder(r)
+		if err = decoder.Decode(&bulkDocsResponse); err != nil {
+			return true, err
+		}
+
+		// If any of the bulk docs had errors, return an error
+		for _, docRevisionPair := range bulkDocsResponse {
+			if docRevisionPair.Error != "" {
+				return true, fmt.Errorf("%v", docRevisionPair.Error)
+			}
+		}
+
+	}
+
+	// Check the response code. We retry on 500-range responses to allow
+	// the server time to recover, as 500's are typically not permanent
+	// errors and may relate to outages on the server side. This will catch
+	// invalid response codes as well, like 0 and 999.
+	if resp.StatusCode == 0 || resp.StatusCode >= 500 {
+		return true, nil
+	}
+
+	return false, nil
 }
 
 type SGDataStore struct {

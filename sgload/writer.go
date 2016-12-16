@@ -101,7 +101,7 @@ func (w *Writer) SetExpectedDocsWritten(docs []Document) {
 
 func (w *Writer) notifyDocsPushed(docs []sgreplicate.DocumentRevisionPair) {
 
-	logger.Debug("Writer notifying doc updater that docs have been written", "writer", w.UserCred.Username, "numdocs", len(docs), "delta", delta)
+	logger.Debug("Writer notifying doc updater that docs have been written", "writer", w.UserCred.Username, "numdocs", len(docs))
 	start := time.Now()
 	if w.PushedDocs != nil {
 		w.PushedDocs <- docs
