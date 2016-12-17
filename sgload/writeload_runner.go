@@ -134,6 +134,8 @@ func (wlr WriteLoadRunner) feedDocsToWriter(writer *Writer, wls WriteLoadSpec, a
 		}
 	*/
 
+	docIdOffset := 0
+
 	// loop over approxDocsPerWriter and push batchSize docs until
 	// no more docs left to push
 	docBatches := breakIntoBatchesCount(writer.BatchSize, approxDocsPerWriter)
@@ -141,6 +143,7 @@ func (wlr WriteLoadRunner) feedDocsToWriter(writer *Writer, wls WriteLoadSpec, a
 
 		// Create Documents
 		docsToWrite := createDocsToWrite(
+			docIdOffset,
 			docBatch,
 			wls.DocSizeBytes,
 			wls.TestSessionID,
@@ -155,6 +158,8 @@ func (wlr WriteLoadRunner) feedDocsToWriter(writer *Writer, wls WriteLoadSpec, a
 
 		// Loop over doc assignment map and tell each writer to push to data store
 		writer.AddToDataStore(docsToWrite)
+
+		docIdOffset += docBatch
 
 	}
 

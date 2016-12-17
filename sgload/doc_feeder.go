@@ -17,8 +17,11 @@ func createAndAssignDocs(agentIds []string, channelNames []string, numDocs, docS
 		return nil
 	}
 
+	docIdOffset := 0
+
 	// Create Documents
 	docsToWrite := createDocsToWrite(
+		docIdOffset,
 		numDocs,
 		docSizeBytes,
 		docIdSuffix,
@@ -89,17 +92,18 @@ func assignDocsToAgents(d []Document, agentIds []string) map[string][]Document {
 
 }
 
-func createDocsToWrite(numDocs, docSizeBytes int, docIdSuffix string) []Document {
+func createDocsToWrite(docIdOffset, numDocs, docSizeBytes int, docIdSuffix string) []Document {
 
 	var d Document
 	docs := []Document{}
 
 	for docNum := 0; docNum < numDocs; docNum++ {
+		globalDocNum := docIdOffset + docNum
 		d = map[string]interface{}{}
 		if docIdSuffix != "" {
-			d["_id"] = fmt.Sprintf("%d-%s", docNum, docIdSuffix)
+			d["_id"] = fmt.Sprintf("%d-%s", globalDocNum, docIdSuffix)
 		}
-		d["docNum"] = docNum
+		d["docNum"] = globalDocNum // <-- needed?
 		d["bodysize"] = docSizeBytes
 		d["created_at"] = time.Now().Format(time.RFC3339Nano)
 		docs = append(docs, d)
