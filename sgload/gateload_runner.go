@@ -109,6 +109,7 @@ func (glr GateLoadRunner) Run() error {
 	// Set docs expected on writers
 	// each writer will get approximately total docs / num writers
 	approxDocsPerWriter := glr.WriteLoadSpec.NumDocs / len(writers)
+	logger.Info("Setting number of docs per writer", "docsPerWriter", approxDocsPerWriter)
 	for _, writer := range writers {
 		writer.SetApproxExpectedDocsWritten(approxDocsPerWriter)
 	}
