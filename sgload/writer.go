@@ -68,12 +68,14 @@ func (w *Writer) Run() {
 				numDocsPushed += len(docRevPairs)
 			}
 
-			w.ExpVarStats.Add("NumDocsPushed", int64(numDocsPushed))
+			w.ExpVarStats.Add("NumDocsPushed", int64(len(docs)))
 			logger.Debug(
 				"Writer pushed docs",
 				"writer",
 				w.Agent.UserCred.Username,
 				"numpushed",
+				len(docs),
+				"totalpushed",
 				numDocsPushed,
 			)
 

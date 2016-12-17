@@ -363,6 +363,7 @@ func filterOutFailedDocs(bulkDocsResponse []sgreplicate.DocumentRevisionPair) (b
 
 func (s SGDataStore) BulkCreateDocumentsRetry(docs []Document, newEdits bool) ([]sgreplicate.DocumentRevisionPair, error) {
 
+	totalPushedDocRevPairs := []sgreplicate.DocumentRevisionPair{}
 	numRetries := 10
 	sleepMsBetweenRetry := 500
 	retrySleeper := CreateDoublingSleeperFunc(numRetries, sleepMsBetweenRetry)
@@ -374,7 +375,8 @@ func (s SGDataStore) BulkCreateDocumentsRetry(docs []Document, newEdits bool) ([
 
 		// Got all the docs, we're done
 		if len(pushedDocRevPairs) == len(docs) {
-			return false, nil, pushedDocRevPairs
+			totalPushedDocRevPairs = append(totalPushedDocRevPairs, pushedDocRevPairs...)
+			return false, nil, nil
 		}
 
 		// If any of the bulk docs had errors, remove them from the response.
@@ -390,17 +392,24 @@ func (s SGDataStore) BulkCreateDocumentsRetry(docs []Document, newEdits bool) ([
 			"numerrors",
 			numErrors,
 		)
-		return true, nil, bulkDocsResponseSuccessful
+
+		totalPushedDocRevPairs = append(totalPushedDocRevPairs, bulkDocsResponseSuccessful...)
+
+		return true, nil, nil
 
 	}
 
-	err, workerReturnVal := RetryLoop(
+	err, _ := RetryLoop(
 		"BulkCreateDocumentsRetry",
 		retryWorker,
 		retrySleeper,
 	)
 
-	return workerReturnVal.([]sgreplicate.DocumentRevisionPair), err
+	if len(totalPushedDocRevPairs) != len(docs) {
+		panic(fmt.Sprintf("Unexpected number of docs pushed.  Got %v Expected %v", len(totalPushedDocRevPairs), len(docs)))
+	}
+
+	return totalPushedDocRevPairs, err
 
 }
 
