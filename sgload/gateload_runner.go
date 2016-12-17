@@ -106,13 +106,16 @@ func (glr GateLoadRunner) Run() error {
 	)
 
 	// Make a copy of this map to avoid data races between updaters and writers
-	docsToChannelsAndUpdaters := createAndAssignDocs(
-		writerAgentIds,
-		channelNames,
-		glr.WriteLoadSpec.NumDocs,
-		glr.WriteLoadSpec.DocSizeBytes,
-		glr.WriteLoadSpec.TestSessionID,
-	)
+	docsToChannelsAndUpdaters := map[string][]Document{}
+	if glr.UpdateLoadSpec.NumUpdaters > 0 {
+		docsToChannelsAndUpdaters = createAndAssignDocs(
+			writerAgentIds,
+			channelNames,
+			glr.WriteLoadSpec.NumDocs,
+			glr.WriteLoadSpec.DocSizeBytes,
+			glr.WriteLoadSpec.TestSessionID,
+		)
+	}
 
 	// Set docs expected on writers
 	for _, writer := range writers {
