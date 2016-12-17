@@ -99,16 +99,6 @@ func (u *Updater) Run() {
 			continue
 		}
 
-		// As long as the number of doc updates remaining is greater than our
-		// batch size, let's only do an update until we fill our batch
-		numExpectedUpdatesPending := u.numExpectedUpdatesPending()
-		if numExpectedUpdatesPending > u.BatchSize {
-			if len(docBatch) < u.BatchSize {
-				logger.Debug("Updater waiting for batch to fill up", "updater", u.UserCred.Username, "numdocs", len(docBatch), "batchsize", u.BatchSize)
-				continue
-			}
-		}
-
 		// Push the update
 		docRevPairsUpdated, err := u.performUpdate(docBatch)
 		if err != nil {
