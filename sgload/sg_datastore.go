@@ -357,7 +357,7 @@ func (s SGDataStore) BulkCreateDocumentsRetry(docs []Document, newEdits bool) ([
 		pushedDocRevPairs, err := s.BulkCreateDocuments(pendingDocs, newEdits)
 
 		// Got all the docs, we're done
-		if len(pushedDocRevPairs) == len(docs) {
+		if len(pushedDocRevPairs) == len(pendingDocs) {
 			totalPushedDocRevPairs = append(totalPushedDocRevPairs, pushedDocRevPairs...)
 			return false, nil, nil
 		}
