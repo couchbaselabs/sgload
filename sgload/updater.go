@@ -68,6 +68,8 @@ func (u *Updater) Run() {
 		select {
 		case docsToUpdate := <-u.DocsToUpdate:
 
+			logger.Debug("Updater received docs to update", "updater", u.UserCred.Username, "numdocs", len(docsToUpdate))
+
 			for _, docToUpdate := range docsToUpdate {
 
 				_, ok := u.DocUpdateStatuses[docToUpdate.Id]
@@ -102,6 +104,7 @@ func (u *Updater) Run() {
 		numExpectedUpdatesPending := u.numExpectedUpdatesPending()
 		if numExpectedUpdatesPending > u.BatchSize {
 			if len(docBatch) < u.BatchSize {
+				logger.Debug("Updater waiting for batch to fill up", "updater", u.UserCred.Username, "numdocs", len(docBatch), "batchsize", u.BatchSize)
 				continue
 			}
 		}
