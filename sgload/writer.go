@@ -52,7 +52,7 @@ func (w *Writer) Run() {
 					return
 				}
 
-				docRevPairs, err := w.DataStore.CreateDocument(doc)
+				docRevPairs, err := w.DataStore.BulkCreateDocumentsRetry([]Document{doc}, true)
 				if err != nil {
 					panic(fmt.Sprintf("Error creating doc in datastore.  Doc: %v, Err: %v", doc, err))
 				}
@@ -60,7 +60,7 @@ func (w *Writer) Run() {
 				numDocsPushed += len(docRevPairs)
 
 			default:
-				docRevPairs, err := w.DataStore.BulkCreateDocuments(docs, true)
+				docRevPairs, err := w.DataStore.BulkCreateDocumentsRetry(docs, true)
 				if err != nil {
 					panic(fmt.Sprintf("Error creating docs in datastore.  Docs: %v, Err: %v", docs, err))
 				}

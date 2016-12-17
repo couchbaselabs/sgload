@@ -30,6 +30,10 @@ func (m MockDataStore) BulkCreateDocuments(docs []Document, newEdits bool) ([]sg
 	return []sgreplicate.DocumentRevisionPair{}, nil
 }
 
+func (m MockDataStore) BulkCreateDocumentsRetry(docs []Document, newEdits bool) ([]sgreplicate.DocumentRevisionPair, error) {
+	return m.BulkCreateDocumentsRetry(docs, newEdits)
+}
+
 func (m *MockDataStore) SetUserCreds(u UserCred) {
 	// ignore these
 }

@@ -329,10 +329,23 @@ func (s SGDataStore) BulkCreateDocuments(docs []Document, newEdits bool) ([]sgre
 		return bulkDocsResponse, err
 	}
 
-	// If any of the bulk docs had errors, remove them from the response so that they
-	// are retried by the writer or updater, which is supposed to only consider the
-	// returned values as the success values
-	bulkDocsResponseSuccessful := []sgreplicate.DocumentRevisionPair{}
+	// If any of the bulk docs had errors, remove them from the response.
+	bulkDocsResponseSuccessful, numErrors := filterOutFailedDocs(bulkDocsResponse)
+
+	// Since the docs with errors will be retried, update retry stats
+	s.StatsdClient.Counter(
+		statsdSampleRate,
+		"retries",
+		numErrors,
+	)
+
+	return bulkDocsResponseSuccessful, nil
+
+}
+
+func filterOutFailedDocs(bulkDocsResponse []sgreplicate.DocumentRevisionPair) (bulkDocsResponseSuccessful []sgreplicate.DocumentRevisionPair, numErrors int) {
+
+	bulkDocsResponseSuccessful = []sgreplicate.DocumentRevisionPair{}
 	numPartialErrors := 0
 	for _, docRevisionPair := range bulkDocsResponse {
 		if docRevisionPair.Error != "" {
@@ -344,14 +357,50 @@ func (s SGDataStore) BulkCreateDocuments(docs []Document, newEdits bool) ([]sgre
 		}
 	}
 
-	// Since the docs with errors will be retried, update retry stats
-	s.StatsdClient.Counter(
-		statsdSampleRate,
-		"retries",
-		numPartialErrors,
+	return bulkDocsResponseSuccessful, numPartialErrors
+
+}
+
+func (s SGDataStore) BulkCreateDocumentsRetry(docs []Document, newEdits bool) ([]sgreplicate.DocumentRevisionPair, error) {
+
+	numRetries := 10
+	sleepMsBetweenRetry := 500
+	retrySleeper := CreateDoublingSleeperFunc(numRetries, sleepMsBetweenRetry)
+
+	// Create retry worker that knows how to do actual work
+	retryWorker := func() (shouldRetry bool, err error, value interface{}) {
+
+		pushedDocRevPairs, err := s.BulkCreateDocuments(docs, newEdits)
+
+		// Got all the docs, we're done
+		if len(pushedDocRevPairs) == len(docs) {
+			return false, nil, pushedDocRevPairs
+		}
+
+		// If any of the bulk docs had errors, remove them from the response.
+		bulkDocsResponseSuccessful, numErrors := filterOutFailedDocs(pushedDocRevPairs)
+		logger.Warn(
+			"BulkCreateDocumentsRetry did not push all docs",
+			"numdocs",
+			len(docs),
+			"numpushed",
+			len(pushedDocRevPairs),
+			"numsuccess",
+			len(bulkDocsResponseSuccessful),
+			"numerrors",
+			numErrors,
+		)
+		return true, nil, bulkDocsResponseSuccessful
+
+	}
+
+	err, workerReturnVal := RetryLoop(
+		"BulkCreateDocumentsRetry",
+		retryWorker,
+		retrySleeper,
 	)
 
-	return bulkDocsResponseSuccessful, nil
+	return workerReturnVal.([]sgreplicate.DocumentRevisionPair), err
 
 }
 
