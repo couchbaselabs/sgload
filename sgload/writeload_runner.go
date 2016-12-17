@@ -143,6 +143,7 @@ func (wlr WriteLoadRunner) feedDocsToWriter(writer *Writer, wls WriteLoadSpec, a
 
 		// Create Documents
 		docsToWrite := createDocsToWrite(
+			writer.UserCred.Username,
 			docIdOffset,
 			docBatch,
 			wls.DocSizeBytes,
