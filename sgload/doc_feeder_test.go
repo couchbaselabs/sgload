@@ -108,6 +108,27 @@ func TestBreakIntoBatchesOversizedBatch(t *testing.T) {
 
 }
 
+func TestBreakIntoBatchesCount(t *testing.T) {
+
+	batchSize := 3
+	totalNum := 5
+
+	batches := breakIntoBatchesCount(batchSize, totalNum)
+	if len(batches) != 2 {
+		t.Fatalf("Expecting 2 batches")
+	}
+	batch1 := batches[0]
+	if batch1 != batchSize {
+		t.Fatalf("Expecting batch1 to be batchsize")
+	}
+
+	batch2 := batches[1]
+	if batch2 != 2 {
+		t.Fatalf("Expecting batch2 to have two items")
+	}
+
+}
+
 func generateAgentIds(numAgents int) []string {
 	agentIds := []string{}
 	for i := 0; i < numAgents; i++ {

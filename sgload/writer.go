@@ -9,9 +9,8 @@ import (
 
 type Writer struct {
 	Agent
-	OutboundDocs        chan []Document                         // The Docfeeder pushes outbound docs to the writer
-	PushedDocs          chan []sgreplicate.DocumentRevisionPair // After docs are sent, push to this channel
-	ExpectedDocsWritten []Document
+	OutboundDocs chan []Document                         // The Docfeeder pushes outbound docs to the writer
+	PushedDocs   chan []sgreplicate.DocumentRevisionPair // After docs are sent, push to this channel
 }
 
 func NewWriter(agentSpec AgentSpec) *Writer {
@@ -91,10 +90,8 @@ func updateCreatedAtTimestamp(docs []Document) {
 	}
 }
 
-func (w *Writer) SetExpectedDocsWritten(docs []Document) {
-	w.ExpectedDocsWritten = docs
-	w.ExpVarStats.Add("TotalDocs", int64(len(docs)))
-	logger.Debug("Writer SetExpectedDocsWritten", "totaldocs", len(docs))
+func (w *Writer) SetApproxExpectedDocsWritten(numdocs int) {
+	w.ExpVarStats.Add("ApproxTotalDocs", int64(numdocs))
 }
 
 func (w *Writer) notifyDocsPushed(docs []sgreplicate.DocumentRevisionPair) {

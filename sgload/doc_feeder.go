@@ -147,3 +147,42 @@ func breakIntoBatches(batchSize int, docs []Document) [][]Document {
 	return batches
 
 }
+
+// Break things into batches, for example:
+//
+// batchSize: 3
+// totalNum: 5
+//
+// result:
+//
+//   [
+//     3,  <-- batch 1, size 3
+//     2,  <-- batch 2, size 2 (incomplete, not enough to fill batch)
+//
+//   ]
+func breakIntoBatchesCount(batchSize int, totalNum int) (batches []int) {
+
+	batches = []int{}
+
+	numBatches := totalNum / batchSize
+
+	// is there residue?  if so, add one more to batch
+	if totalNum%batchSize != 0 {
+		numBatches += 1
+	}
+
+	for i := 0; i < numBatches; i++ {
+		batch := 0
+		for j := 0; j < batchSize; j++ {
+			index := i*batchSize + j
+			if index >= totalNum {
+				break
+			}
+			batch += 1
+		}
+		batches = append(batches, batch)
+	}
+
+	return batches
+
+}

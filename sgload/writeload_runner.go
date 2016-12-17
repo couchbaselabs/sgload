@@ -39,25 +39,13 @@ func (wlr WriteLoadRunner) Run() error {
 	if err != nil {
 		return err
 	}
-	writerAgentIds := getWriterAgentIds(writers)
 
 	channelNames := wlr.generateChannelNames()
 
-	// pre-allocates all of the docs.  if it wasn't pre-allocated, currently what
-	// is needed to be pre-calculated is:
-	//   - number of expected docs written (per-writer)
-	docsToChannelsAndWriters := createAndAssignDocs(
-		writerAgentIds,
-		channelNames,
-		wlr.WriteLoadSpec.NumDocs,
-		wlr.WriteLoadSpec.DocSizeBytes,
-		wlr.WriteLoadSpec.TestSessionID,
-	)
-
 	// Update writer with expected docs list
+	approxDocsPerWriter := wlr.WriteLoadSpec.NumDocs / len(writers)
 	for _, writer := range writers {
-		expectedDocs := docsToChannelsAndWriters[writer.UserCred.Username]
-		writer.SetExpectedDocsWritten(expectedDocs)
+		writer.SetApproxExpectedDocsWritten(approxDocsPerWriter)
 	}
 
 	// Create writer goroutines
@@ -66,7 +54,12 @@ func (wlr WriteLoadRunner) Run() error {
 	}
 
 	// Create doc feeder goroutine
-	go wlr.startDocFeeders(writers, docsToChannelsAndWriters)
+	go wlr.startDocFeeders(
+		writers,
+		wlr.WriteLoadSpec,
+		approxDocsPerWriter,
+		channelNames,
+	)
 
 	// Wait for writers to finish
 	logger.Info("Waiting for writers to finish", "numwriters", len(writers))
@@ -77,15 +70,10 @@ func (wlr WriteLoadRunner) Run() error {
 
 }
 
-func (wlr WriteLoadRunner) startDocFeeders(writers []*Writer, docsToChannelsAndWriters map[string][]Document) error {
-
+func (wlr WriteLoadRunner) startDocFeeders(writers []*Writer, wls WriteLoadSpec, approxDocsPerWriter int, channelNames []string) error {
 	// Create doc feeder goroutines
 	for _, writer := range writers {
-		docsToWrite, ok := docsToChannelsAndWriters[writer.UserCred.Username]
-		if !ok {
-			return fmt.Errorf("Could not find any docs for writer: %v", writer)
-		}
-		go wlr.feedDocsToWriter(writer, docsToWrite)
+		go wlr.feedDocsToWriter(writer, wls, approxDocsPerWriter, channelNames)
 	}
 	return nil
 }
@@ -135,12 +123,40 @@ func (wlr WriteLoadRunner) generateUserCreds() []UserCred {
 	return wlr.LoadRunner.generateUserCreds(wlr.WriteLoadSpec.NumWriters, USER_PREFIX_WRITER)
 }
 
-func (wlr WriteLoadRunner) feedDocsToWriter(writer *Writer, docsToWrite []Document) error {
+func (wlr WriteLoadRunner) feedDocsToWriter(writer *Writer, wls WriteLoadSpec, approxDocsPerWriter int, channelNames []string) error {
 
-	logger.Debug("Feeding docs to writer", "numdocs", len(docsToWrite), "writer", writer.UserCred.Username)
+	logger.Debug("Feeding docs to writer", "writer", writer.UserCred.Username)
+	/*
+		agentIds := getWriterAgentIds(writers)
 
-	// Loop over doc assignment map and tell each writer to push to data store
-	writer.AddToDataStore(docsToWrite)
+		if len(agentIds) == 0 {
+			return fmt.Errorf("createAndAssignDocs called with empty agentIds")
+		}
+	*/
+
+	// loop over approxDocsPerWriter and push batchSize docs until
+	// no more docs left to push
+	docBatches := breakIntoBatchesCount(writer.BatchSize, approxDocsPerWriter)
+	for _, docBatch := range docBatches {
+
+		// Create Documents
+		docsToWrite := createDocsToWrite(
+			docBatch,
+			wls.DocSizeBytes,
+			wls.TestSessionID,
+		)
+
+		// Assign Docs to Channels (adds doc["channels"] field to each doc)
+		_ = assignDocsToChannels(channelNames, docsToWrite)
+
+		// Assign docs to writers, this returns a map keyed on writer which points
+		// to doc slice for that writer
+		// docsToChannelsAndAgents := assignDocsToAgents(docsToChannels, agentIds)
+
+		// Loop over doc assignment map and tell each writer to push to data store
+		writer.AddToDataStore(docsToWrite)
+
+	}
 
 	// Send terminal docs which will shutdown writers after they've
 	// processed all the normal docs
@@ -148,8 +164,6 @@ func (wlr WriteLoadRunner) feedDocsToWriter(writer *Writer, docsToWrite []Docume
 	d := Document{}
 	d["_terminal"] = true
 	writer.AddToDataStore([]Document{d})
-
-	logger.Debug("Done feeding docs to writer", "numdocs", len(docsToWrite), "writer", writer.UserCred.Username)
 
 	return nil
 

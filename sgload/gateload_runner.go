@@ -91,23 +91,12 @@ func (glr GateLoadRunner) Run() error {
 	// Start Doc Feeder
 	logger.Info("Starting docfeeder")
 	channelNames := glr.generateChannelNames()
-	writerAgentIds := getWriterAgentIds(writers)
 	writerCreds := getWriterCreds(writers)
-
-	// if not pre-allocated
-	//  - updater needs to know list of doc ids for each updater
-	//  - writer needs to know how many docs to expect
-	docsToChannelsAndWriters := createAndAssignDocs(
-		writerAgentIds,
-		channelNames,
-		glr.WriteLoadSpec.NumDocs,
-		glr.WriteLoadSpec.DocSizeBytes,
-		glr.WriteLoadSpec.TestSessionID,
-	)
 
 	// Make a copy of this map to avoid data races between updaters and writers
 	docsToChannelsAndUpdaters := map[string][]Document{}
 	if glr.UpdateLoadSpec.NumUpdaters > 0 {
+		writerAgentIds := getWriterAgentIds(writers)
 		docsToChannelsAndUpdaters = createAndAssignDocs(
 			writerAgentIds,
 			channelNames,
@@ -118,20 +107,29 @@ func (glr GateLoadRunner) Run() error {
 	}
 
 	// Set docs expected on writers
+	// each writer will get approximately total docs / num writers
+	approxDocsPerWriter := glr.WriteLoadSpec.NumDocs / len(writers)
 	for _, writer := range writers {
-		writer.SetExpectedDocsWritten(
-			docsToChannelsAndWriters[writer.UserCred.Username],
-		)
+		writer.SetApproxExpectedDocsWritten(approxDocsPerWriter)
 	}
 
 	// Start doc feeders
-	if err := glr.startDocFeeders(writers, docsToChannelsAndWriters); err != nil {
+	err = glr.startDocFeeders(
+		writers,
+		glr.WriteLoadSpec,
+		approxDocsPerWriter,
+		channelNames,
+	)
+	if err != nil {
 		return err
 	}
 
 	// Start updaters
 	logger.Info("Starting updaters")
-	updaterWaitGroup, _, err := glr.startUpdaters(writerCreds, docsToChannelsAndUpdaters)
+	updaterWaitGroup, _, err := glr.startUpdaters(
+		writerCreds,
+		docsToChannelsAndUpdaters,
+	)
 	if err != nil {
 		return err
 	}
