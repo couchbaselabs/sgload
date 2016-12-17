@@ -260,7 +260,7 @@ func (u *Updater) performUpdate(docRevPairs []sgreplicate.DocumentRevisionPair) 
 		bulkDocs = append(bulkDocs, doc)
 	}
 
-	updatedDocs, err := u.DataStore.BulkCreateDocuments(bulkDocs, false)
+	updatedDocs, err := u.DataStore.BulkCreateDocumentsRetry(bulkDocs, false)
 	if err != nil {
 		return updatedDocs, err
 	}

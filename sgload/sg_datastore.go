@@ -329,17 +329,7 @@ func (s SGDataStore) BulkCreateDocuments(docs []Document, newEdits bool) ([]sgre
 		return bulkDocsResponse, err
 	}
 
-	// If any of the bulk docs had errors, remove them from the response.
-	bulkDocsResponseSuccessful, failed := splitSucceededAndFailed(bulkDocsResponse)
-
-	// Since the docs with errors will be retried, update retry stats
-	s.StatsdClient.Counter(
-		statsdSampleRate,
-		"retries",
-		len(failed),
-	)
-
-	return bulkDocsResponseSuccessful, nil
+	return bulkDocsResponse, nil
 
 }
 
@@ -354,33 +344,47 @@ func (s SGDataStore) BulkCreateDocumentsRetry(docs []Document, newEdits bool) ([
 	// Create retry worker that knows how to do actual work
 	retryWorker := func() (shouldRetry bool, err error, value interface{}) {
 
-		pushedDocRevPairs, err := s.BulkCreateDocuments(pendingDocs, newEdits)
-
-		// Got all the docs, we're done
-		if len(pushedDocRevPairs) == len(pendingDocs) {
-			totalPushedDocRevPairs = append(totalPushedDocRevPairs, pushedDocRevPairs...)
-			return false, nil, nil
+		if len(pendingDocs) != len(docs) {
+			logger.Debug("BulkCreateDocumentsRetry about to retry", "numdocs", len(pendingDocs))
 		}
+
+		pushedDocRevPairs, err := s.BulkCreateDocuments(pendingDocs, newEdits)
 
 		// If any of the bulk docs had errors, remove them from the response.
 		successful, failed := splitSucceededAndFailed(pushedDocRevPairs)
-		logger.Warn(
-			"BulkCreateDocumentsRetry did not push all docs",
-			"numdocs",
-			len(docs),
-			"numpushed",
-			len(pushedDocRevPairs),
-			"numsuccess",
-			len(successful),
-			"numerrors",
-			len(failed),
-		)
+		if len(failed) > 0 {
+			logger.Warn(
+				"BulkCreateDocumentsRetry did not push all docs",
+				"numdocs",
+				len(docs),
+				"numpushed",
+				len(pushedDocRevPairs),
+				"numsuccess",
+				len(successful),
+				"numerrors",
+				len(failed),
+			)
+		}
 
 		totalPushedDocRevPairs = append(totalPushedDocRevPairs, successful...)
+
+		// Got all the docs, we're done
+		if len(totalPushedDocRevPairs) == len(docs) {
+			return false, nil, nil
+		}
+
+		// We need to retry the failed docs
 
 		// Set pending docs to be the failed docs so that when we retry, we
 		// only retry the failed docs
 		pendingDocs = filterDocsIncluding(pendingDocs, failed)
+
+		// Since the docs with errors will be retried, update retry stats
+		s.StatsdClient.Counter(
+			statsdSampleRate,
+			"retries",
+			len(failed),
+		)
 
 		return true, nil, nil
 
