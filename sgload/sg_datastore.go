@@ -329,35 +329,7 @@ func (s SGDataStore) BulkCreateDocuments(docs []Document, newEdits bool) ([]sgre
 		return bulkDocsResponse, err
 	}
 
-	// If any of the bulk docs had errors, remove them from the response.
-	bulkDocsResponseSuccessful, numErrors := filterOutFailedDocs(bulkDocsResponse)
-
-	// Since the docs with errors will be retried, update retry stats
-	s.StatsdClient.Counter(
-		statsdSampleRate,
-		"retries",
-		numErrors,
-	)
-
-	return bulkDocsResponseSuccessful, nil
-
-}
-
-func filterOutFailedDocs(bulkDocsResponse []sgreplicate.DocumentRevisionPair) (bulkDocsResponseSuccessful []sgreplicate.DocumentRevisionPair, numErrors int) {
-
-	bulkDocsResponseSuccessful = []sgreplicate.DocumentRevisionPair{}
-	numPartialErrors := 0
-	for _, docRevisionPair := range bulkDocsResponse {
-		if docRevisionPair.Error != "" {
-			numPartialErrors += 1
-			logger.Warn("bulkDocsResponse contained errors", "docRevisionPair", docRevisionPair, "error", docRevisionPair.Error)
-		} else {
-			// no errors for this doc, add to result
-			bulkDocsResponseSuccessful = append(bulkDocsResponseSuccessful, docRevisionPair)
-		}
-	}
-
-	return bulkDocsResponseSuccessful, numPartialErrors
+	return bulkDocsResponse, nil
 
 }
 
@@ -367,33 +339,52 @@ func (s SGDataStore) BulkCreateDocumentsRetry(docs []Document, newEdits bool) ([
 	numRetries := 10
 	sleepMsBetweenRetry := 500
 	retrySleeper := CreateDoublingSleeperFunc(numRetries, sleepMsBetweenRetry)
+	pendingDocs := docs[:]
 
 	// Create retry worker that knows how to do actual work
 	retryWorker := func() (shouldRetry bool, err error, value interface{}) {
 
-		pushedDocRevPairs, err := s.BulkCreateDocuments(docs, newEdits)
+		if len(pendingDocs) != len(docs) {
+			logger.Debug("BulkCreateDocumentsRetry about to retry", "numdocs", len(pendingDocs))
+		}
+
+		pushedDocRevPairs, err := s.BulkCreateDocuments(pendingDocs, newEdits)
+
+		// If any of the bulk docs had errors, remove them from the response.
+		successful, failed := splitSucceededAndFailed(pushedDocRevPairs)
+		if len(failed) > 0 {
+			logger.Warn(
+				"BulkCreateDocumentsRetry did not push all docs",
+				"numdocs",
+				len(docs),
+				"numpushed",
+				len(pushedDocRevPairs),
+				"numsuccess",
+				len(successful),
+				"numerrors",
+				len(failed),
+			)
+		}
+
+		totalPushedDocRevPairs = append(totalPushedDocRevPairs, successful...)
 
 		// Got all the docs, we're done
-		if len(pushedDocRevPairs) == len(docs) {
-			totalPushedDocRevPairs = append(totalPushedDocRevPairs, pushedDocRevPairs...)
+		if len(totalPushedDocRevPairs) == len(docs) {
 			return false, nil, nil
 		}
 
-		// If any of the bulk docs had errors, remove them from the response.
-		bulkDocsResponseSuccessful, numErrors := filterOutFailedDocs(pushedDocRevPairs)
-		logger.Warn(
-			"BulkCreateDocumentsRetry did not push all docs",
-			"numdocs",
-			len(docs),
-			"numpushed",
-			len(pushedDocRevPairs),
-			"numsuccess",
-			len(bulkDocsResponseSuccessful),
-			"numerrors",
-			numErrors,
-		)
+		// We need to retry the failed docs
 
-		totalPushedDocRevPairs = append(totalPushedDocRevPairs, bulkDocsResponseSuccessful...)
+		// Set pending docs to be the failed docs so that when we retry, we
+		// only retry the failed docs
+		pendingDocs = filterDocsIncluding(pendingDocs, failed)
+
+		// Since the docs with errors will be retried, update retry stats
+		s.StatsdClient.Counter(
+			statsdSampleRate,
+			"retries",
+			len(failed),
+		)
 
 		return true, nil, nil
 
@@ -410,6 +401,43 @@ func (s SGDataStore) BulkCreateDocumentsRetry(docs []Document, newEdits bool) ([
 	}
 
 	return totalPushedDocRevPairs, err
+
+}
+
+// Filter docs and only include the ones in docsToInclude
+func filterDocsIncluding(docs []Document, docsToInclude []sgreplicate.DocumentRevisionPair) []Document {
+	filteredSet := []Document{}
+	for _, doc := range docs {
+		shouldInclude := false
+		for _, docToUpdateDocRevPair := range docsToInclude {
+			if doc.Id() == docToUpdateDocRevPair.Id {
+				shouldInclude = true
+			}
+		}
+		if shouldInclude {
+			filteredSet = append(filteredSet, doc)
+		}
+	}
+	return filteredSet
+
+}
+
+func splitSucceededAndFailed(bulkDocsResponse []sgreplicate.DocumentRevisionPair) (successful []sgreplicate.DocumentRevisionPair, failed []sgreplicate.DocumentRevisionPair) {
+
+	successful = []sgreplicate.DocumentRevisionPair{}
+	failed = []sgreplicate.DocumentRevisionPair{}
+
+	for _, docRevisionPair := range bulkDocsResponse {
+		if docRevisionPair.Error != "" {
+			failed = append(failed, docRevisionPair)
+			logger.Warn("bulkDocsResponse contained errors", "docRevisionPair", docRevisionPair, "error", docRevisionPair.Error)
+		} else {
+			// no errors for this doc, add to result
+			successful = append(successful, docRevisionPair)
+		}
+	}
+
+	return successful, failed
 
 }
 
