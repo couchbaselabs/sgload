@@ -47,6 +47,16 @@ func NewUpdater(agentSpec AgentSpec, numUniqueDocsToUpdate, numUpdatesPerDoc, ba
 		DocUpdateStatuses: map[string]DocUpdateStatus{},
 	}
 
+	logger.Info(
+		"Updater created",
+		"NumUniqueDocsToUpdate",
+		numUniqueDocsToUpdate,
+		"NumUpdatesPerDocRequired",
+		numUpdatesPerDoc,
+		"RevsPerUpdate",
+		revsPerUpdate,
+	)
+
 	updater.setupExpVarStats(updatersProgressStats)
 	updater.ExpVarStats.Add(
 		"TotalUpdatesExpected",
@@ -89,6 +99,7 @@ func (u *Updater) Run() {
 
 		// Grab a batch of docs that need to be updated
 		docBatch := u.getDocsReadyToUpdate()
+		logger.Debug("Updater loop", "docBatch", len(docBatch), "noMoreExpectedDocsToUpdate()", u.noMoreExpectedDocsToUpdate())
 		if len(docBatch) == 0 && u.noMoreExpectedDocsToUpdate() {
 			logger.Info("Updater finished", "agent.ID", u.ID, "numdocs", u.NumUniqueDocsToUpdate)
 			return
