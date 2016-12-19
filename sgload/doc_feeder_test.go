@@ -2,62 +2,8 @@ package sgload
 
 import (
 	"fmt"
-	"log"
 	"testing"
 )
-
-func TestCreateAndAssignDocs(t *testing.T) {
-
-	numDocs := 49
-	docByteSize := 1
-	numAgents := 10
-	numChannels := 10
-	testSessionID := NewUuid()
-
-	agentIds := generateAgentIds(numAgents)
-	channelNames := generateChannels(numChannels)
-
-	docsToChannelsAndAgents := createAndAssignDocs(
-		agentIds,
-		channelNames,
-		numDocs,
-		docByteSize,
-		testSessionID,
-	)
-
-	if len(docsToChannelsAndAgents) != len(agentIds) {
-		t.Errorf("Expected map to have each agent as keys")
-	}
-
-	uniqueChannelsFromDocs := map[string]struct{}{}
-	for agentId, docs := range docsToChannelsAndAgents {
-		log.Printf("Docs/channels assigned to agent %s", agentId)
-		uniqueChannelsPerWriter := map[string]struct{}{}
-		for _, doc := range docs {
-			channelNames := doc.channelNames()
-			for _, channelName := range channelNames {
-				uniqueChannelsFromDocs[channelName] = struct{}{}
-				uniqueChannelsPerWriter[channelName] = struct{}{}
-			}
-			log.Printf("doc id: %v, channels: %v", doc["docNum"], channelNames)
-		}
-		log.Printf("uniqueChannelsPerWriter: %v", uniqueChannelsPerWriter)
-		// if things are "mixed up" properly, then writers should be
-		// getting a nice distribution of channels, and approx half of
-		// their docs should be in unique channels
-		if len(docs) >= 2 {
-			halfNumDocs := (len(docs) / 2)
-			if len(uniqueChannelsPerWriter) < halfNumDocs {
-				t.Errorf("Expected more unique chans per writer.  Got %d, expected %d", len(uniqueChannelsPerWriter), halfNumDocs)
-			}
-		}
-	}
-
-	if len(uniqueChannelsFromDocs) != len(channelNames) {
-		t.Errorf("Expected to see all channels, got: %+v", uniqueChannelsFromDocs)
-	}
-
-}
 
 func TestBreakIntoBatches(t *testing.T) {
 

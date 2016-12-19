@@ -307,6 +307,12 @@ func (u *Updater) generateDocUpdate(docRevPair sgreplicate.DocumentRevisionPair)
 	doc["_id"] = docRevPair.Id
 	doc["bodysize"] = u.DocSizeBytes
 	doc["updated_at"] = time.Now().Format(time.RFC3339Nano)
-	doc["created_at"] = "sorry, this info has been lost"
+	doc["created_at"] = time.Now().Format(time.RFC3339Nano) // misleading, but not sure what else to do at this point
+
+	// TODO: add doc channels
+
+	// Assign Docs to Channels (adds doc["channels"] field to each doc)
+	// docsToChannels := assignDocsToChannels(channelNames, docsToWrite)
+
 	return Document(doc)
 }

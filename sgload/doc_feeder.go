@@ -2,41 +2,14 @@ package sgload
 
 import (
 	"fmt"
-	"math/rand"
 	"time"
+
+	"github.com/couchbaselabs/sg-replicate"
 )
 
-// Assign docs to channels w/ equal distribution of docs into channels.
-// Assign docs to writers with an equal distribution of docs into writers,
-// but mix up so each writer is writing to a variety of channels.
-// This returns a map keyed on writer which points to doc slice for that writer
-func createAndAssignDocs(agentIds []string, channelNames []string, numDocs, docSizeBytes int, docIdSuffix string) map[string][]Document {
-
-	if len(agentIds) == 0 {
-		logger.Warn("createAndAssignDocs called with empty agentIds")
-		return nil
-	}
-
-	docIdOffset := 0
-
-	// Create Documents
-	docsToWrite := createDocsToWrite(
-		"foo",
-		docIdOffset,
-		numDocs,
-		docSizeBytes,
-		docIdSuffix,
-	)
-
-	// Assign Docs to Channels (adds doc["channels"] field to each doc)
-	docsToChannels := assignDocsToChannels(channelNames, docsToWrite)
-
-	// Assign docs to writers, this returns a map keyed on writer which points
-	// to doc slice for that writer
-	docsToChannelsAndAgents := assignDocsToAgents(docsToChannels, agentIds)
-
-	return docsToChannelsAndAgents
-
+type DocumentMetadata struct {
+	sgreplicate.DocumentRevisionPair
+	Channels []string
 }
 
 // Assigns docs to channels with as even of a distribution as possible.
@@ -59,37 +32,6 @@ func assignDocsToChannels(channelNames []string, inputDocs []Document) []Documen
 	}
 
 	return docs
-
-}
-
-// Split the docs among the agents with an even distribution
-func assignDocsToAgents(d []Document, agentIds []string) map[string][]Document {
-
-	docAssignmentMapping := map[string][]Document{}
-
-	if len(agentIds) == 0 {
-		logger.Warn("assignDocsToAgents called w/ no agents")
-		return docAssignmentMapping
-	}
-
-	for _, agentId := range agentIds {
-		docAssignmentMapping[agentId] = []Document{}
-	}
-
-	for _, doc := range d {
-
-		// choose a random agent
-		agentIdIndex := rand.Intn(len(agentIds))
-		agentId := agentIds[agentIdIndex]
-
-		// add doc to writer's list of docs
-		docsForAgent := docAssignmentMapping[agentId]
-		docsForAgent = append(docsForAgent, doc)
-		docAssignmentMapping[agentId] = docsForAgent
-
-	}
-
-	return docAssignmentMapping
 
 }
 
