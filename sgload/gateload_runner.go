@@ -173,33 +173,6 @@ func (glr GateLoadRunner) startUpdaters(agentCreds []UserCred, numUniqueDocsToUp
 		go updater.Run()
 	}
 
-	/*
-			// Start docUpdaterRouter that reads off of glr.PushedDocs chan
-			go func() {
-				for pushedDocRevPairs := range glr.PushedDocs {
-
-					// If we don't have any updaters consuming notifications
-					// about pushed docs, then just ignore them
-					if len(updaters) == 0 {
-						continue
-					}
-
-					for _, docRevPair := range pushedDocRevPairs {
-						// route it to appropriate updater
-						updaterAgentUsername, err := findAgentAssignedToDoc(docRevPair, docsToChannelsAndWriters)
-						if err != nil {
-							panic(fmt.Sprintf("Could not find agent for %v", docRevPair))
-						}
-						updater := findUpdaterByAgentUsername(updaters, updaterAgentUsername)
-						updater.NotifyDocsReadyToUpdate([]sgreplicate.DocumentRevisionPair{docRevPair})
-					}
-				}
-			}()
-
-
-		return &wg, updaters, nil
-	*/
-
 	return &wg, updaters, nil
 
 }
