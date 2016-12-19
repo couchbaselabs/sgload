@@ -3,6 +3,8 @@ package sgload
 import (
 	"fmt"
 	"sync"
+
+	"github.com/couchbaselabs/sg-replicate"
 )
 
 type UpdateLoadRunner struct {
@@ -38,7 +40,8 @@ func (ulr UpdateLoadRunner) Run() error {
 	}
 
 	// Create updater goroutines
-	updaters, err := ulr.createUpdaters(&wg, userCreds, ulr.UpdateLoadSpec.NumDocs)
+	var pushedDocsChan chan []sgreplicate.DocumentRevisionPair
+	updaters, err := ulr.createUpdaters(&wg, userCreds, ulr.UpdateLoadSpec.NumDocs, pushedDocsChan)
 	if err != nil {
 		return err
 	}
@@ -78,7 +81,7 @@ func (ulr UpdateLoadRunner) createUserCreds() ([]UserCred, error) {
 
 }
 
-func (ulr UpdateLoadRunner) createUpdaters(wg *sync.WaitGroup, userCreds []UserCred, numUpdaters int) ([]*Updater, error) {
+func (ulr UpdateLoadRunner) createUpdaters(wg *sync.WaitGroup, userCreds []UserCred, numUpdaters int, docsToUpdate <-chan []sgreplicate.DocumentRevisionPair) ([]*Updater, error) {
 
 	updaters := []*Updater{}
 
@@ -100,6 +103,7 @@ func (ulr UpdateLoadRunner) createUpdaters(wg *sync.WaitGroup, userCreds []UserC
 			ulr.UpdateLoadSpec.BatchSize,
 			ulr.UpdateLoadSpec.DocSizeBytes,
 			ulr.UpdateLoadSpec.NumRevsPerUpdate,
+			docsToUpdate,
 		)
 		updater.SetStatsdClient(ulr.StatsdClient)
 		updaters = append(updaters, updater)

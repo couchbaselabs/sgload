@@ -165,7 +165,7 @@ func (glr GateLoadRunner) startUpdaters(agentCreds []UserCred, numUpdaters int) 
 	var wg sync.WaitGroup
 
 	// Create updater goroutines
-	updaters, err := glr.createUpdaters(&wg, agentCreds, numUpdaters)
+	updaters, err := glr.createUpdaters(&wg, agentCreds, numUpdaters, glr.PushedDocs)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -173,31 +173,31 @@ func (glr GateLoadRunner) startUpdaters(agentCreds []UserCred, numUpdaters int) 
 		go updater.Run()
 	}
 
-	// TODO: the updaters need a reference to the glr.PushedDocs channel
-	// and they can just directly read from it.
-
 	/*
-		// Start docUpdaterRouter that reads off of glr.PushedDocs chan
-		go func() {
-			for pushedDocRevPairs := range glr.PushedDocs {
+			// Start docUpdaterRouter that reads off of glr.PushedDocs chan
+			go func() {
+				for pushedDocRevPairs := range glr.PushedDocs {
 
-				// If we don't have any updaters consuming notifications
-				// about pushed docs, then just ignore them
-				if len(updaters) == 0 {
-					continue
-				}
-
-				for _, docRevPair := range pushedDocRevPairs {
-					// route it to appropriate updater
-					updaterAgentUsername, err := findAgentAssignedToDoc(docRevPair, docsToChannelsAndWriters)
-					if err != nil {
-						panic(fmt.Sprintf("Could not find agent for %v", docRevPair))
+					// If we don't have any updaters consuming notifications
+					// about pushed docs, then just ignore them
+					if len(updaters) == 0 {
+						continue
 					}
-					updater := findUpdaterByAgentUsername(updaters, updaterAgentUsername)
-					updater.NotifyDocsReadyToUpdate([]sgreplicate.DocumentRevisionPair{docRevPair})
+
+					for _, docRevPair := range pushedDocRevPairs {
+						// route it to appropriate updater
+						updaterAgentUsername, err := findAgentAssignedToDoc(docRevPair, docsToChannelsAndWriters)
+						if err != nil {
+							panic(fmt.Sprintf("Could not find agent for %v", docRevPair))
+						}
+						updater := findUpdaterByAgentUsername(updaters, updaterAgentUsername)
+						updater.NotifyDocsReadyToUpdate([]sgreplicate.DocumentRevisionPair{docRevPair})
+					}
 				}
-			}
-		}()
+			}()
+
+
+		return &wg, updaters, nil
 	*/
 
 	return &wg, updaters, nil

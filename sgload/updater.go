@@ -19,7 +19,7 @@ type Updater struct {
 	Agent
 	UpdaterSpec
 
-	DocsToUpdate chan []sgreplicate.DocumentRevisionPair // This is a channel that this updater listens to for docs that are ready to be updated
+	DocsToUpdate <-chan []sgreplicate.DocumentRevisionPair // This is a channel that this updater listens to for docs that are ready to be updated
 
 	DocUpdateStatuses map[string]DocUpdateStatus // The number of updates and latest rev that have been done per doc id.  Key = doc id, value = number of updates and latest rev
 
@@ -30,9 +30,7 @@ type DocUpdateStatus struct {
 	LatestRev  string
 }
 
-func NewUpdater(agentSpec AgentSpec, numDocs, numUpdates, batchsize, docSizeBytes int, revsPerUpdate int) *Updater {
-
-	docsToUpdate := make(chan []sgreplicate.DocumentRevisionPair, 100)
+func NewUpdater(agentSpec AgentSpec, numDocs, numUpdates, batchsize, docSizeBytes int, revsPerUpdate int, docsToUpdate <-chan []sgreplicate.DocumentRevisionPair) *Updater {
 
 	updater := &Updater{
 		Agent: Agent{
