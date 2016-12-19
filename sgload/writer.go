@@ -104,7 +104,6 @@ func (w *Writer) notifyDocsPushed(docs []sgreplicate.DocumentRevisionPair) {
 	if delta > time.Second {
 		logger.Warn("Writer took more than 1s notify updater docs pushed", "writer", w.UserCred.Username, "numdocs", len(docs), "delta", delta)
 	}
-	logger.Debug("Writer notified updater docs ready to update", "writer", w.UserCred.Username, "numdocs", len(docs))
 
 }
 

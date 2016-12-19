@@ -99,7 +99,6 @@ func (u *Updater) Run() {
 
 		// Grab a batch of docs that need to be updated
 		docBatch := u.getDocsReadyToUpdate()
-		logger.Debug("Updater loop", "docBatch", len(docBatch), "noMoreExpectedDocsToUpdate()", u.noMoreExpectedDocsToUpdate())
 		if len(docBatch) == 0 && u.noMoreExpectedDocsToUpdate() {
 			logger.Info("Updater finished", "agent.ID", u.ID, "numdocs", u.NumUniqueDocsPerUpdater)
 			return
@@ -145,13 +144,6 @@ func (u Updater) numExpectedUpdatesPending() int {
 	// Update the counter to account for the docs that aren't even in DocUpdateStatuses yet,
 	// and still need to updated NumUpdatesPerDocRequired times
 	numDocsNotYetSeen := u.NumUniqueDocsPerUpdater - len(u.DocUpdateStatuses)
-	logger.Debug(
-		"numExpectedUpdatesPending",
-		"u.NumUniqueDocsPerUpdater",
-		u.NumUniqueDocsPerUpdater,
-		"len(u.DocUpdateStatuses)",
-		len(u.DocUpdateStatuses),
-	)
 
 	counter += (numDocsNotYetSeen * u.NumUpdatesPerDocRequired)
 
