@@ -81,7 +81,7 @@ func (ulr UpdateLoadRunner) createUserCreds() ([]UserCred, error) {
 
 }
 
-func (ulr UpdateLoadRunner) createUpdaters(wg *sync.WaitGroup, userCreds []UserCred, numUpdaters int, docsToUpdate <-chan []sgreplicate.DocumentRevisionPair) ([]*Updater, error) {
+func (ulr UpdateLoadRunner) createUpdaters(wg *sync.WaitGroup, userCreds []UserCred, numUniqueDocsToUpdate int, docsToUpdate <-chan []sgreplicate.DocumentRevisionPair) ([]*Updater, error) {
 
 	updaters := []*Updater{}
 
@@ -99,7 +99,7 @@ func (ulr UpdateLoadRunner) createUpdaters(wg *sync.WaitGroup, userCreds []UserC
 				ExpvarProgressEnabled: ulr.LoadRunner.LoadSpec.ExpvarProgressEnabled,
 			},
 			ulr.UpdateLoadSpec.NumUpdatesPerDoc,
-			numUpdaters,
+			numUniqueDocsToUpdate,
 			ulr.UpdateLoadSpec.BatchSize,
 			ulr.UpdateLoadSpec.DocSizeBytes,
 			ulr.UpdateLoadSpec.NumRevsPerUpdate,

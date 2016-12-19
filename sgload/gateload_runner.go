@@ -116,7 +116,7 @@ func (glr GateLoadRunner) Run() error {
 	logger.Info("Starting updaters")
 	updaterWaitGroup, _, err := glr.startUpdaters(
 		writerCreds,
-		glr.UpdateLoadSpec.NumUpdaters,
+		glr.UpdateLoadSpec.NumDocs,
 	)
 	if err != nil {
 		return err
@@ -159,13 +159,13 @@ func getWriterCreds(writers []*Writer) []UserCred {
 	return writerCreds
 }
 
-func (glr GateLoadRunner) startUpdaters(agentCreds []UserCred, numUpdaters int) (*sync.WaitGroup, []*Updater, error) {
+func (glr GateLoadRunner) startUpdaters(agentCreds []UserCred, numUniqueDocsToUpdate int) (*sync.WaitGroup, []*Updater, error) {
 
 	// Create a wait group to see when all the updater goroutines have finished
 	var wg sync.WaitGroup
 
 	// Create updater goroutines
-	updaters, err := glr.createUpdaters(&wg, agentCreds, numUpdaters, glr.PushedDocs)
+	updaters, err := glr.createUpdaters(&wg, agentCreds, numUniqueDocsToUpdate, glr.PushedDocs)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -30,17 +30,17 @@ type DocUpdateStatus struct {
 	LatestRev  string
 }
 
-func NewUpdater(agentSpec AgentSpec, numDocs, numUpdates, batchsize, docSizeBytes int, revsPerUpdate int, docsToUpdate <-chan []sgreplicate.DocumentRevisionPair) *Updater {
+func NewUpdater(agentSpec AgentSpec, numUniqueDocsToUpdate, numUpdatesPerDoc, batchsize, docSizeBytes int, revsPerUpdate int, docsToUpdate <-chan []sgreplicate.DocumentRevisionPair) *Updater {
 
 	updater := &Updater{
 		Agent: Agent{
 			AgentSpec: agentSpec,
 		},
 		UpdaterSpec: UpdaterSpec{
-			NumUpdatesPerDocRequired: numUpdates,
+			NumUpdatesPerDocRequired: numUpdatesPerDoc,
 			BatchSize:                batchsize,
 			RevsPerUpdate:            revsPerUpdate,
-			NumUniqueDocsToUpdate:    numDocs,
+			NumUniqueDocsToUpdate:    numUniqueDocsToUpdate,
 			DocSizeBytes:             docSizeBytes,
 		},
 		DocsToUpdate:      docsToUpdate,
@@ -50,7 +50,7 @@ func NewUpdater(agentSpec AgentSpec, numDocs, numUpdates, batchsize, docSizeByte
 	updater.setupExpVarStats(updatersProgressStats)
 	updater.ExpVarStats.Add(
 		"TotalUpdatesExpected",
-		int64(numDocs*updater.NumUpdatesPerDocRequired),
+		int64(numUniqueDocsToUpdate*updater.NumUpdatesPerDocRequired),
 	)
 
 	return updater
@@ -115,6 +115,8 @@ func (u *Updater) Run() {
 			u.Agent.UserCred.Username,
 			"numDocRevPairsUpdated",
 			len(docRevPairsUpdated),
+			"numExpectedUpdatesPending",
+			u.numExpectedUpdatesPending(),
 		)
 
 	}
@@ -132,6 +134,14 @@ func (u Updater) numExpectedUpdatesPending() int {
 	// Update the counter to account for the docs that aren't even in DocUpdateStatuses yet,
 	// and still need to updated NumUpdatesPerDocRequired times
 	numDocsNotYetSeen := u.NumUniqueDocsToUpdate - len(u.DocUpdateStatuses)
+	logger.Debug(
+		"numExpectedUpdatesPending",
+		"u.NumUniqueDocsToUpdate",
+		u.NumUniqueDocsToUpdate,
+		"len(u.DocUpdateStatuses)",
+		len(u.DocUpdateStatuses),
+	)
+
 	counter += (numDocsNotYetSeen * u.NumUpdatesPerDocRequired)
 
 	// Update the counter for remaining revs of each doc that has been seen
