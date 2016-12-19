@@ -9,7 +9,7 @@ import (
 
 type UpdaterSpec struct {
 	NumUpdatesPerDocRequired int // The number of updates this updater is supposed to do for each doc.
-	NumUniqueDocsToUpdate    int // The number of unique docs to update.
+	NumUniqueDocsPerUpdater  int // The number of unique docs this updater is tasked to update.
 	BatchSize                int // How many docs to update per bulk_docs request
 	RevsPerUpdate            int // How many revisions to include in each document update
 	DocSizeBytes             int // The doc size in bytes to use when generating update docs
@@ -30,7 +30,7 @@ type DocUpdateStatus struct {
 	LatestRev  string
 }
 
-func NewUpdater(agentSpec AgentSpec, numUniqueDocsToUpdate, numUpdatesPerDoc, batchsize, docSizeBytes int, revsPerUpdate int, docsToUpdate <-chan []sgreplicate.DocumentRevisionPair) *Updater {
+func NewUpdater(agentSpec AgentSpec, numUniqueDocsPerUpdater, numUpdatesPerDoc, batchsize, docSizeBytes int, revsPerUpdate int, docsToUpdate <-chan []sgreplicate.DocumentRevisionPair) *Updater {
 
 	updater := &Updater{
 		Agent: Agent{
@@ -40,7 +40,7 @@ func NewUpdater(agentSpec AgentSpec, numUniqueDocsToUpdate, numUpdatesPerDoc, ba
 			NumUpdatesPerDocRequired: numUpdatesPerDoc,
 			BatchSize:                batchsize,
 			RevsPerUpdate:            revsPerUpdate,
-			NumUniqueDocsToUpdate:    numUniqueDocsToUpdate,
+			NumUniqueDocsPerUpdater:  numUniqueDocsPerUpdater,
 			DocSizeBytes:             docSizeBytes,
 		},
 		DocsToUpdate:      docsToUpdate,
@@ -49,8 +49,8 @@ func NewUpdater(agentSpec AgentSpec, numUniqueDocsToUpdate, numUpdatesPerDoc, ba
 
 	logger.Info(
 		"Updater created",
-		"NumUniqueDocsToUpdate",
-		numUniqueDocsToUpdate,
+		"NumUniqueDocsPerUpdater",
+		numUniqueDocsPerUpdater,
 		"NumUpdatesPerDocRequired",
 		numUpdatesPerDoc,
 		"RevsPerUpdate",
@@ -60,7 +60,7 @@ func NewUpdater(agentSpec AgentSpec, numUniqueDocsToUpdate, numUpdatesPerDoc, ba
 	updater.setupExpVarStats(updatersProgressStats)
 	updater.ExpVarStats.Add(
 		"TotalUpdatesExpected",
-		int64(numUniqueDocsToUpdate*updater.NumUpdatesPerDocRequired),
+		int64(numUniqueDocsPerUpdater*updater.NumUpdatesPerDocRequired),
 	)
 
 	return updater
@@ -101,7 +101,7 @@ func (u *Updater) Run() {
 		docBatch := u.getDocsReadyToUpdate()
 		logger.Debug("Updater loop", "docBatch", len(docBatch), "noMoreExpectedDocsToUpdate()", u.noMoreExpectedDocsToUpdate())
 		if len(docBatch) == 0 && u.noMoreExpectedDocsToUpdate() {
-			logger.Info("Updater finished", "agent.ID", u.ID, "numdocs", u.NumUniqueDocsToUpdate)
+			logger.Info("Updater finished", "agent.ID", u.ID, "numdocs", u.NumUniqueDocsPerUpdater)
 			return
 		}
 
@@ -144,11 +144,11 @@ func (u Updater) numExpectedUpdatesPending() int {
 
 	// Update the counter to account for the docs that aren't even in DocUpdateStatuses yet,
 	// and still need to updated NumUpdatesPerDocRequired times
-	numDocsNotYetSeen := u.NumUniqueDocsToUpdate - len(u.DocUpdateStatuses)
+	numDocsNotYetSeen := u.NumUniqueDocsPerUpdater - len(u.DocUpdateStatuses)
 	logger.Debug(
 		"numExpectedUpdatesPending",
-		"u.NumUniqueDocsToUpdate",
-		u.NumUniqueDocsToUpdate,
+		"u.NumUniqueDocsPerUpdater",
+		u.NumUniqueDocsPerUpdater,
 		"len(u.DocUpdateStatuses)",
 		len(u.DocUpdateStatuses),
 	)
