@@ -126,13 +126,6 @@ func (wlr WriteLoadRunner) generateUserCreds() []UserCred {
 func (wlr WriteLoadRunner) feedDocsToWriter(writer *Writer, wls WriteLoadSpec, approxDocsPerWriter int, channelNames []string) error {
 
 	logger.Debug("Feeding docs to writer", "writer", writer.UserCred.Username)
-	/*
-		agentIds := getWriterAgentIds(writers)
-
-		if len(agentIds) == 0 {
-			return fmt.Errorf("createAndAssignDocs called with empty agentIds")
-		}
-	*/
 
 	docIdOffset := 0
 

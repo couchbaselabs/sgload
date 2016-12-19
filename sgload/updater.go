@@ -8,10 +8,11 @@ import (
 )
 
 type UpdaterSpec struct {
-	NumUpdatesPerDocRequired int        // The number of updates this updater is supposed to do for each doc.
-	BatchSize                int        // How many docs to update per bulk_docs request
-	RevsPerUpdate            int        // How many revisions to include in each document update
-	DocsAssignedToUpdater    []Document // The full list of documents that this updater is responsible for updating
+	NumUpdatesPerDocRequired int // The number of updates this updater is supposed to do for each doc.
+	NumUniqueDocsToUpdate    int // The number of unique docs to update.
+	BatchSize                int // How many docs to update per bulk_docs request
+	RevsPerUpdate            int // How many revisions to include in each document update
+	DocSizeBytes             int // The doc size in bytes to use when generating update docs
 }
 
 type Updater struct {
@@ -29,7 +30,7 @@ type DocUpdateStatus struct {
 	LatestRev  string
 }
 
-func NewUpdater(agentSpec AgentSpec, numUpdates int, da []Document, batchsize int, revsPerUpdate int) *Updater {
+func NewUpdater(agentSpec AgentSpec, numDocs, numUpdates, batchsize, docSizeBytes int, revsPerUpdate int) *Updater {
 
 	docsToUpdate := make(chan []sgreplicate.DocumentRevisionPair, 100)
 
@@ -41,7 +42,8 @@ func NewUpdater(agentSpec AgentSpec, numUpdates int, da []Document, batchsize in
 			NumUpdatesPerDocRequired: numUpdates,
 			BatchSize:                batchsize,
 			RevsPerUpdate:            revsPerUpdate,
-			DocsAssignedToUpdater:    da,
+			NumUniqueDocsToUpdate:    numDocs,
+			DocSizeBytes:             docSizeBytes,
 		},
 		DocsToUpdate:      docsToUpdate,
 		DocUpdateStatuses: map[string]DocUpdateStatus{},
@@ -50,7 +52,7 @@ func NewUpdater(agentSpec AgentSpec, numUpdates int, da []Document, batchsize in
 	updater.setupExpVarStats(updatersProgressStats)
 	updater.ExpVarStats.Add(
 		"TotalUpdatesExpected",
-		int64(len(da)*updater.NumUpdatesPerDocRequired),
+		int64(numDocs*updater.NumUpdatesPerDocRequired),
 	)
 
 	return updater
@@ -90,7 +92,7 @@ func (u *Updater) Run() {
 		// Grab a batch of docs that need to be updated
 		docBatch := u.getDocsReadyToUpdate()
 		if len(docBatch) == 0 && u.noMoreExpectedDocsToUpdate() {
-			logger.Info("Updater finished", "agent.ID", u.ID, "numdocs", len(u.DocsAssignedToUpdater))
+			logger.Info("Updater finished", "agent.ID", u.ID, "numdocs", u.NumUniqueDocsToUpdate)
 			return
 		}
 
@@ -128,19 +130,18 @@ func (u Updater) numExpectedUpdatesPending() int {
 	// "delta" of how many more expected updates are pending overall.
 
 	counter := 0
-	for _, docAssignedToUpdater := range u.DocsAssignedToUpdater {
-		docId := docAssignedToUpdater.Id()
-		docStatus, ok := u.DocUpdateStatuses[docId]
-		if !ok {
-			// If we haven't even made any updates to that doc id, then
-			// we still need to make NumUpdatesPerDocRequired updates
-			counter += u.NumUpdatesPerDocRequired
-		} else {
-			// Find the delta of how many updates are required compared
-			// to how many updates we've made so far
-			delta := u.NumUpdatesPerDocRequired - docStatus.NumUpdates
-			counter += delta
-		}
+
+	// Update the counter to account for the docs that aren't even in DocUpdateStatuses yet,
+	// and still need to updated NumUpdatesPerDocRequired times
+	numDocsNotYetSeen := u.NumUniqueDocsToUpdate - len(u.DocUpdateStatuses)
+	counter += (numDocsNotYetSeen * u.NumUpdatesPerDocRequired)
+
+	// Update the counter for remaining revs of each doc that has been seen
+	for _, docStatus := range u.DocUpdateStatuses {
+		// Find the delta of how many updates are required compared
+		// to how many updates we've made so far
+		delta := u.NumUpdatesPerDocRequired - docStatus.NumUpdates
+		counter += delta
 	}
 	return counter
 
@@ -215,15 +216,8 @@ func (u *Updater) performUpdate(docRevPairs []sgreplicate.DocumentRevisionPair) 
 	bulkDocs := []Document{}
 	for _, docRevPair := range docRevPairs {
 
-		// Get the original doc passed to the updater when created, which
-		// has all the fields like channels, body, etc
-		sourceDoc := u.findDocAssignedToUpdaterById(docRevPair.Id)
-
 		// Copy the document into a new document
-		doc := sourceDoc.Copy()
-
-		// Modify a property so that it's a meaningful update
-		doc["modifiedProperty"] = docRevPair.Revision
+		doc := u.generateDocUpdate(docRevPair)
 
 		// Initialize generation and digest based on the previous revision
 		generation, parentDigest := parseRevID(docRevPair.Revision)
@@ -268,24 +262,6 @@ func (u *Updater) performUpdate(docRevPairs []sgreplicate.DocumentRevisionPair) 
 	return updatedDocs, nil
 }
 
-// Lookup doc in DocsAssignedToUpdater slice by ID by iterating
-// over the entire slice.
-// TODO: use a map
-func (u *Updater) findDocAssignedToUpdaterById(docId string) Document {
-	for _, doc := range u.DocsAssignedToUpdater {
-		if doc.Id() == docId {
-			return doc
-		}
-	}
-	panic(fmt.Sprintf("Could not find doc by id: %v", docId))
-}
-
-// Tell this updater that the following docs (which presumably are in its list of
-// docs that it's responsible for updating) have been inserted into Sync Gateway
-func (u *Updater) NotifyDocsReadyToUpdate(docs []sgreplicate.DocumentRevisionPair) {
-	u.DocsToUpdate <- docs
-}
-
 func (u Updater) LookupCurrentRevisions(docsToLookup []Document) ([]sgreplicate.DocumentRevisionPair, error) {
 
 	docRevPairs := []sgreplicate.DocumentRevisionPair{}
@@ -313,4 +289,13 @@ func (u Updater) LookupCurrentRevisions(docsToLookup []Document) ([]sgreplicate.
 
 	return docRevPairs, nil
 
+}
+
+func (u *Updater) generateDocUpdate(docRevPair sgreplicate.DocumentRevisionPair) Document {
+	doc := map[string]interface{}{}
+	doc["_id"] = docRevPair.Id
+	doc["bodysize"] = u.DocSizeBytes
+	doc["updated_at"] = time.Now().Format(time.RFC3339Nano)
+	doc["created_at"] = "sorry, this info has been lost"
+	return Document(doc)
 }

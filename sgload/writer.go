@@ -9,8 +9,8 @@ import (
 
 type Writer struct {
 	Agent
-	OutboundDocs chan []Document                         // The Docfeeder pushes outbound docs to the writer
-	PushedDocs   chan []sgreplicate.DocumentRevisionPair // After docs are sent, push to this channel
+	OutboundDocs chan []Document                           // The Docfeeder pushes outbound docs to the writer
+	PushedDocs   chan<- []sgreplicate.DocumentRevisionPair // After docs are sent, push to this channel
 }
 
 func NewWriter(agentSpec AgentSpec) *Writer {
