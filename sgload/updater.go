@@ -75,45 +75,89 @@ func (u *Updater) Run() {
 
 	for {
 		if u.noMoreExpectedDocsToUpdate() {
-			logger.Info("Updater finished", "agent.ID", u.ID, "numdocs", u.NumUniqueDocsPerUpdater)
+			logger.Info(
+				"Updater finished",
+				"agent.ID",
+				u.ID,
+				"numdocs",
+				u.NumUniqueDocsPerUpdater,
+			)
 			return
 		}
 
-		select {
-		case docsToUpdate := <-u.DocsToUpdate:
+		if len(u.DocUpdateStatuses) < u.NumUniqueDocsPerUpdater {
 
-			logger.Debug("Updater received docs to update", "updater", u.UserCred.Username, "numdocs", len(docsToUpdate))
+			logger.Debug("Updater check for more docs to update", "updater", u.UserCred.Username, "numDocUpdateStatuses", len(u.DocUpdateStatuses))
 
-			for _, docToUpdate := range docsToUpdate {
+			select {
+			case docsToUpdate := <-u.DocsToUpdate:
 
-				_, ok := u.DocUpdateStatuses[docToUpdate.Id]
-				if ok {
-					// Invalid state, this should be the first
-					// time seeing this doc
-					panic(fmt.Sprintf("Unexpected doc: %+v", docToUpdate))
+				logger.Debug("Updater received docs to update", "updater", u.UserCred.Username, "numdocs", len(docsToUpdate))
+
+				for _, docToUpdate := range docsToUpdate {
+
+					_, ok := u.DocUpdateStatuses[docToUpdate.Id]
+					if ok {
+						// Invalid state, this should be the first
+						// time seeing this doc
+						panic(fmt.Sprintf("Unexpected doc: %+v", docToUpdate))
+					}
+					u.DocUpdateStatuses[docToUpdate.Id] = DocUpdateStatus{
+						NumUpdates:       0,
+						DocumentMetadata: docToUpdate,
+					}
+
+					if len(u.DocUpdateStatuses) >= u.NumUniqueDocsPerUpdater {
+
+						logger.Debug("Updater has enough docs to update", "updater", u.UserCred.Username, "numDocUpdateStatuses", len(u.DocUpdateStatuses))
+
+						break
+
+					}
+
 				}
-				u.DocUpdateStatuses[docToUpdate.Id] = DocUpdateStatus{
-					NumUpdates:       0,
-					DocumentMetadata: docToUpdate,
-				}
-
+			case <-time.After(time.Second * 10):
+				numExpectedUpdatesPending := u.numExpectedUpdatesPending(false)
+				logger.Debug(
+					"Updater didn't receive anything after 10s",
+					"updater",
+					u.UserCred.Username,
+					"numExpectedUpdatesPending",
+					numExpectedUpdatesPending,
+				)
 			}
-		case <-time.After(time.Second * 1):
+
 		}
 
 		// Grab a batch of docs that need to be updated
 		docBatch := u.getDocsReadyToUpdate()
+
 		if len(docBatch) == 0 && u.noMoreExpectedDocsToUpdate() {
-			logger.Info("Updater finished", "agent.ID", u.ID, "numdocs", u.NumUniqueDocsPerUpdater)
+			logger.Info(
+				"Updater finished",
+				"agent.ID",
+				u.ID,
+				"numdocs",
+				u.NumUniqueDocsPerUpdater,
+			)
 			return
 		}
 
 		// If nothing in doc batch, skip this loop iteration
 		if len(docBatch) == 0 {
+			numExpectedUpdatesPending := u.numExpectedUpdatesPending(false)
+			logger.Debug(
+				"Updater empty docBatch, call continue",
+				"updater",
+				u.UserCred.Username,
+				"numExpectedUpdatesPending",
+				numExpectedUpdatesPending,
+			)
 			continue
 		}
 
 		// Push the update
+		logger.Info("Updater performUpdate", "agent.ID", u.ID, "docbatch", len(docBatch))
 		docRevPairsUpdated, err := u.performUpdate(docBatch)
 		if err != nil {
 			panic(fmt.Sprintf("Error performing update: %v", err))
@@ -123,6 +167,8 @@ func (u *Updater) Run() {
 
 		u.updateExpVars(docRevPairsUpdated)
 
+		numExpectedUpdatesPending := u.numExpectedUpdatesPending(false)
+
 		logger.Debug(
 			"Updater pushed changes",
 			"updater",
@@ -130,14 +176,14 @@ func (u *Updater) Run() {
 			"numDocRevPairsUpdated",
 			len(docRevPairsUpdated),
 			"numExpectedUpdatesPending",
-			u.numExpectedUpdatesPending(),
+			numExpectedUpdatesPending,
 		)
 
 	}
 
 }
 
-func (u Updater) numExpectedUpdatesPending() int {
+func (u Updater) numExpectedUpdatesPending(debug bool) int {
 
 	// We know all of the doc id's we're supposed to be updating, as well
 	// as how many updates we expect to do per doc id.  This method finds the
@@ -151,12 +197,42 @@ func (u Updater) numExpectedUpdatesPending() int {
 
 	counter += (numDocsNotYetSeen * u.NumUpdatesPerDocRequired)
 
+	if debug {
+		logger.Debug(
+			"numExpectedUpdatesPending()",
+			"updater",
+			u.UserCred.Username,
+			"numDocsNotYetSeen",
+			numDocsNotYetSeen,
+			"NumUpdatesPerDocRequired",
+			u.NumUpdatesPerDocRequired,
+			"counter",
+			counter,
+		)
+	}
+
 	// Update the counter for remaining revs of each doc that has been seen
-	for _, docStatus := range u.DocUpdateStatuses {
+	for docId, docStatus := range u.DocUpdateStatuses {
 		// Find the delta of how many updates are required compared
 		// to how many updates we've made so far
 		delta := u.NumUpdatesPerDocRequired - docStatus.NumUpdates
 		counter += delta
+		if debug {
+			logger.Debug(
+				"numExpectedUpdatesPending()",
+				"updater",
+				u.UserCred.Username,
+				"docId",
+				docId,
+				"delta",
+				delta,
+				"NumUpdates",
+				docStatus.NumUpdates,
+				"counter",
+				counter,
+			)
+		}
+
 	}
 	return counter
 
@@ -165,7 +241,7 @@ func (u Updater) numExpectedUpdatesPending() int {
 func (u Updater) noMoreExpectedDocsToUpdate() bool {
 
 	// Find how many pending updates are still remaining
-	numExpectedUpdatesPending := u.numExpectedUpdatesPending()
+	numExpectedUpdatesPending := u.numExpectedUpdatesPending(false)
 
 	// If no more pending updates remain, we're done
 	return numExpectedUpdatesPending == 0
@@ -229,6 +305,8 @@ func (u *Updater) performUpdate(docRevPairs []DocumentMetadata) ([]DocumentMetad
 
 		// Copy the document into a new document
 		doc := u.generateDocUpdate(docRevPair)
+
+		// TODO: make sure not to skip any generations!  this could mess up accounting
 
 		// Initialize generation and digest based on the previous revision
 		generation, parentDigest := parseRevID(docRevPair.Revision)
