@@ -114,6 +114,7 @@ func (u *Updater) Run() {
 		}
 
 		// Push the update
+		logger.Info("Updater performUpdate", "agent.ID", u.ID, "docbatch", len(docBatch))
 		docRevPairsUpdated, err := u.performUpdate(docBatch)
 		if err != nil {
 			panic(fmt.Sprintf("Error performing update: %v", err))
