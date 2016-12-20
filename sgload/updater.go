@@ -105,12 +105,13 @@ func (u *Updater) Run() {
 
 			}
 		case <-time.After(time.Second * 10):
+			numExpectedUpdatesPending := u.numExpectedUpdatesPending(true)
 			logger.Debug(
 				"Updater didn't receive anything after 10s",
 				"updater",
 				u.UserCred.Username,
 				"numExpectedUpdatesPending",
-				u.numExpectedUpdatesPending(true),
+				numExpectedUpdatesPending,
 			)
 		}
 
@@ -130,12 +131,13 @@ func (u *Updater) Run() {
 
 		// If nothing in doc batch, skip this loop iteration
 		if len(docBatch) == 0 {
+			numExpectedUpdatesPending := u.numExpectedUpdatesPending(false)
 			logger.Debug(
 				"Updater empty docBatch, call continue",
 				"updater",
 				u.UserCred.Username,
 				"numExpectedUpdatesPending",
-				u.numExpectedUpdatesPending(false),
+				numExpectedUpdatesPending,
 			)
 			continue
 		}
@@ -151,6 +153,8 @@ func (u *Updater) Run() {
 
 		u.updateExpVars(docRevPairsUpdated)
 
+		numExpectedUpdatesPending := u.numExpectedUpdatesPending(false)
+
 		logger.Debug(
 			"Updater pushed changes",
 			"updater",
@@ -158,7 +162,7 @@ func (u *Updater) Run() {
 			"numDocRevPairsUpdated",
 			len(docRevPairsUpdated),
 			"numExpectedUpdatesPending",
-			u.numExpectedUpdatesPending(false),
+			numExpectedUpdatesPending,
 		)
 
 	}
