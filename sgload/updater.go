@@ -110,7 +110,7 @@ func (u *Updater) Run() {
 				"updater",
 				u.UserCred.Username,
 				"numExpectedUpdatesPending",
-				u.numExpectedUpdatesPending(),
+				u.numExpectedUpdatesPending(true),
 			)
 		}
 
@@ -135,7 +135,7 @@ func (u *Updater) Run() {
 				"updater",
 				u.UserCred.Username,
 				"numExpectedUpdatesPending",
-				u.numExpectedUpdatesPending(),
+				u.numExpectedUpdatesPending(false),
 			)
 			continue
 		}
@@ -158,14 +158,14 @@ func (u *Updater) Run() {
 			"numDocRevPairsUpdated",
 			len(docRevPairsUpdated),
 			"numExpectedUpdatesPending",
-			u.numExpectedUpdatesPending(),
+			u.numExpectedUpdatesPending(false),
 		)
 
 	}
 
 }
 
-func (u Updater) numExpectedUpdatesPending() int {
+func (u Updater) numExpectedUpdatesPending(debug bool) int {
 
 	// We know all of the doc id's we're supposed to be updating, as well
 	// as how many updates we expect to do per doc id.  This method finds the
@@ -179,17 +179,19 @@ func (u Updater) numExpectedUpdatesPending() int {
 
 	counter += (numDocsNotYetSeen * u.NumUpdatesPerDocRequired)
 
-	logger.Debug(
-		"numExpectedUpdatesPending()",
-		"updater",
-		u.UserCred.Username,
-		"numDocsNotYetSeen",
-		numDocsNotYetSeen,
-		"NumUpdatesPerDocRequired",
-		u.NumUpdatesPerDocRequired,
-		"counter",
-		counter,
-	)
+	if debug {
+		logger.Debug(
+			"numExpectedUpdatesPending()",
+			"updater",
+			u.UserCred.Username,
+			"numDocsNotYetSeen",
+			numDocsNotYetSeen,
+			"NumUpdatesPerDocRequired",
+			u.NumUpdatesPerDocRequired,
+			"counter",
+			counter,
+		)
+	}
 
 	// Update the counter for remaining revs of each doc that has been seen
 	for docId, docStatus := range u.DocUpdateStatuses {
@@ -197,19 +199,21 @@ func (u Updater) numExpectedUpdatesPending() int {
 		// to how many updates we've made so far
 		delta := u.NumUpdatesPerDocRequired - docStatus.NumUpdates
 		counter += delta
-		logger.Debug(
-			"numExpectedUpdatesPending()",
-			"updater",
-			u.UserCred.Username,
-			"docId",
-			docId,
-			"delta",
-			delta,
-			"NumUpdates",
-			docStatus.NumUpdates,
-			"counter",
-			counter,
-		)
+		if debug {
+			logger.Debug(
+				"numExpectedUpdatesPending()",
+				"updater",
+				u.UserCred.Username,
+				"docId",
+				docId,
+				"delta",
+				delta,
+				"NumUpdates",
+				docStatus.NumUpdates,
+				"counter",
+				counter,
+			)
+		}
 
 	}
 	return counter
