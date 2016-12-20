@@ -223,7 +223,7 @@ func (u Updater) numExpectedUpdatesPending(debug bool) int {
 func (u Updater) noMoreExpectedDocsToUpdate() bool {
 
 	// Find how many pending updates are still remaining
-	numExpectedUpdatesPending := u.numExpectedUpdatesPending()
+	numExpectedUpdatesPending := u.numExpectedUpdatesPending(false)
 
 	// If no more pending updates remain, we're done
 	return numExpectedUpdatesPending == 0
