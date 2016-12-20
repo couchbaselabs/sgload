@@ -75,7 +75,13 @@ func (u *Updater) Run() {
 
 	for {
 		if u.noMoreExpectedDocsToUpdate() {
-			logger.Info("Updater finished", "agent.ID", u.ID, "numdocs", u.NumUniqueDocsPerUpdater)
+			logger.Info(
+				"Updater finished",
+				"agent.ID",
+				u.ID,
+				"numdocs",
+				u.NumUniqueDocsPerUpdater,
+			)
 			return
 		}
 
@@ -98,20 +104,39 @@ func (u *Updater) Run() {
 				}
 
 			}
-		case <-time.After(time.Second * 1):
-			logger.Debug("Updater didn't receive anything after 1s", "updater", u.UserCred.Username)
+		case <-time.After(time.Second * 10):
+			logger.Debug(
+				"Updater didn't receive anything after 10s",
+				"updater",
+				u.UserCred.Username,
+				"numExpectedUpdatesPending",
+				u.numExpectedUpdatesPending(),
+			)
 		}
 
 		// Grab a batch of docs that need to be updated
 		docBatch := u.getDocsReadyToUpdate()
 
 		if len(docBatch) == 0 && u.noMoreExpectedDocsToUpdate() {
-			logger.Info("Updater finished", "agent.ID", u.ID, "numdocs", u.NumUniqueDocsPerUpdater)
+			logger.Info(
+				"Updater finished",
+				"agent.ID",
+				u.ID,
+				"numdocs",
+				u.NumUniqueDocsPerUpdater,
+			)
 			return
 		}
 
 		// If nothing in doc batch, skip this loop iteration
 		if len(docBatch) == 0 {
+			logger.Debug(
+				"Updater empty docBatch, call continue",
+				"updater",
+				u.UserCred.Username,
+				"numExpectedUpdatesPending",
+				u.numExpectedUpdatesPending(),
+			)
 			continue
 		}
 
@@ -154,12 +179,38 @@ func (u Updater) numExpectedUpdatesPending() int {
 
 	counter += (numDocsNotYetSeen * u.NumUpdatesPerDocRequired)
 
+	logger.Debug(
+		"numExpectedUpdatesPending()",
+		"updater",
+		u.UserCred.Username,
+		"numDocsNotYetSeen",
+		numDocsNotYetSeen,
+		"NumUpdatesPerDocRequired",
+		u.NumUpdatesPerDocRequired,
+		"counter",
+		counter,
+	)
+
 	// Update the counter for remaining revs of each doc that has been seen
-	for _, docStatus := range u.DocUpdateStatuses {
+	for docId, docStatus := range u.DocUpdateStatuses {
 		// Find the delta of how many updates are required compared
 		// to how many updates we've made so far
 		delta := u.NumUpdatesPerDocRequired - docStatus.NumUpdates
 		counter += delta
+		logger.Debug(
+			"numExpectedUpdatesPending()",
+			"updater",
+			u.UserCred.Username,
+			"docId",
+			docId,
+			"delta",
+			delta,
+			"NumUpdates",
+			docStatus.NumUpdates,
+			"counter",
+			counter,
+		)
+
 	}
 	return counter
 
