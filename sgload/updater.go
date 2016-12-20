@@ -85,34 +85,48 @@ func (u *Updater) Run() {
 			return
 		}
 
-		select {
-		case docsToUpdate := <-u.DocsToUpdate:
+		if len(u.DocUpdateStatuses) < u.NumUniqueDocsPerUpdater {
 
-			logger.Debug("Updater received docs to update", "updater", u.UserCred.Username, "numdocs", len(docsToUpdate))
+			logger.Debug("Updater check for more docs to update", "updater", u.UserCred.Username, "numDocUpdateStatuses", len(u.DocUpdateStatuses))
 
-			for _, docToUpdate := range docsToUpdate {
+			select {
+			case docsToUpdate := <-u.DocsToUpdate:
 
-				_, ok := u.DocUpdateStatuses[docToUpdate.Id]
-				if ok {
-					// Invalid state, this should be the first
-					// time seeing this doc
-					panic(fmt.Sprintf("Unexpected doc: %+v", docToUpdate))
+				logger.Debug("Updater received docs to update", "updater", u.UserCred.Username, "numdocs", len(docsToUpdate))
+
+				for _, docToUpdate := range docsToUpdate {
+
+					_, ok := u.DocUpdateStatuses[docToUpdate.Id]
+					if ok {
+						// Invalid state, this should be the first
+						// time seeing this doc
+						panic(fmt.Sprintf("Unexpected doc: %+v", docToUpdate))
+					}
+					u.DocUpdateStatuses[docToUpdate.Id] = DocUpdateStatus{
+						NumUpdates:       0,
+						DocumentMetadata: docToUpdate,
+					}
+
+					if len(u.DocUpdateStatuses) >= u.NumUniqueDocsPerUpdater {
+
+						logger.Debug("Updater has enough docs to update", "updater", u.UserCred.Username, "numDocUpdateStatuses", len(u.DocUpdateStatuses))
+
+						break
+
+					}
+
 				}
-				u.DocUpdateStatuses[docToUpdate.Id] = DocUpdateStatus{
-					NumUpdates:       0,
-					DocumentMetadata: docToUpdate,
-				}
-
+			case <-time.After(time.Second * 10):
+				numExpectedUpdatesPending := u.numExpectedUpdatesPending(true)
+				logger.Debug(
+					"Updater didn't receive anything after 10s",
+					"updater",
+					u.UserCred.Username,
+					"numExpectedUpdatesPending",
+					numExpectedUpdatesPending,
+				)
 			}
-		case <-time.After(time.Second * 10):
-			numExpectedUpdatesPending := u.numExpectedUpdatesPending(true)
-			logger.Debug(
-				"Updater didn't receive anything after 10s",
-				"updater",
-				u.UserCred.Username,
-				"numExpectedUpdatesPending",
-				numExpectedUpdatesPending,
-			)
+
 		}
 
 		// Grab a batch of docs that need to be updated
@@ -291,6 +305,8 @@ func (u *Updater) performUpdate(docRevPairs []DocumentMetadata) ([]DocumentMetad
 
 		// Copy the document into a new document
 		doc := u.generateDocUpdate(docRevPair)
+
+		// TODO: make sure not to skip any generations!  this could mess up accounting
 
 		// Initialize generation and digest based on the previous revision
 		generation, parentDigest := parseRevID(docRevPair.Revision)
