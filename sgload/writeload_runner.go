@@ -146,11 +146,6 @@ func (wlr WriteLoadRunner) feedDocsToWriter(writer *Writer, wls WriteLoadSpec, a
 		// Assign Docs to Channels (adds doc["channels"] field to each doc)
 		_ = assignDocsToChannels(channelNames, docsToWrite)
 
-		// Assign docs to writers, this returns a map keyed on writer which points
-		// to doc slice for that writer
-		// docsToChannelsAndAgents := assignDocsToAgents(docsToChannels, agentIds)
-
-		// Loop over doc assignment map and tell each writer to push to data store
 		writer.AddToDataStore(docsToWrite)
 
 		docIdOffset += docBatch

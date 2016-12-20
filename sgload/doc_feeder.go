@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/couchbaselabs/sg-replicate"
+	sgreplicate "github.com/couchbaselabs/sg-replicate"
 )
 
 type DocumentMetadata struct {

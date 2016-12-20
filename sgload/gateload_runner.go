@@ -13,7 +13,7 @@ type GateLoadRunner struct {
 	ReadLoadRunner
 	UpdateLoadRunner
 	GateLoadSpec GateLoadSpec
-	PushedDocs   chan []sgreplicate.DocumentRevisionPair
+	PushedDocs   chan []DocumentMetadata
 }
 
 func NewGateLoadRunner(gls GateLoadSpec) *GateLoadRunner {
@@ -51,7 +51,7 @@ func NewGateLoadRunner(gls GateLoadSpec) *GateLoadRunner {
 		ReadLoadRunner:   readLoadRunner,
 		UpdateLoadRunner: updateLoadRunner,
 		GateLoadSpec:     gls,
-		PushedDocs:       make(chan []sgreplicate.DocumentRevisionPair, pushedDocsBufferedChannelSize),
+		PushedDocs:       make(chan []DocumentMetadata, pushedDocsBufferedChannelSize),
 	}
 
 }

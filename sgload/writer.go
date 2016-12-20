@@ -3,14 +3,12 @@ package sgload
 import (
 	"fmt"
 	"time"
-
-	sgreplicate "github.com/couchbaselabs/sg-replicate"
 )
 
 type Writer struct {
 	Agent
-	OutboundDocs chan []Document                           // The Docfeeder pushes outbound docs to the writer
-	PushedDocs   chan<- []sgreplicate.DocumentRevisionPair // After docs are sent, push to this channel
+	OutboundDocs chan []Document           // The Docfeeder pushes outbound docs to the writer
+	PushedDocs   chan<- []DocumentMetadata // After docs are sent, push to this channel
 }
 
 func NewWriter(agentSpec AgentSpec) *Writer {
@@ -94,7 +92,7 @@ func (w *Writer) SetApproxExpectedDocsWritten(numdocs int) {
 	w.ExpVarStats.Add("ApproxTotalDocs", int64(numdocs))
 }
 
-func (w *Writer) notifyDocsPushed(docs []sgreplicate.DocumentRevisionPair) {
+func (w *Writer) notifyDocsPushed(docs []DocumentMetadata) {
 
 	start := time.Now()
 	if w.PushedDocs != nil {

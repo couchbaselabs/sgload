@@ -13,14 +13,11 @@ type DataStore interface {
 	// Creates a new user in the data store (admin port)
 	CreateUser(u UserCred, channelNames []string) error
 
-	// Creates a document in the data store
-	CreateDocument(d Document) ([]sgreplicate.DocumentRevisionPair, error)
-
 	// Bulk creates a set of documents in the data store
-	BulkCreateDocuments(d []Document, newEdits bool) ([]sgreplicate.DocumentRevisionPair, error)
+	BulkCreateDocuments(d []Document, newEdits bool) ([]DocumentMetadata, error)
 
 	// Same as BulkCreateDocuments, but built-in retry for temporary errors
-	BulkCreateDocumentsRetry(d []Document, newEdits bool) ([]sgreplicate.DocumentRevisionPair, error)
+	BulkCreateDocumentsRetry(d []Document, newEdits bool) ([]DocumentMetadata, error)
 
 	// Sets the user credentials to use for all subsequent requests
 	SetUserCreds(u UserCred)
