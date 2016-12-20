@@ -3,15 +3,12 @@ package sgload
 import (
 	"fmt"
 	"time"
-
-	"github.com/couchbaselabs/sg-replicate"
 )
 
 type Writer struct {
 	Agent
-	OutboundDocs        chan []Document                         // The Docfeeder pushes outbound docs to the writer
-	PushedDocs          chan []sgreplicate.DocumentRevisionPair // After docs are sent, push to this channel
-	ExpectedDocsWritten []Document
+	OutboundDocs chan []Document           // The Docfeeder pushes outbound docs to the writer
+	PushedDocs   chan<- []DocumentMetadata // After docs are sent, push to this channel
 }
 
 func NewWriter(agentSpec AgentSpec) *Writer {
@@ -91,13 +88,11 @@ func updateCreatedAtTimestamp(docs []Document) {
 	}
 }
 
-func (w *Writer) SetExpectedDocsWritten(docs []Document) {
-	w.ExpectedDocsWritten = docs
-	w.ExpVarStats.Add("TotalDocs", int64(len(docs)))
-	logger.Debug("Writer SetExpectedDocsWritten", "totaldocs", len(docs))
+func (w *Writer) SetApproxExpectedDocsWritten(numdocs int) {
+	w.ExpVarStats.Add("ApproxTotalDocs", int64(numdocs))
 }
 
-func (w *Writer) notifyDocsPushed(docs []sgreplicate.DocumentRevisionPair) {
+func (w *Writer) notifyDocsPushed(docs []DocumentMetadata) {
 
 	start := time.Now()
 	if w.PushedDocs != nil {
@@ -107,7 +102,6 @@ func (w *Writer) notifyDocsPushed(docs []sgreplicate.DocumentRevisionPair) {
 	if delta > time.Second {
 		logger.Warn("Writer took more than 1s notify updater docs pushed", "writer", w.UserCred.Username, "numdocs", len(docs), "delta", delta)
 	}
-	logger.Debug("Writer notified updater docs ready to update", "writer", w.UserCred.Username, "numdocs", len(docs))
 
 }
 

@@ -2,37 +2,14 @@ package sgload
 
 import (
 	"fmt"
-	"math/rand"
 	"time"
+
+	sgreplicate "github.com/couchbaselabs/sg-replicate"
 )
 
-// Assign docs to channels w/ equal distribution of docs into channels.
-// Assign docs to writers with an equal distribution of docs into writers,
-// but mix up so each writer is writing to a variety of channels.
-// This returns a map keyed on writer which points to doc slice for that writer
-func createAndAssignDocs(agentIds []string, channelNames []string, numDocs, docSizeBytes int, docIdSuffix string) map[string][]Document {
-
-	if len(agentIds) == 0 {
-		logger.Warn("createAndAssignDocs called with empty agentIds")
-		return nil
-	}
-
-	// Create Documents
-	docsToWrite := createDocsToWrite(
-		numDocs,
-		docSizeBytes,
-		docIdSuffix,
-	)
-
-	// Assign Docs to Channels (adds doc["channels"] field to each doc)
-	docsToChannels := assignDocsToChannels(channelNames, docsToWrite)
-
-	// Assign docs to writers, this returns a map keyed on writer which points
-	// to doc slice for that writer
-	docsToChannelsAndAgents := assignDocsToAgents(docsToChannels, agentIds)
-
-	return docsToChannelsAndAgents
-
+type DocumentMetadata struct {
+	sgreplicate.DocumentRevisionPair
+	Channels []string
 }
 
 // Assigns docs to channels with as even of a distribution as possible.
@@ -58,48 +35,18 @@ func assignDocsToChannels(channelNames []string, inputDocs []Document) []Documen
 
 }
 
-// Split the docs among the agents with an even distribution
-func assignDocsToAgents(d []Document, agentIds []string) map[string][]Document {
-
-	docAssignmentMapping := map[string][]Document{}
-
-	if len(agentIds) == 0 {
-		logger.Warn("assignDocsToAgents called w/ no agents")
-		return docAssignmentMapping
-	}
-
-	for _, agentId := range agentIds {
-		docAssignmentMapping[agentId] = []Document{}
-	}
-
-	for _, doc := range d {
-
-		// choose a random agent
-		agentIdIndex := rand.Intn(len(agentIds))
-		agentId := agentIds[agentIdIndex]
-
-		// add doc to writer's list of docs
-		docsForAgent := docAssignmentMapping[agentId]
-		docsForAgent = append(docsForAgent, doc)
-		docAssignmentMapping[agentId] = docsForAgent
-
-	}
-
-	return docAssignmentMapping
-
-}
-
-func createDocsToWrite(numDocs, docSizeBytes int, docIdSuffix string) []Document {
+func createDocsToWrite(writerUsername string, docIdOffset, numDocs, docSizeBytes int, docIdSuffix string) []Document {
 
 	var d Document
 	docs := []Document{}
 
 	for docNum := 0; docNum < numDocs; docNum++ {
+		globalDocNum := docIdOffset + docNum
 		d = map[string]interface{}{}
 		if docIdSuffix != "" {
-			d["_id"] = fmt.Sprintf("%d-%s", docNum, docIdSuffix)
+			d["_id"] = fmt.Sprintf("%d-%s", globalDocNum, writerUsername)
 		}
-		d["docNum"] = docNum
+		d["docNum"] = globalDocNum // <-- needed?
 		d["bodysize"] = docSizeBytes
 		d["created_at"] = time.Now().Format(time.RFC3339Nano)
 		docs = append(docs, d)
@@ -140,6 +87,45 @@ func breakIntoBatches(batchSize int, docs []Document) [][]Document {
 			}
 			doc := docs[docIndex]
 			batch = append(batch, doc)
+		}
+		batches = append(batches, batch)
+	}
+
+	return batches
+
+}
+
+// Break things into batches, for example:
+//
+// batchSize: 3
+// totalNum: 5
+//
+// result:
+//
+//   [
+//     3,  <-- batch 1, size 3
+//     2,  <-- batch 2, size 2 (incomplete, not enough to fill batch)
+//
+//   ]
+func breakIntoBatchesCount(batchSize int, totalNum int) (batches []int) {
+
+	batches = []int{}
+
+	numBatches := totalNum / batchSize
+
+	// is there residue?  if so, add one more to batch
+	if totalNum%batchSize != 0 {
+		numBatches += 1
+	}
+
+	for i := 0; i < numBatches; i++ {
+		batch := 0
+		for j := 0; j < batchSize; j++ {
+			index := i*batchSize + j
+			if index >= totalNum {
+				break
+			}
+			batch += 1
 		}
 		batches = append(batches, batch)
 	}

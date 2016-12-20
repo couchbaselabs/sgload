@@ -250,14 +250,8 @@ func (s SGDataStore) Changes(sinceVal Sincer, limit int) (changes sgreplicate.Ch
 	return changes, lastSequenceSincer, nil
 }
 
-// Create a single document in Sync Gateway
-func (s SGDataStore) CreateDocument(d Document) ([]sgreplicate.DocumentRevisionPair, error) {
-
-	return s.BulkCreateDocuments([]Document{d}, true)
-}
-
 // Bulk create a set of documents in Sync Gateway
-func (s SGDataStore) BulkCreateDocuments(docs []Document, newEdits bool) ([]sgreplicate.DocumentRevisionPair, error) {
+func (s SGDataStore) BulkCreateDocuments(docs []Document, newEdits bool) ([]DocumentMetadata, error) {
 
 	defer s.pushCounter("create_document_counter", len(docs))
 
@@ -265,11 +259,11 @@ func (s SGDataStore) BulkCreateDocuments(docs []Document, newEdits bool) ([]sgre
 	// gateload roundtrip time
 	updateCreatedAtTimestamp(docs)
 
-	bulkDocsResponse := []sgreplicate.DocumentRevisionPair{}
+	documentsAndMetadata := []DocumentMetadata{}
 
 	bulkDocsEndpoint, err := addEndpointToUrl(s.SyncGatewayUrl, "_bulk_docs")
 	if err != nil {
-		return bulkDocsResponse, err
+		return documentsAndMetadata, err
 	}
 
 	s.addDocBodies(docs)
@@ -281,21 +275,21 @@ func (s SGDataStore) BulkCreateDocuments(docs []Document, newEdits bool) ([]sgre
 
 	docBytes, err := json.Marshal(bulkDocs)
 	if err != nil {
-		return bulkDocsResponse, err
+		return documentsAndMetadata, err
 	}
 	var reader *bytes.Reader
 	if s.CompressionEnabled {
 		buf := &bytes.Buffer{}
 		gzipWriter := gzip.NewWriter(buf)
 		if _, err := gzipWriter.Write(docBytes); err != nil {
-			return bulkDocsResponse, err
+			return documentsAndMetadata, err
 		}
 		if err = gzipWriter.Close(); err != nil {
-			return bulkDocsResponse, err
+			return documentsAndMetadata, err
 		}
 		compressedBytes, err := ioutil.ReadAll(buf)
 		if err != nil {
-			return bulkDocsResponse, err
+			return documentsAndMetadata, err
 		}
 		reader = bytes.NewReader(compressedBytes)
 	} else {
@@ -315,27 +309,36 @@ func (s SGDataStore) BulkCreateDocuments(docs []Document, newEdits bool) ([]sgre
 	startTime := time.Now()
 	resp, err := client.Do(req)
 	if err != nil {
-		return bulkDocsResponse, err
+		return documentsAndMetadata, err
 	}
 	defer resp.Body.Close()
 
 	s.pushTimingStat("create_document", timeDeltaPerDocument(len(docs), time.Since(startTime)))
 	if resp.StatusCode < 200 || resp.StatusCode > 201 {
-		return bulkDocsResponse, fmt.Errorf("Unexpected response status for POST request: %d", resp.StatusCode)
+		return documentsAndMetadata, fmt.Errorf("Unexpected response status for POST request: %d", resp.StatusCode)
 	}
 
 	decoder := json.NewDecoder(resp.Body)
+	bulkDocsResponse := []sgreplicate.DocumentRevisionPair{}
 	if err = decoder.Decode(&bulkDocsResponse); err != nil {
-		return bulkDocsResponse, err
+		return documentsAndMetadata, err
 	}
 
-	return bulkDocsResponse, nil
+	for _, docRevisionPair := range bulkDocsResponse {
+		docAndMeta := DocumentMetadata{
+			DocumentRevisionPair: docRevisionPair,
+			Channels:             findChannelsForDoc(docs, docRevisionPair.Id),
+		}
+		documentsAndMetadata = append(documentsAndMetadata, docAndMeta)
+	}
+
+	return documentsAndMetadata, nil
 
 }
 
-func (s SGDataStore) BulkCreateDocumentsRetry(docs []Document, newEdits bool) ([]sgreplicate.DocumentRevisionPair, error) {
+func (s SGDataStore) BulkCreateDocumentsRetry(docs []Document, newEdits bool) ([]DocumentMetadata, error) {
 
-	totalPushedDocRevPairs := []sgreplicate.DocumentRevisionPair{}
+	totalPushedDocRevPairs := []DocumentMetadata{}
 	numRetries := 10
 	sleepMsBetweenRetry := 500
 	retrySleeper := CreateDoublingSleeperFunc(numRetries, sleepMsBetweenRetry)
@@ -405,7 +408,7 @@ func (s SGDataStore) BulkCreateDocumentsRetry(docs []Document, newEdits bool) ([
 }
 
 // Filter docs and only include the ones in docsToInclude
-func filterDocsIncluding(docs []Document, docsToInclude []sgreplicate.DocumentRevisionPair) []Document {
+func filterDocsIncluding(docs []Document, docsToInclude []DocumentMetadata) []Document {
 	filteredSet := []Document{}
 	for _, doc := range docs {
 		shouldInclude := false
@@ -422,10 +425,10 @@ func filterDocsIncluding(docs []Document, docsToInclude []sgreplicate.DocumentRe
 
 }
 
-func splitSucceededAndFailed(bulkDocsResponse []sgreplicate.DocumentRevisionPair) (successful []sgreplicate.DocumentRevisionPair, failed []sgreplicate.DocumentRevisionPair) {
+func splitSucceededAndFailed(bulkDocsResponse []DocumentMetadata) (successful []DocumentMetadata, failed []DocumentMetadata) {
 
-	successful = []sgreplicate.DocumentRevisionPair{}
-	failed = []sgreplicate.DocumentRevisionPair{}
+	successful = []DocumentMetadata{}
+	failed = []DocumentMetadata{}
 
 	for _, docRevisionPair := range bulkDocsResponse {
 		if docRevisionPair.Error != "" {
@@ -636,4 +639,19 @@ func transportWithConnPool(numConnections int) *http.Transport {
 	customTransport.MaxIdleConnsPerHost = numConnections
 	return &customTransport
 
+}
+
+// Given a slice of documents, find the channels the doc belongs to
+func findChannelsForDoc(docs []Document, docId string) []string {
+	doc := findDoc(docs, docId)
+	return doc.channelNames()
+}
+
+func findDoc(docs []Document, docId string) Document {
+	for _, doc := range docs {
+		if doc.Id() == docId {
+			return doc
+		}
+	}
+	return nil
 }

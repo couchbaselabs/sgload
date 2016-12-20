@@ -9,8 +9,8 @@ func TestGetDocsReadyToUpdateLessThanBatch(t *testing.T) {
 
 	docUpdateStatuses := map[string]DocUpdateStatus{
 		"doc-1": DocUpdateStatus{
-			NumUpdates: 10,
-			LatestRev:  "100-blah",
+			NumUpdates:       10,
+			DocumentMetadata: DocumentMetadata{},
 		},
 	}
 	docsReadyToUpdate := getDocsReadyToUpdate(
@@ -32,20 +32,20 @@ func TestGetDocsReadyToUpdateMoreThanBatch(t *testing.T) {
 
 	docUpdateStatuses := map[string]DocUpdateStatus{
 		"doc-1": DocUpdateStatus{
-			NumUpdates: 10,
-			LatestRev:  "100-blah",
+			NumUpdates:       10,
+			DocumentMetadata: DocumentMetadata{},
 		},
 		"doc-2": DocUpdateStatus{
-			NumUpdates: 100,
-			LatestRev:  "100-blah",
+			NumUpdates:       100,
+			DocumentMetadata: DocumentMetadata{},
 		},
 		"doc-3": DocUpdateStatus{
-			NumUpdates: 1,
-			LatestRev:  "1-blah",
+			NumUpdates:       1,
+			DocumentMetadata: DocumentMetadata{},
 		},
 		"doc-4": DocUpdateStatus{
-			NumUpdates: 2,
-			LatestRev:  "2-blah",
+			NumUpdates:       2,
+			DocumentMetadata: DocumentMetadata{},
 		},
 	}
 	docsReadyToUpdate := getDocsReadyToUpdate(

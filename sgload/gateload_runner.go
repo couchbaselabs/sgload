@@ -13,7 +13,7 @@ type GateLoadRunner struct {
 	ReadLoadRunner
 	UpdateLoadRunner
 	GateLoadSpec GateLoadSpec
-	PushedDocs   chan []sgreplicate.DocumentRevisionPair
+	PushedDocs   chan []DocumentMetadata
 }
 
 func NewGateLoadRunner(gls GateLoadSpec) *GateLoadRunner {
@@ -43,7 +43,7 @@ func NewGateLoadRunner(gls GateLoadSpec) *GateLoadRunner {
 	// TODO: this might need to have a proper queue rather than a buffered channel.
 	// The problem with a buffered channel is that we have to pre-allocate the queue
 	// to the high water mark, whereas a queue can grow as needed
-	pushedDocsBufferedChannelSize := 100000
+	pushedDocsBufferedChannelSize := 10000
 
 	return &GateLoadRunner{
 		LoadRunner:       loadRunner,
@@ -51,7 +51,7 @@ func NewGateLoadRunner(gls GateLoadSpec) *GateLoadRunner {
 		ReadLoadRunner:   readLoadRunner,
 		UpdateLoadRunner: updateLoadRunner,
 		GateLoadSpec:     gls,
-		PushedDocs:       make(chan []sgreplicate.DocumentRevisionPair, pushedDocsBufferedChannelSize),
+		PushedDocs:       make(chan []DocumentMetadata, pushedDocsBufferedChannelSize),
 	}
 
 }
@@ -91,44 +91,33 @@ func (glr GateLoadRunner) Run() error {
 	// Start Doc Feeder
 	logger.Info("Starting docfeeder")
 	channelNames := glr.generateChannelNames()
-	writerAgentIds := getWriterAgentIds(writers)
 	writerCreds := getWriterCreds(writers)
 
-	// if not pre-allocated
-	//  - updater needs to know list of doc ids for each updater
-	//  - writer needs to know how many docs to expect
-	docsToChannelsAndWriters := createAndAssignDocs(
-		writerAgentIds,
-		channelNames,
-		glr.WriteLoadSpec.NumDocs,
-		glr.WriteLoadSpec.DocSizeBytes,
-		glr.WriteLoadSpec.TestSessionID,
-	)
-
-	// Make a copy of this map to avoid data races between updaters and writers
-	docsToChannelsAndUpdaters := createAndAssignDocs(
-		writerAgentIds,
-		channelNames,
-		glr.WriteLoadSpec.NumDocs,
-		glr.WriteLoadSpec.DocSizeBytes,
-		glr.WriteLoadSpec.TestSessionID,
-	)
-
 	// Set docs expected on writers
+	// each writer will get approximately total docs / num writers
+	approxDocsPerWriter := glr.WriteLoadSpec.NumDocs / len(writers)
+	logger.Info("Setting number of docs per writer", "docsPerWriter", approxDocsPerWriter)
 	for _, writer := range writers {
-		writer.SetExpectedDocsWritten(
-			docsToChannelsAndWriters[writer.UserCred.Username],
-		)
+		writer.SetApproxExpectedDocsWritten(approxDocsPerWriter)
 	}
 
 	// Start doc feeders
-	if err := glr.startDocFeeders(writers, docsToChannelsAndWriters); err != nil {
+	err = glr.startDocFeeders(
+		writers,
+		glr.WriteLoadSpec,
+		approxDocsPerWriter,
+		channelNames,
+	)
+	if err != nil {
 		return err
 	}
 
 	// Start updaters
 	logger.Info("Starting updaters")
-	updaterWaitGroup, _, err := glr.startUpdaters(writerCreds, docsToChannelsAndUpdaters)
+	updaterWaitGroup, _, err := glr.startUpdaters(
+		writerCreds,
+		glr.UpdateLoadSpec.NumDocs,
+	)
 	if err != nil {
 		return err
 	}
@@ -170,41 +159,19 @@ func getWriterCreds(writers []*Writer) []UserCred {
 	return writerCreds
 }
 
-func (glr GateLoadRunner) startUpdaters(agentCreds []UserCred, docsToChannelsAndWriters map[string][]Document) (*sync.WaitGroup, []*Updater, error) {
+func (glr GateLoadRunner) startUpdaters(agentCreds []UserCred, numUniqueDocsToUpdate int) (*sync.WaitGroup, []*Updater, error) {
 
 	// Create a wait group to see when all the updater goroutines have finished
 	var wg sync.WaitGroup
 
 	// Create updater goroutines
-	updaters, err := glr.createUpdaters(&wg, agentCreds, docsToChannelsAndWriters)
+	updaters, err := glr.createUpdaters(&wg, agentCreds, numUniqueDocsToUpdate, glr.PushedDocs)
 	if err != nil {
 		return nil, nil, err
 	}
 	for _, updater := range updaters {
 		go updater.Run()
 	}
-
-	// Start docUpdaterRouter that reads off of glr.PushedDocs chan
-	go func() {
-		for pushedDocRevPairs := range glr.PushedDocs {
-
-			// If we don't have any updaters consuming notifications
-			// about pushed docs, then just ignore them
-			if len(updaters) == 0 {
-				continue
-			}
-
-			for _, docRevPair := range pushedDocRevPairs {
-				// route it to appropriate updater
-				updaterAgentUsername, err := findAgentAssignedToDoc(docRevPair, docsToChannelsAndWriters)
-				if err != nil {
-					panic(fmt.Sprintf("Could not find agent for %v", docRevPair))
-				}
-				updater := findUpdaterByAgentUsername(updaters, updaterAgentUsername)
-				updater.NotifyDocsReadyToUpdate([]sgreplicate.DocumentRevisionPair{docRevPair})
-			}
-		}
-	}()
 
 	return &wg, updaters, nil
 

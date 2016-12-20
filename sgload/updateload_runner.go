@@ -37,34 +37,20 @@ func (ulr UpdateLoadRunner) Run() error {
 		return err
 	}
 
-	// Generate the mapping between docs+channels and updaters
-	channelNames := ulr.generateChannelNames()
-	updaterAgentUsernames := getUpdaterAgentUsernames(userCreds)
-
-	// pre-allocates all of the docs.  if it wasn't pre-allocated, currently what
-	// is needed to be pre-calculated is:
-	//   - the updaters need the doc ids assigned to them, but not entire docs
-	docsToChannelsAndUpdaters := createAndAssignDocs(
-		updaterAgentUsernames,
-		channelNames,
-		ulr.UpdateLoadSpec.NumDocs,
-		ulr.UpdateLoadSpec.DocSizeBytes,
-		ulr.UpdateLoadSpec.TestSessionID,
-	)
-
 	// Create updater goroutines
-	updaters, err := ulr.createUpdaters(&wg, userCreds, docsToChannelsAndUpdaters)
+	var pushedDocsChan chan []DocumentMetadata // nil channel, will probably break UpdateLoadRunner
+	updaters, err := ulr.createUpdaters(
+		&wg,
+		userCreds,
+		ulr.UpdateLoadSpec.NumDocs,
+		pushedDocsChan,
+	)
 	if err != nil {
 		return err
 	}
 	for _, updater := range updaters {
 		go updater.Run()
 	}
-
-	// Since the UpdateLoad Runner assumes that all docs have already been
-	// inserted, it simply feeds all docs to the updaters.  In the gateload
-	// scenario, the writers will be pushing these docs as they are written.
-	go ulr.feedDocsToUpdaters(updaters, docsToChannelsAndUpdaters)
 
 	// Wait for updaters to finish
 	logger.Info("Waiting for updaters to finish", "numupdaters", len(updaters))
@@ -98,7 +84,7 @@ func (ulr UpdateLoadRunner) createUserCreds() ([]UserCred, error) {
 
 }
 
-func (ulr UpdateLoadRunner) createUpdaters(wg *sync.WaitGroup, userCreds []UserCred, docMapping map[string][]Document) ([]*Updater, error) {
+func (ulr UpdateLoadRunner) createUpdaters(wg *sync.WaitGroup, userCreds []UserCred, numUniqueDocsToUpdate int, docsToUpdate <-chan []DocumentMetadata) ([]*Updater, error) {
 
 	updaters := []*Updater{}
 
@@ -106,7 +92,7 @@ func (ulr UpdateLoadRunner) createUpdaters(wg *sync.WaitGroup, userCreds []UserC
 		userCred := userCreds[userId]
 		dataStore := ulr.createDataStore()
 		dataStore.SetUserCreds(userCred)
-		docsForUpdater := docMapping[userCred.Username]
+		numUniqueDocsPerUpdater := numUniqueDocsToUpdate / ulr.UpdateLoadSpec.NumUpdaters
 
 		updater := NewUpdater(
 			AgentSpec{
@@ -116,10 +102,12 @@ func (ulr UpdateLoadRunner) createUpdaters(wg *sync.WaitGroup, userCreds []UserC
 				DataStore:             dataStore,
 				ExpvarProgressEnabled: ulr.LoadRunner.LoadSpec.ExpvarProgressEnabled,
 			},
+			numUniqueDocsPerUpdater,
 			ulr.UpdateLoadSpec.NumUpdatesPerDoc,
-			docsForUpdater,
 			ulr.UpdateLoadSpec.BatchSize,
+			ulr.UpdateLoadSpec.DocSizeBytes,
 			ulr.UpdateLoadSpec.NumRevsPerUpdate,
+			docsToUpdate,
 		)
 		updater.SetStatsdClient(ulr.StatsdClient)
 		updaters = append(updaters, updater)
@@ -132,22 +120,6 @@ func (ulr UpdateLoadRunner) createUpdaters(wg *sync.WaitGroup, userCreds []UserC
 
 func (ulr UpdateLoadRunner) generateUserCreds() []UserCred {
 	return ulr.LoadRunner.generateUserCreds(ulr.UpdateLoadSpec.NumUpdaters, USER_PREFIX_WRITER)
-}
-
-func (ulr UpdateLoadRunner) feedDocsToUpdaters(updaters []*Updater, docsToChannelsAndUpdaters map[string][]Document) error {
-
-	// Loop over doc assignment map and tell each updater to push to data store
-	for updaterAgentUsername, docsToWrite := range docsToChannelsAndUpdaters {
-		updater := findUpdaterByAgentUsername(updaters, updaterAgentUsername)
-		docRevPairs, err := updater.LookupCurrentRevisions(docsToWrite)
-		if err != nil {
-			return err
-		}
-		updater.NotifyDocsReadyToUpdate(docRevPairs)
-	}
-
-	return nil
-
 }
 
 func findUpdaterByAgentUsername(updaters []*Updater, updaterAgentUsername string) *Updater {
