@@ -117,7 +117,7 @@ func (u *Updater) Run() {
 
 				}
 			case <-time.After(time.Second * 10):
-				numExpectedUpdatesPending := u.numExpectedUpdatesPending(true)
+				numExpectedUpdatesPending := u.numExpectedUpdatesPending(false)
 				logger.Debug(
 					"Updater didn't receive anything after 10s",
 					"updater",
