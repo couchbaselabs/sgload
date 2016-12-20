@@ -1,87 +1,10 @@
 package sgload
 
-import (
-	"fmt"
-	"sync"
-)
+import "sync"
 
 type UpdateLoadRunner struct {
 	LoadRunner
 	UpdateLoadSpec UpdateLoadSpec
-}
-
-func NewUpdateLoadRunner(uls UpdateLoadSpec) *UpdateLoadRunner {
-
-	uls.MustValidate()
-
-	logger.Info("creating loadrunner", "loadspec", fmt.Sprintf("%+v", uls.LoadSpec))
-	loadRunner := LoadRunner{
-		LoadSpec: uls.LoadSpec,
-	}
-	loadRunner.CreateStatsdClient()
-
-	return &UpdateLoadRunner{
-		LoadRunner:     loadRunner,
-		UpdateLoadSpec: uls,
-	}
-}
-
-func (ulr UpdateLoadRunner) Run() error {
-
-	// Create a wait group to see when all the updater goroutines have finished
-	var wg sync.WaitGroup
-
-	// Create usercreds
-	userCreds, err := ulr.createUserCreds()
-	if err != nil {
-		return err
-	}
-
-	// Create updater goroutines
-	var pushedDocsChan chan []DocumentMetadata // nil channel, will probably break UpdateLoadRunner
-	updaters, err := ulr.createUpdaters(
-		&wg,
-		userCreds,
-		ulr.UpdateLoadSpec.NumDocs,
-		pushedDocsChan,
-	)
-	if err != nil {
-		return err
-	}
-	for _, updater := range updaters {
-		go updater.Run()
-	}
-
-	// Wait for updaters to finish
-	logger.Info("Waiting for updaters to finish", "numupdaters", len(updaters))
-	wg.Wait()
-	logger.Info("Updaters finished")
-
-	return nil
-
-}
-
-func getUpdaterAgentUsernames(userCreds []UserCred) []string {
-	updaterAgentIds := []string{}
-	for _, userCred := range userCreds {
-		updaterAgentIds = append(updaterAgentIds, userCred.Username)
-	}
-	return updaterAgentIds
-}
-
-func (ulr UpdateLoadRunner) createUserCreds() ([]UserCred, error) {
-	var userCreds []UserCred
-	var err error
-
-	userCreds, err = ulr.loadUserCredsFromArgs(
-		ulr.UpdateLoadSpec.NumUpdaters,
-		USER_PREFIX_WRITER, // re-use writer creds
-	)
-	if err != nil {
-		return userCreds, err
-	}
-	return userCreds, nil
-
 }
 
 func (ulr UpdateLoadRunner) createUpdaters(wg *sync.WaitGroup, userCreds []UserCred, numUniqueDocsToUpdate int, docsToUpdate <-chan []DocumentMetadata) ([]*Updater, error) {

@@ -74,6 +74,10 @@ func (u *Updater) Run() {
 	u.createSGUserIfNeeded([]string{"*"})
 
 	for {
+		if u.noMoreExpectedDocsToUpdate() {
+			logger.Info("Updater finished", "agent.ID", u.ID, "numdocs", u.NumUniqueDocsPerUpdater)
+			return
+		}
 
 		select {
 		case docsToUpdate := <-u.DocsToUpdate:
