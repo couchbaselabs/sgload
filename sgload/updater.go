@@ -99,10 +99,12 @@ func (u *Updater) Run() {
 
 			}
 		case <-time.After(time.Second * 1):
+			logger.Debug("Updater didn't receive anything after 1s", "updater", u.UserCred.Username)
 		}
 
 		// Grab a batch of docs that need to be updated
 		docBatch := u.getDocsReadyToUpdate()
+
 		if len(docBatch) == 0 && u.noMoreExpectedDocsToUpdate() {
 			logger.Info("Updater finished", "agent.ID", u.ID, "numdocs", u.NumUniqueDocsPerUpdater)
 			return
