@@ -1,6 +1,7 @@
 build:
   image: golang
   commands:
+    - echo $$TEST_SECRET
     - go version
     - go get -v -t
     - go build -o sgloadbinary
