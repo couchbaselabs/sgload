@@ -11,10 +11,29 @@ Load testing tool for Sync Gateway that allows flexible scenarios.   Successor t
 
 ### Run sgload
 
+**Go get sgload**
+
 ```
 $ go get -u -v github.com/couchbaselabs/sgload
-$ sgload --help
 ```
+
+**Run**
+
+```
+$ sgload gateload \
+    --createreaders \
+    --createwriters \
+    --numwriters 10000 \
+    --numupdaters 10000 \
+    --numreaders 100 \
+    --numdocs 1000000 \	
+    --numrevsperdoc 5 \
+    --batchsize 100 \
+    --numchannels 10 \
+    --sg-url http://localhost:4984/db/ 
+```
+
+For an explanation of the above command line options, and additional options supported run `sgload --help` or `sgload gateload --help`
 
 ## Architecture
 
