@@ -1,8 +1,10 @@
 build:
   image: golang
   commands:
-    - echo $$TEST_SECRET
     - go version
     - go get -v -t
     - go build -o sgloadbinary
     - go test -v ./...
+    - go get github.com/axw/gocov/gocov
+    - go get github.com/mattn/goveralls
+    - goveralls -service drone.io -repotoken $COVERALLS_TOKEN
