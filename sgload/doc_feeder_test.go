@@ -2,6 +2,7 @@ package sgload
 
 import (
 	"fmt"
+	"log"
 	"testing"
 )
 
@@ -71,6 +72,55 @@ func TestBreakIntoBatchesCount(t *testing.T) {
 	batch2 := batches[1]
 	if batch2 != 2 {
 		t.Fatalf("Expecting batch2 to have two items")
+	}
+
+}
+
+func TestBreakIntoBatchesZeroBatchSize(t *testing.T) {
+	batchSize := 0
+	totalNum := 5
+
+	batches := breakIntoBatchesCount(batchSize, totalNum)
+	if len(batches) != 5 {
+		t.Fatalf("Expecting 5 batches")
+	}
+	batch1 := batches[0]
+	if batch1 != 1 {
+		t.Fatalf("Expecting batch1 to be 1")
+	}
+}
+
+func TestFeedDocsToWriter(t *testing.T) {
+
+	writer := Writer{}
+	writeLoadSpec := WriteLoadSpec{}
+
+	docsPerWriter := 100
+	writer.BatchSize = 10 // TODO: test with smaller batch size
+	docBatches := breakIntoBatchesCount(writer.BatchSize, docsPerWriter)
+
+	// Make an outbound docs channel big enough to hold all the batches
+	bufChanSize := len(docBatches)
+	bufChanSize += 1 // terminal doc
+	writer.OutboundDocs = make(chan []Document, bufChanSize)
+
+	channelNames := []string{"ABC", "CBS"}
+	err := feedDocsToWriter(
+		&writer,
+		writeLoadSpec,
+		docsPerWriter,
+		channelNames,
+	)
+	if err != nil {
+		t.Fatalf("Got error trying to call feedDocsToWriter: %v", err)
+	}
+
+	for i := 0; i < len(docBatches); i++ {
+		docSlice := <-writer.OutboundDocs
+		log.Printf("Got docSlice %d from channel: %v", i, docSlice)
+		if len(docSlice) != writer.BatchSize {
+			t.Fatalf("Got unexpected doc slice size")
+		}
 	}
 
 }
