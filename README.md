@@ -1,9 +1,7 @@
 	
 [![Build Status](http://drone.couchbase.io/api/badges/couchbaselabs/sgload/status.svg)](http://drone.couchbase.io/couchbaselabs/sgload) [![GoDoc](https://godoc.org/github.com/couchbaselabs/sgload?status.png)](https://godoc.org/github.com/couchbaselabs/sgload) [![Go Report Card](https://goreportcard.com/badge/github.com/couchbaselabs/sgload)](https://goreportcard.com/report/github.com/couchbaselabs/sgload) [![Join the chat at https://gitter.im/couchbase/mobile](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/couchbase/discuss?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-Load testing tool for Sync Gateway intended to allow more flexible scenarios than [gateload](https://github.com/couchbaselabs/gateload) 
-
-![sgload](https://cloud.githubusercontent.com/assets/296876/18367549/8d995bf4-75d0-11e6-8d91-a0056b00346e.png)
+Load testing tool for Sync Gateway that allows flexible scenarios.   Successor to [gateload](https://github.com/couchbaselabs/gateload).
 
 ## How to run
 
@@ -18,31 +16,23 @@ $ go get -u -v github.com/couchbaselabs/sgload
 $ sgload --help
 ```
 
-To view more options, run `sgload writeload --help`
+## Architecture
 
-## Supported scenarios
+![sgload](docs/architecture.png)
 
-### Write Load
+Notes:
 
-This scenario writes documents:
-
-```
-$ sgload writeload --help
-```
-
-### Read Load (+ optional Write Load)
-
-
-By default, this scenario:
-
-* Writes documents by invoking the write load scenario
-* Reads documents
-
-However there is a way to skip the write load step an only do the read load step
-
-```
-$ sgload readload --help
-```
+* The gateload runner spawns for and waits for completion for the following goroutines
+    * DocFeeders
+    * Writers
+    * Updaters
+    * Readers
+* There is a DocFeeder goroutine for every Writer goroutine, and it continually feeds it docs until there are none left
+* Writers write docs to Sync Gateway in batches
+* After a writer writes a doc batch, it pushes these doc id's to a channel which the updaters are listening to
+* Updaters read docs from the channel shared with the writers and look for new doc id's that are ready to be updated, until they have enough docs (total docs / numupdaters)
+* Updaters keep updating docs until they have written the number of revisions specified in the `numrevsperdoc` command line argument
+* Readers are assigned a subset of the channels (and therefore docs) to pull docs from the changes feed and will continue to pull from the changes feed until all docs are seen.
 
 ## Design
 
@@ -51,19 +41,10 @@ $ sgload readload --help
 1. Can specify existing user credentials or tell the tool to create new users as needed (access to admin port required)
 1. When auto-generating users, the user id's will be unique and not interfere with subsequent runs
 
-## Open questions
+## Supported scenarios
 
-1. Not sure how many sockets the default httpclient / transport will open??  Want to simulate clients on own devices, so leaning towards more connections
-1. Any reason to use multiple http.Clients or http.Transports?
-1. Any reason to tweak MaxIdleConnections setting
-1. Each writer gets it’s own goroutine.  Should there be a cap on how many can concurrently connect to SG?
+* Gatealod (writer + updater + reader) -- this is the primary scenario
+* Writeload -- only do writes
+* Readload -- only do reads
 
-## Roadmap
-
-1. Add scenarios
-
-
-## How to add new command line args
-
-This uses [cobra](https://github.com/spf13/cobra) for managing the CLI user interface, so see the cobra docs for more info.
 
