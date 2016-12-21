@@ -46,7 +46,7 @@ Notes:
     * Writers
     * Updaters
     * Readers
-* There is a DocFeeder goroutine for every Writer goroutine, and it continually feeds it docs until there are none left
+* There is a DocFeeder goroutine created for every Writer goroutine, and it continually feeds it docs until there are none left
 * Writers write docs to Sync Gateway in batches
 * After a writer writes a doc batch, it pushes these doc id's to a channel which the updaters are listening to
 * Updaters read docs from the channel shared with the writers and look for new doc id's that are ready to be updated, until they have enough docs (total docs / numupdaters)
