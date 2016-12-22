@@ -15,6 +15,7 @@ var (
 	glCreateWriters     *bool
 	glNumRevsPerDoc     *int
 	glNumUpdaters       *int
+	glFeedType          *string
 )
 
 var gateloadCmd = &cobra.Command{
@@ -41,6 +42,7 @@ var gateloadCmd = &cobra.Command{
 			NumChansPerReader:         *glNumChansPerReader,
 			CreateReaders:             *glCreateReaders,
 			NumRevGenerationsExpected: calcNumRevGenerationsExpected(),
+			FeedType:                  sgload.ChangesFeedType(*glFeedType),
 		}
 
 		updateLoadSpec := sgload.UpdateLoadSpec{
@@ -127,6 +129,12 @@ func init() {
 		NUM_UPDATERS_CMD_NAME,
 		NUM_UPDATERS_CMD_DEFAULT,
 		NUM_UPDATERS_CMD_DESC,
+	)
+
+	glFeedType = gateloadCmd.PersistentFlags().String(
+		FEED_TYPE_CMD_NAME,
+		FEED_TYPE_CMD_DEFAULT,
+		FEED_TYPE_CMD_DESC,
 	)
 
 }

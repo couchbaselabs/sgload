@@ -15,6 +15,7 @@ var (
 	skipWriteload         *bool
 	readLoadNumWriters    *int
 	readLoadCreateWriters *bool
+	readLoadFeedType      *string
 	logger                log15.Logger
 )
 
@@ -39,6 +40,7 @@ or it can pass a test session id from a previously run write load.`,
 			CreateReaders:             *createReaders,
 			SkipWriteLoadSetup:        *skipWriteload,
 			NumRevGenerationsExpected: 1, // Expect writer to add one rev
+			FeedType:                  sgload.ChangesFeedType(*readLoadFeedType),
 		}
 
 		logger.Info("Running readload scenario", "readLoadSpec", readLoadSpec)
@@ -125,6 +127,12 @@ func init() {
 		CREATE_WRITERS_CMD_NAME,
 		CREATE_WRITERS_CMD_DEFAULT,
 		CREATE_WRITERS_CMD_DESC,
+	)
+
+	readLoadFeedType = readloadCmd.PersistentFlags().String(
+		FEED_TYPE_CMD_NAME,
+		FEED_TYPE_CMD_DEFAULT,
+		FEED_TYPE_CMD_DESC,
 	)
 
 }

@@ -15,6 +15,8 @@ type Reader struct {
 	NumRevGenerationsExpected int      // The expected generate that each doc is expected to reach
 	BatchSize                 int      // The number of docs to pull in batch (_changes feed and bulk_get)
 	lastNumRevs               int
+	feedType                  ChangesFeedType // Whether to use "feedtype=normal" or "feedtype=longpoll"
+
 }
 
 func NewReader(agentSpec AgentSpec) *Reader {
@@ -24,12 +26,17 @@ func NewReader(agentSpec AgentSpec) *Reader {
 			AgentSpec: agentSpec,
 		},
 		NumRevGenerationsExpected: 1,
+		feedType:                  FEED_TYPE_LONGPOLL,
 	}
 
 	reader.setupExpVarStats(readersProgressStats)
 
 	return &reader
 
+}
+
+func (r *Reader) SetFeedType(feedType ChangesFeedType) {
+	r.feedType = feedType
 }
 
 func (r *Reader) SetChannels(sgChannels []string) {
@@ -225,7 +232,7 @@ func (r *Reader) pullMoreDocs(since Sincer) (pullMoreDocsResult, error) {
 
 		result := pullMoreDocsResult{}
 
-		changes, newSince, err := r.DataStore.Changes(since, r.BatchSize)
+		changes, newSince, err := r.DataStore.Changes(since, r.BatchSize, r.feedType)
 		if err != nil {
 			return false, err, result
 		}
