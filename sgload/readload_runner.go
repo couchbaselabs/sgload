@@ -92,6 +92,7 @@ func (rlr ReadLoadRunner) createReaders(wg *sync.WaitGroup) ([]*Reader, error) {
 		}
 
 		reader := NewReader(agentSpec)
+		reader.SetFeedType(rlr.ReadLoadSpec.FeedType)
 		reader.SetChannels(sgChannels)
 		reader.SetBatchSize(rlr.ReadLoadSpec.BatchSize)
 		reader.SetNumDocsExpected(numDocsExpectedPerReader)

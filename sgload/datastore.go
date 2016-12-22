@@ -23,7 +23,7 @@ type DataStore interface {
 	SetUserCreds(u UserCred)
 
 	// Get all the changes since the since value
-	Changes(sinceVal Sincer, limit int) (changes sgreplicate.Changes, newSinceVal Sincer, err error)
+	Changes(sinceVal Sincer, limit int, feedType ChangesFeedType) (changes sgreplicate.Changes, newSinceVal Sincer, err error)
 
 	// Does a bulk get on docs in bulk get request, discards actual docs
 	BulkGetDocuments(sgreplicate.BulkGetRequest) ([]sgreplicate.Document, error)

@@ -30,7 +30,7 @@ func (m *MockDataStore) SetUserCreds(u UserCred) {
 	// ignore these
 }
 
-func (m MockDataStore) Changes(sinceVal Sincer, limit int) (changes sgreplicate.Changes, newSinceVal Sincer, err error) {
+func (m MockDataStore) Changes(sinceVal Sincer, limit int, feedType ChangesFeedType) (changes sgreplicate.Changes, newSinceVal Sincer, err error) {
 	return sgreplicate.Changes{}, nil, nil
 }
 

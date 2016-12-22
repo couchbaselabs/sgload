@@ -5,21 +5,23 @@ import (
 	"strings"
 )
 
-const FEED_TYPE_LONGPOLL = "longpoll"
-const FEED_TYPE_NORMAL = "normal"
+type ChangesFeedType string
+
+const FEED_TYPE_LONGPOLL = ChangesFeedType("longpoll")
+const FEED_TYPE_NORMAL = ChangesFeedType("normal")
 
 type ChangesFeedParams struct {
-	feedType            string // eg, "normal" or "longpoll"
-	limit               int    // eg, 50
-	heartbeatTimeMillis int    // eg, 300000
-	feedStyle           string // eg, "all_docs"
-	since               Sincer // eg, "3",
+	feedType            ChangesFeedType // eg, "normal" or "longpoll"
+	limit               int             // eg, 50
+	heartbeatTimeMillis int             // eg, 300000
+	feedStyle           string          // eg, "all_docs"
+	since               Sincer          // eg, "3",
 	channels            []string
 }
 
-func NewChangesFeedParams(sinceVal Sincer, limit int) *ChangesFeedParams {
+func NewChangesFeedParams(sinceVal Sincer, limit int, feedType ChangesFeedType) *ChangesFeedParams {
 	return &ChangesFeedParams{
-		feedType:            FEED_TYPE_NORMAL,
+		feedType:            feedType,
 		limit:               limit,
 		heartbeatTimeMillis: 30 * 1000,
 		feedStyle:           "all_docs",

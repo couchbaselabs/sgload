@@ -8,7 +8,9 @@ type ReadLoadSpec struct {
 	NumReaders                int
 	NumChansPerReader         int
 	NumRevGenerationsExpected int
-	SkipWriteLoadSetup        bool // By default the readload scenario runs the writeload scenario first.  If this is true, it will skip the writeload scenario.
+	SkipWriteLoadSetup        bool            // By default the readload scenario runs the writeload scenario first.  If this is true, it will skip the writeload scenario.
+	FeedType                  ChangesFeedType // "Normal" or "Longpoll"
+
 }
 
 func (rls ReadLoadSpec) Validate() error {

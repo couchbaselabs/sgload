@@ -200,14 +200,14 @@ func (s SGDataStore) sgAdminURL() (string, error) {
 
 }
 
-func (s SGDataStore) Changes(sinceVal Sincer, limit int) (changes sgreplicate.Changes, newSinceVal Sincer, err error) {
+func (s SGDataStore) Changes(sinceVal Sincer, limit int, feedType ChangesFeedType) (changes sgreplicate.Changes, newSinceVal Sincer, err error) {
 
 	changesFeedEndpoint, err := addEndpointToUrl(s.SyncGatewayUrl, "_changes")
 	if err != nil {
 		return sgreplicate.Changes{}, sinceVal, err
 	}
 
-	changesFeedParams := NewChangesFeedParams(sinceVal, limit)
+	changesFeedParams := NewChangesFeedParams(sinceVal, limit, feedType)
 
 	changesFeedUrl := fmt.Sprintf(
 		"%s?%s",
