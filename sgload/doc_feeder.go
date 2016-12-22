@@ -41,15 +41,19 @@ func createDocsToWrite(writerUsername string, docIdOffset, numDocs, docSizeBytes
 	docs := []Document{}
 
 	for docNum := 0; docNum < numDocs; docNum++ {
-		globalDocNum := docIdOffset + docNum
+
+		// This will be a monotonically incrementing doc counter that is per-writer
+		perWriterDocCounter := docIdOffset + docNum
+
 		d = map[string]interface{}{}
+
+		// Create a unique document id
 		if docIdSuffix != "" {
-			d["_id"] = fmt.Sprintf("%d-%s", globalDocNum, writerUsername)
+			d["_id"] = fmt.Sprintf("%d-%s", perWriterDocCounter, writerUsername)
 		}
-		d["docNum"] = globalDocNum // <-- needed?
 		d["bodysize"] = docSizeBytes
 		d["created_at"] = time.Now().Format(time.RFC3339Nano)
-		docs = append(docs, d)
+		docs = append(docs, Document(d))
 	}
 	return docs
 
@@ -111,6 +115,13 @@ func breakIntoBatchesCount(batchSize int, totalNum int) (batches []int) {
 
 	batches = []int{}
 
+	// Take care of special edge case -- if batchSize is 0, which is
+	// impossible, then round it up to smallest valid batch size of 1.
+	// Fixes divide by 0 error.
+	if batchSize == 0 {
+		batchSize = 1
+	}
+
 	numBatches := totalNum / batchSize
 
 	// is there residue?  if so, add one more to batch
@@ -131,5 +142,45 @@ func breakIntoBatchesCount(batchSize int, totalNum int) (batches []int) {
 	}
 
 	return batches
+
+}
+
+func feedDocsToWriter(writer *Writer, wls WriteLoadSpec, approxDocsPerWriter int, channelNames []string) error {
+
+	logger.Debug("Feeding docs to writer", "writer", writer.UserCred.Username)
+
+	docIdOffset := 0
+
+	// loop over approxDocsPerWriter and push batchSize docs until
+	// no more docs left to push
+	docBatches := breakIntoBatchesCount(writer.BatchSize, approxDocsPerWriter)
+	for _, docBatch := range docBatches {
+
+		// Create Documents
+		docsToWrite := createDocsToWrite(
+			writer.UserCred.Username,
+			docIdOffset,
+			docBatch,
+			wls.DocSizeBytes,
+			wls.TestSessionID,
+		)
+
+		// Assign Docs to Channels (adds doc["channels"] field to each doc)
+		_ = assignDocsToChannels(channelNames, docsToWrite)
+
+		writer.AddToDataStore(docsToWrite)
+
+		docIdOffset += docBatch
+
+	}
+
+	// Send terminal docs which will shutdown writers after they've
+	// processed all the normal docs
+	logger.Debug("Feeding terminal doc to writer", "writer", writer.Agent.UserCred.Username)
+	d := Document{}
+	d["_terminal"] = true
+	writer.AddToDataStore([]Document{d})
+
+	return nil
 
 }

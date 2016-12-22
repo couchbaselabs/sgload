@@ -73,7 +73,7 @@ func (wlr WriteLoadRunner) Run() error {
 func (wlr WriteLoadRunner) startDocFeeders(writers []*Writer, wls WriteLoadSpec, approxDocsPerWriter int, channelNames []string) error {
 	// Create doc feeder goroutines
 	for _, writer := range writers {
-		go wlr.feedDocsToWriter(writer, wls, approxDocsPerWriter, channelNames)
+		go feedDocsToWriter(writer, wls, approxDocsPerWriter, channelNames)
 	}
 	return nil
 }
@@ -121,46 +121,6 @@ func (wlr WriteLoadRunner) createWriters(wg *sync.WaitGroup) ([]*Writer, error) 
 
 func (wlr WriteLoadRunner) generateUserCreds() []UserCred {
 	return wlr.LoadRunner.generateUserCreds(wlr.WriteLoadSpec.NumWriters, USER_PREFIX_WRITER)
-}
-
-func (wlr WriteLoadRunner) feedDocsToWriter(writer *Writer, wls WriteLoadSpec, approxDocsPerWriter int, channelNames []string) error {
-
-	logger.Debug("Feeding docs to writer", "writer", writer.UserCred.Username)
-
-	docIdOffset := 0
-
-	// loop over approxDocsPerWriter and push batchSize docs until
-	// no more docs left to push
-	docBatches := breakIntoBatchesCount(writer.BatchSize, approxDocsPerWriter)
-	for _, docBatch := range docBatches {
-
-		// Create Documents
-		docsToWrite := createDocsToWrite(
-			writer.UserCred.Username,
-			docIdOffset,
-			docBatch,
-			wls.DocSizeBytes,
-			wls.TestSessionID,
-		)
-
-		// Assign Docs to Channels (adds doc["channels"] field to each doc)
-		_ = assignDocsToChannels(channelNames, docsToWrite)
-
-		writer.AddToDataStore(docsToWrite)
-
-		docIdOffset += docBatch
-
-	}
-
-	// Send terminal docs which will shutdown writers after they've
-	// processed all the normal docs
-	logger.Debug("Feeding terminal doc to writer", "writer", writer.Agent.UserCred.Username)
-	d := Document{}
-	d["_terminal"] = true
-	writer.AddToDataStore([]Document{d})
-
-	return nil
-
 }
 
 func findWriterByAgentUsername(writers []*Writer, writerAgentUsername string) *Writer {

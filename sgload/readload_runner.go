@@ -110,8 +110,12 @@ func (rlr ReadLoadRunner) createReaders(wg *sync.WaitGroup) ([]*Reader, error) {
 // and then multiply to get the number docs each reader is expected to pull.
 func (rlr ReadLoadRunner) numDocsExpectedPerReader() int {
 
+	// If we have 1000 docs total, and 10 channels, then there will be
+	// 100 docs per channel (1000 / 10)
 	numDocsPerChannel := rlr.ReadLoadSpec.NumDocs / rlr.ReadLoadSpec.NumChannels
 
+	// If readers are subscribed to multiple channels, then they will expect
+	// to read more documents from the changes feed
 	docsPerReader := numDocsPerChannel * rlr.ReadLoadSpec.NumChansPerReader
 
 	return docsPerReader
