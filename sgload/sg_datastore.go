@@ -579,6 +579,13 @@ func (s SGDataStore) addAuthIfNeeded(req *retryablehttp.Request) {
 }
 
 func (s SGDataStore) pushTimingStat(key string, delta time.Duration) {
+
+	logger.Debug(
+		fmt.Sprintf("Statsd timing stat for %s", key),
+		"delta",
+		delta,
+	)
+
 	s.StatsdClient.Timing(
 		statsdSampleRate,
 		key,
@@ -587,6 +594,13 @@ func (s SGDataStore) pushTimingStat(key string, delta time.Duration) {
 }
 
 func (s SGDataStore) pushCounter(key string, n int) {
+
+	logger.Debug(
+		fmt.Sprintf("Statsd counter for %s", key),
+		"n",
+		n,
+	)
+
 	s.StatsdClient.Counter(
 		statsdSampleRate,
 		key,
