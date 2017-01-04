@@ -123,7 +123,7 @@ func (r *Reader) Run() {
 		result, err = r.pullMoreDocs(since)
 		if err != nil {
 			logger.Error("Error calling pullMoreDocs", "agent.ID", r.ID, "since", since, "err", err)
-			panic(fmt.Sprintf("Error calling pullMoreDoc: %v", err))
+			panic(fmt.Sprintf("Error calling pullMoreDocs: %v", err))
 		}
 		since = result.since
 
@@ -223,7 +223,7 @@ func (r *Reader) pullMoreDocs(since Sincer) (pullMoreDocsResult, error) {
 
 	// Create a retry sleeper which controls how many times to retry
 	// and how long to wait in between retries
-	numRetries := 25
+	numRetries := 10
 	sleepMsBetweenRetry := 500
 	retrySleeper := CreateDoublingSleeperFunc(numRetries, sleepMsBetweenRetry)
 
@@ -234,14 +234,16 @@ func (r *Reader) pullMoreDocs(since Sincer) (pullMoreDocsResult, error) {
 
 		changes, newSince, err := r.DataStore.Changes(since, r.BatchSize, r.feedType)
 		if err != nil {
-			return false, err, result
+			logger.Warn("Error getting changes.  Retrying.", "error", err, "agent.ID", r.ID)
+			return true, err, result
 		}
 
 		if len(changes.Results) == 0 {
+			logger.Warn("Got empty changes.  Retrying.", "agent.ID", r.ID)
 			return true, nil, result
 		}
 		if newSince.Equals(since) {
-			logger.Warn("Since value should have changed", "agent.ID", r.ID, "since", since, "newsince", newSince)
+			logger.Warn("Since value has not changed since last _changes request.  Ignorning and retrying.", "agent.ID", r.ID, "since", since, "newsince", newSince, "changes", changes)
 			return true, nil, result
 		}
 
