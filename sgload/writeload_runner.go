@@ -99,6 +99,9 @@ func (wlr WriteLoadRunner) createWriters(wg *sync.WaitGroup) ([]*Writer, error) 
 		dataStore := wlr.createDataStore()
 		dataStore.SetUserCreds(userCred)
 
+		writerSpec := WriterSpec{
+			DelayBetweenWrites: wlr.WriteLoadSpec.DelayBetweenWrites,
+		}
 		writer := NewWriter(
 			AgentSpec{
 				FinishedWg:            wg,
@@ -108,6 +111,7 @@ func (wlr WriteLoadRunner) createWriters(wg *sync.WaitGroup) ([]*Writer, error) 
 				BatchSize:             wlr.WriteLoadSpec.BatchSize,
 				ExpvarProgressEnabled: wlr.LoadRunner.LoadSpec.ExpvarProgressEnabled,
 			},
+			writerSpec,
 		)
 		writer.SetStatsdClient(wlr.StatsdClient)
 		writer.CreateDataStoreUser = wlr.WriteLoadSpec.CreateWriters

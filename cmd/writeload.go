@@ -10,6 +10,7 @@ import (
 var (
 	numWriters    *int
 	createWriters *bool
+	writerDelayMs *int
 )
 
 // writeloadCmd respresents the writeload command
@@ -56,6 +57,12 @@ func init() {
 		CREATE_WRITERS_CMD_NAME,
 		CREATE_WRITERS_CMD_DEFAULT,
 		CREATE_WRITERS_CMD_DESC,
+	)
+
+	writerDelayMs = writeloadCmd.PersistentFlags().Int(
+		WRITER_DELAY_CMD_NAME,
+		WRITER_DELAY_CMD_DEFAULT,
+		WRITER_DELAY_CMD_DESC,
 	)
 
 }

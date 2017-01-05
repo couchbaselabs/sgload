@@ -5,13 +5,23 @@ import (
 	"time"
 )
 
+type WriterSpec struct {
+
+	// How long writers should try to delay between writes
+	// (subtracting out the time they are blocked during actual write)
+	DelayBetweenWrites time.Duration
+}
+
 type Writer struct {
 	Agent
+
+	WriterSpec
+
 	OutboundDocs chan []Document           // The Docfeeder pushes outbound docs to the writer
 	PushedDocs   chan<- []DocumentMetadata // After docs are sent, push to this channel
 }
 
-func NewWriter(agentSpec AgentSpec) *Writer {
+func NewWriter(agentSpec AgentSpec, spec WriterSpec) *Writer {
 
 	outboundDocs := make(chan []Document)
 
@@ -19,6 +29,7 @@ func NewWriter(agentSpec AgentSpec) *Writer {
 		Agent: Agent{
 			AgentSpec: agentSpec,
 		},
+		WriterSpec:   spec,
 		OutboundDocs: outboundDocs,
 	}
 
@@ -40,6 +51,8 @@ func (w *Writer) Run() {
 		select {
 		case docs := <-w.OutboundDocs:
 
+			timeBlockedDuringWrite := time.Duration(0)
+
 			switch len(docs) {
 			case 1:
 				doc := docs[0]
@@ -49,18 +62,22 @@ func (w *Writer) Run() {
 					return
 				}
 
+				timeBeforeWrite := time.Now()
 				docRevPairs, err := w.DataStore.BulkCreateDocumentsRetry([]Document{doc}, true)
 				if err != nil {
 					panic(fmt.Sprintf("Error creating doc in datastore.  Doc: %v, Err: %v", doc, err))
 				}
+				timeBlockedDuringWrite = time.Since(timeBeforeWrite)
 				w.notifyDocsPushed(docRevPairs)
 				numDocsPushed += len(docRevPairs)
 
 			default:
+				timeBeforeWrite := time.Now()
 				docRevPairs, err := w.DataStore.BulkCreateDocumentsRetry(docs, true)
 				if err != nil {
 					panic(fmt.Sprintf("Error creating docs in datastore.  Docs: %v, Err: %v", docs, err))
 				}
+				timeBlockedDuringWrite = time.Since(timeBeforeWrite)
 				w.notifyDocsPushed(docRevPairs)
 				numDocsPushed += len(docRevPairs)
 			}
@@ -76,6 +93,8 @@ func (w *Writer) Run() {
 				numDocsPushed,
 			)
 
+			w.maybeDelayBetweenWrites(timeBlockedDuringWrite)
+
 		}
 
 	}
@@ -86,6 +105,22 @@ func updateCreatedAtTimestamp(docs []Document) {
 	for _, doc := range docs {
 		doc["created_at"] = time.Now().Format(time.RFC3339Nano)
 	}
+}
+
+func (w *Writer) maybeDelayBetweenWrites(timeBlockedDuringWrite time.Duration) {
+
+	timeToSleep := w.WriterSpec.DelayBetweenWrites - timeBlockedDuringWrite
+	if timeToSleep > time.Duration(0) {
+		logger.Debug(
+			"Writer delay between writes",
+			"writer",
+			w.Agent.UserCred.Username,
+			"delay",
+			timeToSleep,
+		)
+		time.Sleep(timeToSleep)
+	}
+
 }
 
 func (w *Writer) SetApproxExpectedDocsWritten(numdocs int) {
