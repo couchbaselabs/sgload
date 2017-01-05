@@ -19,6 +19,10 @@ type Reader struct {
 
 }
 
+const (
+	CHANGES_LIMIT = 100
+)
+
 func NewReader(agentSpec AgentSpec) *Reader {
 
 	reader := Reader{
@@ -232,7 +236,7 @@ func (r *Reader) pullMoreDocs(since Sincer) (pullMoreDocsResult, error) {
 
 		result := pullMoreDocsResult{}
 
-		changes, newSince, err := r.DataStore.Changes(since, r.BatchSize, r.feedType)
+		changes, newSince, err := r.DataStore.Changes(since, CHANGES_LIMIT, r.feedType)
 		if err != nil {
 			logger.Warn("Error getting changes.  Retrying.", "error", err, "agent.ID", r.ID)
 			return true, err, result
