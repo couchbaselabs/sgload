@@ -3,12 +3,18 @@ package sgload
 import (
 	"fmt"
 	"log"
+	"time"
 )
 
 type WriteLoadSpec struct {
 	LoadSpec
+
 	CreateWriters bool // Whether or not to create users for writers
 	NumWriters    int
+
+	// How long writers should try to delay between writes
+	// (subtracting out the time they are blocked during actual write)
+	DelayBetweenWrites time.Duration
 }
 
 func (wls WriteLoadSpec) Validate() error {

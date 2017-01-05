@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/couchbaselabs/sgload/sgload"
 	"github.com/spf13/cobra"
@@ -16,6 +17,7 @@ var (
 	glNumRevsPerDoc     *int
 	glNumUpdaters       *int
 	glFeedType          *string
+	glWriterDelayMs     *int
 )
 
 var gateloadCmd = &cobra.Command{
@@ -30,10 +32,13 @@ var gateloadCmd = &cobra.Command{
 		loadSpec := createLoadSpecFromArgs()
 		sgload.SetLogLevel(loadSpec.LogLevel)
 
+		delayBetweenWrites := time.Millisecond * time.Duration(*glWriterDelayMs)
+
 		writeLoadSpec := sgload.WriteLoadSpec{
-			LoadSpec:      loadSpec,
-			NumWriters:    *glNumWriters,
-			CreateWriters: *glCreateWriters,
+			LoadSpec:           loadSpec,
+			NumWriters:         *glNumWriters,
+			CreateWriters:      *glCreateWriters,
+			DelayBetweenWrites: delayBetweenWrites,
 		}
 
 		readLoadSpec := sgload.ReadLoadSpec{
@@ -135,6 +140,12 @@ func init() {
 		FEED_TYPE_CMD_NAME,
 		FEED_TYPE_CMD_DEFAULT,
 		FEED_TYPE_CMD_DESC,
+	)
+
+	glWriterDelayMs = gateloadCmd.PersistentFlags().Int(
+		WRITER_DELAY_CMD_NAME,
+		WRITER_DELAY_CMD_DEFAULT,
+		WRITER_DELAY_CMD_DESC,
 	)
 
 }
