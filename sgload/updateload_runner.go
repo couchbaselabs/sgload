@@ -19,11 +19,12 @@ func (ulr UpdateLoadRunner) createUpdaters(wg *sync.WaitGroup, userCreds []UserC
 
 		updater := NewUpdater(
 			AgentSpec{
-				FinishedWg:            wg,
-				UserCred:              userCred,
-				ID:                    userId,
-				DataStore:             dataStore,
-				ExpvarProgressEnabled: ulr.LoadRunner.LoadSpec.ExpvarProgressEnabled,
+				FinishedWg:              wg,
+				UserCred:                userCred,
+				ID:                      userId,
+				DataStore:               dataStore,
+				ExpvarProgressEnabled:   ulr.LoadRunner.LoadSpec.ExpvarProgressEnabled,
+				MaxConcurrentCreateUser: maxConcurrentCreateUser,
 			},
 			numUniqueDocsPerUpdater,
 			ulr.UpdateLoadSpec.NumUpdatesPerDoc,
@@ -33,6 +34,7 @@ func (ulr UpdateLoadRunner) createUpdaters(wg *sync.WaitGroup, userCreds []UserC
 			docsToUpdate,
 		)
 		updater.SetStatsdClient(ulr.StatsdClient)
+		updater.SetCreateUserSemaphore(createUserSemaphore)
 		updaters = append(updaters, updater)
 		wg.Add(1)
 	}
