@@ -491,8 +491,17 @@ func (s SGDataStore) BulkGetDocuments(r sgreplicate.BulkGetRequest) ([]sgreplica
 	// Logger function that ignores any logging from the ReadBulkGetResponse method
 	loggerFunc := func(key string, format string, args ...interface{}) {}
 	documents, err := sgreplicate.ReadBulkGetResponse(resp, loggerFunc)
+
 	if len(documents) != len(r.Docs) {
-		return nil, fmt.Errorf("Expected %d docs, got %d docs", len(r.Docs), len(documents))
+		for i, doc := range r.Docs {
+			docId := doc.Id
+			logger.Error("bulk get request docs", "doc index", i, "docid", docId)
+		}
+		for i, doc := range documents {
+			docId := doc.Body["_id"]
+			logger.Error("bulk get response docs", "doc index", i, "docid", docId)
+		}
+		return nil, fmt.Errorf("BulkGetDocuments Expected %d docs, got %d docs", len(r.Docs), len(documents))
 	}
 
 	for _, doc := range documents {
