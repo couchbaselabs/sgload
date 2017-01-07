@@ -54,11 +54,12 @@ func (r *Reader) SetNumDocsExpected(n int) {
 
 func (r *Reader) SetNumRevGenerationsExpected(n int) {
 	r.NumRevGenerationsExpected = n
-	// r.ExpVarStats.Add("NumRevGenerationsExpected", int64(n))
+	totalRevsExpected := int64(r.NumDocsExpected * r.NumRevGenerationsExpected)
 	r.ExpVarStats.Add(
 		"TotalRevsExpected",
-		int64(r.NumDocsExpected*r.NumRevGenerationsExpected),
+		totalRevsExpected,
 	)
+	globalProgressStats.Add("TotalNumRevsPulledExpected", totalRevsExpected)
 
 }
 
@@ -182,6 +183,7 @@ func (r *Reader) isFinished(latestDocIdRevs map[string]int) bool {
 		"NumLatestDocIdRevs",
 		int64(delta),
 	)
+	globalProgressStats.Add("TotalNumRevsPulled", int64(delta))
 	r.lastNumRevs = numRevs
 
 	// Haven't seen all expected docs yet

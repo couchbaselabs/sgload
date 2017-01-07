@@ -6,12 +6,14 @@ var (
 	writersProgressStats  *expvar.Map
 	readersProgressStats  *expvar.Map
 	updatersProgressStats *expvar.Map
+	globalProgressStats   *expvar.Map
 )
 
 func init() {
 	writersProgressStats = expvar.NewMap("writers")
 	readersProgressStats = expvar.NewMap("readers")
 	updatersProgressStats = expvar.NewMap("updaters")
+	globalProgressStats = expvar.NewMap("sgload")
 }
 
 // Since sometimes we want to just ignore any calls to update expvarstats

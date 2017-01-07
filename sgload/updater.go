@@ -58,10 +58,12 @@ func NewUpdater(agentSpec AgentSpec, numUniqueDocsPerUpdater, numUpdatesPerDoc, 
 	)
 
 	updater.setupExpVarStats(updatersProgressStats)
+	totalUpdatesExpected := int64(numUniqueDocsPerUpdater * updater.NumUpdatesPerDocRequired)
 	updater.ExpVarStats.Add(
 		"TotalUpdatesExpected",
-		int64(numUniqueDocsPerUpdater*updater.NumUpdatesPerDocRequired),
+		totalUpdatesExpected,
 	)
+	globalProgressStats.Add("TotalNumRevUpdatesExpected", totalUpdatesExpected)
 
 	return updater
 
@@ -265,6 +267,7 @@ func (u *Updater) updateDocStatuses(docRevPairsUpdated []DocumentMetadata) {
 
 func (u *Updater) updateExpVars(docRevPairsUpdated []DocumentMetadata) {
 	u.ExpVarStats.Add("NumDocRevUpdates", int64(len(docRevPairsUpdated)))
+	globalProgressStats.Add("TotalNumRevsUpdated", int64(len(docRevPairsUpdated)))
 }
 
 func (u *Updater) getDocsReadyToUpdate() []DocumentMetadata {

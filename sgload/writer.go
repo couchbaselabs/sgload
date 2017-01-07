@@ -86,6 +86,7 @@ func (w *Writer) Run() {
 			}
 
 			w.ExpVarStats.Add("NumDocsPushed", int64(len(docs)))
+			globalProgressStats.Add("TotalNumDocsPushed", int64(len(docs)))
 			logger.Debug(
 				"Writer pushed docs",
 				"writer",
@@ -132,6 +133,7 @@ func (w *Writer) maybeDelayBetweenWrites(timeBlockedDuringWrite time.Duration) {
 
 func (w *Writer) SetApproxExpectedDocsWritten(numdocs int) {
 	w.ExpVarStats.Add("ApproxTotalDocs", int64(numdocs))
+	globalProgressStats.Add("TotalNumDocsPushedExpected", int64(numdocs))
 }
 
 func (w *Writer) notifyDocsPushed(docs []DocumentMetadata) {
