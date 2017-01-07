@@ -97,6 +97,10 @@ func (w *Writer) Run() {
 				numDocsPushed,
 			)
 
+			if timeBlockedDuringWrite > 10*time.Second {
+				logger.Warn("Writer took a while to write", "delta", timeBlockedDuringWrite, "user", w.Agent.UserCred.Username)
+			}
+
 			w.maybeDelayBetweenWrites(timeBlockedDuringWrite)
 
 		}
