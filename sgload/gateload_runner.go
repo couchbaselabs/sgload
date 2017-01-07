@@ -74,16 +74,23 @@ func (glr GateLoadRunner) Run() error {
 		glr.GateLoadSpec.NumUpdatesPerDoc,
 	)
 
+	// Create a wait group so agents can wait until all SG users
+	// have been created (better simulates gateload behavior)
+	waitForAllSGUsersCreated := glr.CreateAllSGUsersWaitGroup()
+
 	// Start Writers
 	logger.Info("Starting writers")
-	writerWaitGroup, writers, err := glr.startWriters()
+	writerWaitGroup, writers, err := glr.startWriters(
+		waitForAllSGUsersCreated,
+		glr.pushToUpdaters(),
+	)
 	if err != nil {
 		return err
 	}
 
 	// Start Readers
 	logger.Info("Starting readers")
-	readerWaitGroup, err := glr.startReaders()
+	readerWaitGroup, err := glr.startReaders(waitForAllSGUsersCreated)
 	if err != nil {
 		return err
 	}
@@ -143,6 +150,17 @@ func (glr GateLoadRunner) Run() error {
 	return nil
 }
 
+func (glr GateLoadRunner) pushToUpdaters() bool {
+	return (glr.UpdateLoadSpec.NumUpdaters > 0)
+}
+
+func (glr GateLoadRunner) CreateAllSGUsersWaitGroup() *sync.WaitGroup {
+	numAgents := glr.WriteLoadSpec.NumWriters + glr.ReadLoadSpec.NumReaders
+	wg := &sync.WaitGroup{}
+	wg.Add(numAgents)
+	return wg
+}
+
 func getWriterAgentIds(writers []*Writer) []string {
 	writerAgentIds := []string{}
 	for _, writer := range writers {
@@ -191,13 +209,13 @@ func findAgentAssignedToDoc(d sgreplicate.DocumentRevisionPair, docsToChannelsAn
 
 }
 
-func (glr GateLoadRunner) startWriters() (*sync.WaitGroup, []*Writer, error) {
+func (glr GateLoadRunner) startWriters(waitForAllSGUsersCreated *sync.WaitGroup, pushToUpdaters bool) (*sync.WaitGroup, []*Writer, error) {
 
 	// Create a wait group to see when all the writer goroutines have finished
 	wg := sync.WaitGroup{}
 
 	// Create writer goroutines
-	writers, err := glr.createWriters(&wg)
+	writers, err := glr.createWriters(&wg, waitForAllSGUsersCreated)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -207,28 +225,25 @@ func (glr GateLoadRunner) startWriters() (*sync.WaitGroup, []*Writer, error) {
 		// Whenever a writers writes a doc, it pushes the doc/rev pair to
 		// this channel which gives the updater the green light to
 		// start updating it.
-		writer.PushedDocs = glr.PushedDocs
-
-		writer.createWriterSGUserIfNeeded()
-
+		if pushToUpdaters {
+			writer.PushedDocs = glr.PushedDocs
+		}
 		go writer.Run()
 	}
 
 	return &wg, writers, nil
 }
 
-func (glr GateLoadRunner) startReaders() (*sync.WaitGroup, error) {
+func (glr GateLoadRunner) startReaders(waitForAllSGUsersCreated *sync.WaitGroup) (*sync.WaitGroup, error) {
 
 	wg := sync.WaitGroup{}
 
 	// Create reader goroutines
-	readers, err := glr.createReaders(&wg)
+	readers, err := glr.createReaders(&wg, waitForAllSGUsersCreated)
 	if err != nil {
 		return nil, fmt.Errorf("Error creating readers: %v", err)
 	}
 	for _, reader := range readers {
-
-		reader.createReaderSGUserIfNeeded()
 
 		go reader.Run()
 	}

@@ -19,6 +19,7 @@ type Writer struct {
 
 	OutboundDocs chan []Document           // The Docfeeder pushes outbound docs to the writer
 	PushedDocs   chan<- []DocumentMetadata // After docs are sent, push to this channel
+
 }
 
 func NewWriter(agentSpec AgentSpec, spec WriterSpec) *Writer {
@@ -45,6 +46,8 @@ func (w *Writer) Run() {
 	numDocsPushed := 0
 
 	w.createWriterSGUserIfNeeded()
+
+	w.waitUntilAllSGUsersCreated()
 
 	for {
 
