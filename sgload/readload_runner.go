@@ -36,8 +36,12 @@ func (rlr ReadLoadRunner) Run() error {
 	// Create a wait group to see when all the reader goroutines have finished
 	var wg sync.WaitGroup
 
+	// Create a wait group to allow agents to wait until all SG users are created.
+	AllSGUsersCreated := &sync.WaitGroup{}
+	AllSGUsersCreated.Add(rlr.ReadLoadSpec.NumReaders)
+
 	// Create reader goroutines
-	readers, err := rlr.createReaders(&wg)
+	readers, err := rlr.createReaders(&wg, AllSGUsersCreated)
 	if err != nil {
 		return fmt.Errorf("Error creating readers: %v", err)
 	}
@@ -54,7 +58,7 @@ func (rlr ReadLoadRunner) Run() error {
 
 }
 
-func (rlr ReadLoadRunner) createReaders(wg *sync.WaitGroup) ([]*Reader, error) {
+func (rlr ReadLoadRunner) createReaders(wg, AllSGUsersCreated *sync.WaitGroup) ([]*Reader, error) {
 
 	readers := []*Reader{}
 	var userCreds []UserCred
@@ -90,6 +94,7 @@ func (rlr ReadLoadRunner) createReaders(wg *sync.WaitGroup) ([]*Reader, error) {
 			BatchSize:               rlr.ReadLoadSpec.BatchSize,
 			ExpvarProgressEnabled:   rlr.LoadRunner.LoadSpec.ExpvarProgressEnabled,
 			MaxConcurrentCreateUser: maxConcurrentCreateUser,
+			AllSGUsersCreated:       AllSGUsersCreated,
 		}
 
 		reader := NewReader(agentSpec)

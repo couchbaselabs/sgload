@@ -34,8 +34,11 @@ func (wlr WriteLoadRunner) Run() error {
 	// Create a wait group to see when all the writer goroutines have finished
 	var wg sync.WaitGroup
 
+	AllSGUsersCreated := &sync.WaitGroup{}
+	AllSGUsersCreated.Add(wlr.WriteLoadSpec.NumWriters)
+
 	// Create writers
-	writers, err := wlr.createWriters(&wg)
+	writers, err := wlr.createWriters(&wg, AllSGUsersCreated)
 	if err != nil {
 		return err
 	}
@@ -78,7 +81,7 @@ func (wlr WriteLoadRunner) startDocFeeders(writers []*Writer, wls WriteLoadSpec,
 	return nil
 }
 
-func (wlr WriteLoadRunner) createWriters(wg *sync.WaitGroup) ([]*Writer, error) {
+func (wlr WriteLoadRunner) createWriters(wg, AllSGUsersCreated *sync.WaitGroup) ([]*Writer, error) {
 
 	writers := []*Writer{}
 	var userCreds []UserCred
@@ -111,6 +114,7 @@ func (wlr WriteLoadRunner) createWriters(wg *sync.WaitGroup) ([]*Writer, error) 
 				BatchSize:               wlr.WriteLoadSpec.BatchSize,
 				ExpvarProgressEnabled:   wlr.LoadRunner.LoadSpec.ExpvarProgressEnabled,
 				MaxConcurrentCreateUser: maxConcurrentCreateUser,
+				AllSGUsersCreated:       AllSGUsersCreated,
 			},
 			writerSpec,
 		)

@@ -117,6 +117,8 @@ func (r *Reader) Run() {
 
 	r.createReaderSGUserIfNeeded()
 
+	r.waitUntilAllSGUsersCreated()
+
 	timeStartedCreatingDocs = time.Now()
 
 	for {

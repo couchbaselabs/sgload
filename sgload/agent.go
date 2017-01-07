@@ -18,12 +18,13 @@ var (
 type AgentSpec struct {
 	FinishedWg *sync.WaitGroup // Allows interested party to block until agent is done
 	UserCred
-	ID                      int       // The numeric ID of the writer (ephemeral, only stored in memory)
-	CreateDataStoreUser     bool      // Whether this writer must first create a user on the DataStore service, ot just assume it already exists
-	DataStore               DataStore // The target data store where docs will be written
-	BatchSize               int       // bulk_get or bulk_docs batch size
-	ExpvarProgressEnabled   bool      // Whether to publish reader/writer/updater progress to expvars
-	MaxConcurrentCreateUser int       // The maximum number of concurrent outstanding createuser requests.  0 means no maximum
+	ID                      int             // The numeric ID of the writer (ephemeral, only stored in memory)
+	CreateDataStoreUser     bool            // Whether this writer must first create a user on the DataStore service, ot just assume it already exists
+	DataStore               DataStore       // The target data store where docs will be written
+	BatchSize               int             // bulk_get or bulk_docs batch size
+	ExpvarProgressEnabled   bool            // Whether to publish reader/writer/updater progress to expvars
+	MaxConcurrentCreateUser int             // The maximum number of concurrent outstanding createuser requests.  0 means no maximum
+	AllSGUsersCreated       *sync.WaitGroup // Wait Group to allow waiting until all SG users created before applying load
 }
 
 // Contains common fields and functionality between readers and writers
@@ -63,6 +64,12 @@ func (a *Agent) createSGUserIfNeeded(channels []string) {
 
 	a.CreatedSGUser = true
 
+	a.AllSGUsersCreated.Done()
+
+}
+
+func (a *Agent) waitUntilAllSGUsersCreated() {
+	a.AllSGUsersCreated.Wait()
 }
 
 func (a *Agent) SetStatsdClient(statsdClient g2s.Statter) {
