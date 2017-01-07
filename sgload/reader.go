@@ -115,7 +115,7 @@ func (r *Reader) Run() {
 		)
 	}()
 
-	r.createSGUserIfNeeded(r.SGChannels)
+	r.createReaderSGUserIfNeeded()
 
 	timeStartedCreatingDocs = time.Now()
 
@@ -154,6 +154,10 @@ func (r *Reader) Run() {
 
 	}
 
+}
+
+func (r *Reader) createReaderSGUserIfNeeded() {
+	r.createSGUserIfNeeded(r.SGChannels)
 }
 
 func getNumRevs(latestDocIdRevs map[string]int) int {

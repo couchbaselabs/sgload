@@ -44,7 +44,7 @@ func (w *Writer) Run() {
 
 	numDocsPushed := 0
 
-	w.createSGUserIfNeeded([]string{"*"})
+	w.createWriterSGUserIfNeeded()
 
 	for {
 
@@ -99,6 +99,10 @@ func (w *Writer) Run() {
 
 	}
 
+}
+
+func (w *Writer) createWriterSGUserIfNeeded() {
+	w.createSGUserIfNeeded([]string{"*"})
 }
 
 func updateCreatedAtTimestamp(docs []Document) {

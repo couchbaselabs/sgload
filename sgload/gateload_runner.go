@@ -209,6 +209,8 @@ func (glr GateLoadRunner) startWriters() (*sync.WaitGroup, []*Writer, error) {
 		// start updating it.
 		writer.PushedDocs = glr.PushedDocs
 
+		writer.createWriterSGUserIfNeeded()
+
 		go writer.Run()
 	}
 
@@ -225,6 +227,9 @@ func (glr GateLoadRunner) startReaders() (*sync.WaitGroup, error) {
 		return nil, fmt.Errorf("Error creating readers: %v", err)
 	}
 	for _, reader := range readers {
+
+		reader.createReaderSGUserIfNeeded()
+
 		go reader.Run()
 	}
 

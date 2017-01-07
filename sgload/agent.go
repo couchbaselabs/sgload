@@ -32,29 +32,36 @@ type Agent struct {
 	StatsdClient        g2s.Statter          // The statsd client instance to use to push stats to statdsd
 	ExpVarStats         ExpVarStatsCollector // The expvar progress stats map for this agent
 	CreateUserSemaphore *semaphore.Semaphore // Semaphore to ensure max # of concrrent createuser requests
+	CreatedSGUser       bool                 // State to track whether SG user has already been created
 }
 
 func (a *Agent) createSGUserIfNeeded(channels []string) {
 
-	if a.CreateDataStoreUser == true {
+	if a.CreateDataStoreUser != true {
+		return
+	}
 
-		logger.Info("Creating SG user", "username", a.UserCred.Username, "channels", channels)
+	if a.CreatedSGUser == true {
+		return
+	}
 
-		if a.MaxConcurrentCreateUser > 0 {
+	if a.MaxConcurrentCreateUser > 0 {
 
-			// grab semaphore (or block)
-			a.CreateUserSemaphore.Acquire()
+		// grab semaphore (or block)
+		a.CreateUserSemaphore.Acquire()
 
-			// defer release semaphore
-			defer a.CreateUserSemaphore.Release()
-
-		}
-
-		if err := a.DataStore.CreateUser(a.UserCred, channels); err != nil {
-			panic(fmt.Sprintf("Error creating user in datastore.  User: %v, Err: %v", a.UserCred, err))
-		}
+		// defer release semaphore
+		defer a.CreateUserSemaphore.Release()
 
 	}
+
+	logger.Info("Creating SG user", "username", a.UserCred.Username, "channels", channels)
+
+	if err := a.DataStore.CreateUser(a.UserCred, channels); err != nil {
+		panic(fmt.Sprintf("Error creating user in datastore.  User: %v, Err: %v", a.UserCred, err))
+	}
+
+	a.CreatedSGUser = true
 
 }
 
