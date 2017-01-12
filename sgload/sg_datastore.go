@@ -460,9 +460,14 @@ func (s SGDataStore) BulkGetDocuments(r sgreplicate.BulkGetRequest) ([]sgreplica
 		return nil, err
 	}
 
+	bulkGetEndpoint = fmt.Sprintf(
+		"%s?revs=true&attachments=true",
+		bulkGetEndpoint,
+	)
+
 	bulkGetBytes, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("BulkGetDocuemnts failed to marshal request: %v", err)
+		return nil, fmt.Errorf("BulkGetDocuments failed to marshal request: %v", err)
 	}
 
 	buf := bytes.NewReader(bulkGetBytes)

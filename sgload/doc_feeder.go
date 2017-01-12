@@ -13,25 +13,14 @@ type DocumentMetadata struct {
 }
 
 // Assigns docs to channels with as even of a distribution as possible.
-func assignDocsToChannels(channelNames []string, inputDocs []Document) []Document {
+func assignDocsToChannels(docsToWrite []Document, channelToDocMapping []uint16, channelNames []string) {
 
-	docs := []Document{}
-
-	if len(channelNames) > len(inputDocs) {
-		panic(fmt.Sprintf("Num chans (%d) must be LTE to num docs (%d)", len(channelNames), len(inputDocs)))
+	for _, doc := range docsToWrite {
+		perWriterDocCounter := doc["per_writer_doc_counter"].(int)
+		channelIndex := channelToDocMapping[perWriterDocCounter]
+		channelName := channelNames[channelIndex]
+		doc["channels"] = []string{channelName}
 	}
-	if len(channelNames) == 0 {
-		panic(fmt.Sprintf("Cannot call assignDocsToChannels with empty channelNames"))
-	}
-
-	for docNum, inputDoc := range inputDocs {
-		chanIndex := docNum % len(channelNames)
-		channelName := channelNames[chanIndex]
-		inputDoc["channels"] = []string{channelName}
-		docs = append(docs, inputDoc)
-	}
-
-	return docs
 
 }
 
@@ -46,11 +35,11 @@ func createDocsToWrite(writerUsername string, docIdOffset, numDocs, docSizeBytes
 		perWriterDocCounter := docIdOffset + docNum
 
 		d = map[string]interface{}{}
-
 		// Create a unique document id
 		if docIdSuffix != "" {
 			d["_id"] = fmt.Sprintf("%d-%s", perWriterDocCounter, writerUsername)
 		}
+		d["per_writer_doc_counter"] = perWriterDocCounter
 		d["bodysize"] = docSizeBytes
 		d["created_at"] = time.Now().Format(time.RFC3339Nano)
 		docs = append(docs, Document(d))
@@ -149,6 +138,8 @@ func feedDocsToWriter(writer *Writer, wls WriteLoadSpec, approxDocsPerWriter int
 
 	logger.Debug("Feeding docs to writer", "writer", writer.UserCred.Username)
 
+	channelToDocMapping := getChannelToDocMapping(approxDocsPerWriter, channelNames)
+
 	docIdOffset := 0
 
 	// loop over approxDocsPerWriter and push batchSize docs until
@@ -166,7 +157,11 @@ func feedDocsToWriter(writer *Writer, wls WriteLoadSpec, approxDocsPerWriter int
 		)
 
 		// Assign Docs to Channels (adds doc["channels"] field to each doc)
-		_ = assignDocsToChannels(channelNames, docsToWrite)
+		assignDocsToChannels(
+			docsToWrite,
+			channelToDocMapping,
+			channelNames,
+		)
 
 		writer.AddToDataStore(docsToWrite)
 
@@ -184,3 +179,30 @@ func feedDocsToWriter(writer *Writer, wls WriteLoadSpec, approxDocsPerWriter int
 	return nil
 
 }
+
+func getChannelToDocMapping(approxDocsPerWriter int, channelNames []string) []uint16 {
+
+	// Prevent integer overflow on the uint16 based channel indexes
+	if len(channelNames) > 65535 {
+		panic(fmt.Sprintf("Does not support this many channels"))
+	}
+
+	channelToDocMapping := make([]uint16, approxDocsPerWriter)
+
+	for docIndex := 0; docIndex < len(channelToDocMapping); docIndex += 1 {
+		chanIndex := docIndex % len(channelNames)
+		channelToDocMapping[docIndex] = uint16(chanIndex)
+	}
+
+	return channelToDocMapping
+
+}
+
+/*
+type ChannelToDoc struct {
+
+
+	docsBitSet uint64
+
+}
+*/
