@@ -187,22 +187,25 @@ func getChannelToDocMapping(approxDocsPerWriter int, channelNames []string) []ui
 		panic(fmt.Sprintf("Does not support this many channels"))
 	}
 
+	// Make sure number docs divide into channels evenly
+	remainder := approxDocsPerWriter % len(channelNames)
+	if remainder != 0 {
+		panic(fmt.Sprintf("Numdocs (%d) does not divide into num channels evenly (%d)", approxDocsPerWriter, len(channelNames)))
+	}
+
 	channelToDocMapping := make([]uint16, approxDocsPerWriter)
 
 	for docIndex := 0; docIndex < len(channelToDocMapping); docIndex += 1 {
+
+		// old way, was too predictable
 		chanIndex := docIndex % len(channelNames)
+
+		// chanIndex := rand.Intn(len(channelNames))
+
 		channelToDocMapping[docIndex] = uint16(chanIndex)
+
 	}
 
 	return channelToDocMapping
 
 }
-
-/*
-type ChannelToDoc struct {
-
-
-	docsBitSet uint64
-
-}
-*/

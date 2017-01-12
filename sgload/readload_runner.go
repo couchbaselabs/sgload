@@ -126,6 +126,8 @@ func (rlr ReadLoadRunner) numDocsExpectedPerReader() int {
 	// to read more documents from the changes feed
 	docsPerReader := numDocsPerChannel * rlr.ReadLoadSpec.NumChansPerReader
 
+	logger.Debug("DocsPerReader", "DocsPerReader", docsPerReader)
+
 	return docsPerReader
 
 }

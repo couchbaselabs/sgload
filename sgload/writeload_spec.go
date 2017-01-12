@@ -25,6 +25,13 @@ func (wls WriteLoadSpec) Validate() error {
 	if err := wls.LoadSpec.Validate(); err != nil {
 		return err
 	}
+
+	// the number of docs has to divide into the number of channels evenly
+	remainder := wls.NumDocs % wls.NumChannels
+	if remainder != 0 {
+		return fmt.Errorf("Numdocs (%d) does not divide into num channels evenly (%d)", wls.NumDocs, wls.NumChannels)
+	}
+
 	return nil
 }
 

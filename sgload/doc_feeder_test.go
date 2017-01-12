@@ -131,6 +131,8 @@ func TestGetChannelToDocMapping(t *testing.T) {
 		"ABC",
 		"CBS",
 		"CNN",
+		"NBC",
+		"FOX",
 	}
 	channelToDocMapping := getChannelToDocMapping(numDocs, channelNames)
 	if len(channelToDocMapping) != numDocs {
@@ -139,6 +141,9 @@ func TestGetChannelToDocMapping(t *testing.T) {
 	numAbc := 0
 	numCbs := 0
 	numCnn := 0
+	numNbc := 0
+	numFox := 0
+
 	for _, chanIndex := range channelToDocMapping {
 		log.Printf("chanIndex: %d", chanIndex)
 		switch chanIndex {
@@ -148,18 +153,26 @@ func TestGetChannelToDocMapping(t *testing.T) {
 			numCbs += 1
 		case 2:
 			numCnn += 1
+		case 3:
+			numNbc += 1
+		case 4:
+			numFox += 1
 		}
 	}
 	if numAbc == 0 || numCbs == 0 || numCnn == 0 {
 		t.Fatalf("Unexpected channel distribution")
 	}
 	log.Printf("numAbc: %d numCbs: %d numCnn: %d", numAbc, numCbs, numCnn)
-	if absolute(numAbc-numCbs) > 5 {
+	if absolute(numAbc-numCbs) > 0 {
 		t.Fatalf("Unexpected channel distribution")
 	}
-	if absolute(numCbs-numCnn) > 5 {
+	if absolute(numCbs-numCnn) > 0 {
 		t.Fatalf("Unexpected channel distribution")
 	}
+	if absolute(numCnn-numFox) > 0 {
+		t.Fatalf("Unexpected channel distribution")
+	}
+
 }
 
 func generateAgentIds(numAgents int) []string {
