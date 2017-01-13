@@ -2,6 +2,7 @@ package sgload
 
 import (
 	"fmt"
+	"math/rand"
 	"time"
 
 	sgreplicate "github.com/couchbaselabs/sg-replicate"
@@ -193,17 +194,60 @@ func getChannelToDocMapping(approxDocsPerWriter int, channelNames []string) []ui
 		panic(fmt.Sprintf("Numdocs (%d) does not divide into num channels evenly (%d)", approxDocsPerWriter, len(channelNames)))
 	}
 
+	desiredNumDocsPerChannel := approxDocsPerWriter / len(channelNames)
+	logger.Debug(fmt.Sprintf("Desired num docs per channel: %d", desiredNumDocsPerChannel))
+
+	docsPerChannel := map[int]int{}
+
 	channelToDocMapping := make([]uint16, approxDocsPerWriter)
 
-	for docIndex := 0; docIndex < len(channelToDocMapping); docIndex += 1 {
+	for docIndex := 0; docIndex < approxDocsPerWriter; docIndex += 1 {
 
 		// old way, was too predictable
-		chanIndex := docIndex % len(channelNames)
+		// chanIndex := docIndex % len(channelNames)
 
-		// chanIndex := rand.Intn(len(channelNames))
+		foundChannel := false
+		chanIndex := -1
+
+		for {
+
+			chanIndex = rand.Intn(len(channelNames))
+
+			numDocsInChannelSoFar := docsPerChannel[chanIndex]
+
+			if numDocsInChannelSoFar > desiredNumDocsPerChannel {
+				panic(fmt.Sprintf("Added too many docs to channel"))
+			}
+			if numDocsInChannelSoFar == desiredNumDocsPerChannel {
+				// lets try a different channel
+				continue
+			}
+
+			docsPerChannel[chanIndex] = numDocsInChannelSoFar + 1
+
+			foundChannel = true
+
+			// Since we got a channel, we're done
+			break
+
+		}
+
+		// Should never happen, but just in case we can't find a channel
+		// to assign doc to, panic
+		if !foundChannel {
+			panic(fmt.Sprintf("Could not assign doc to channel"))
+		}
 
 		channelToDocMapping[docIndex] = uint16(chanIndex)
 
+	}
+
+	// Verify each channel has expected number of docs
+	logger.Debug(fmt.Sprintf("docsPerChannel: %v", docsPerChannel))
+	for chanIndex, numDocs := range docsPerChannel {
+		if numDocs != desiredNumDocsPerChannel {
+			panic(fmt.Sprintf("Channel %s has %d docs, but should have %d docs", channelNames[chanIndex], numDocs, desiredNumDocsPerChannel))
+		}
 	}
 
 	return channelToDocMapping

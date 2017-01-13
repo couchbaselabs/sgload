@@ -145,7 +145,7 @@ func TestGetChannelToDocMapping(t *testing.T) {
 	numFox := 0
 
 	for _, chanIndex := range channelToDocMapping {
-		log.Printf("chanIndex: %d", chanIndex)
+		// log.Printf("chanIndex: %d", chanIndex)
 		switch chanIndex {
 		case 0:
 			numAbc += 1
@@ -162,7 +162,9 @@ func TestGetChannelToDocMapping(t *testing.T) {
 	if numAbc == 0 || numCbs == 0 || numCnn == 0 {
 		t.Fatalf("Unexpected channel distribution")
 	}
-	log.Printf("numAbc: %d numCbs: %d numCnn: %d", numAbc, numCbs, numCnn)
+
+	log.Printf("numAbc: %d numCbs: %d numCnn: %d numNbc: %d numFox: %d", numAbc, numCbs, numCnn, numNbc, numFox)
+
 	if absolute(numAbc-numCbs) > 0 {
 		t.Fatalf("Unexpected channel distribution")
 	}
