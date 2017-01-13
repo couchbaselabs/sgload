@@ -158,7 +158,7 @@ func (w *Writer) AddToDataStore(docs []Document) {
 	switch w.BatchSize {
 	case 1:
 		for _, doc := range docs {
-			logger.Debug("Push single doc to writer", "writer", w.UserCred.Username)
+			logger.Debug("Push single doc to writer", "writer", w.UserCred.Username, "channels", doc["channels"])
 			w.OutboundDocs <- []Document{doc}
 		}
 

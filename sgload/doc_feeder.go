@@ -2,6 +2,7 @@ package sgload
 
 import (
 	"fmt"
+	"math/rand"
 	"time"
 
 	sgreplicate "github.com/couchbaselabs/sg-replicate"
@@ -13,25 +14,14 @@ type DocumentMetadata struct {
 }
 
 // Assigns docs to channels with as even of a distribution as possible.
-func assignDocsToChannels(channelNames []string, inputDocs []Document) []Document {
+func assignDocsToChannels(docsToWrite []Document, channelToDocMapping []uint16, channelNames []string) {
 
-	docs := []Document{}
-
-	if len(channelNames) > len(inputDocs) {
-		panic(fmt.Sprintf("Num chans (%d) must be LTE to num docs (%d)", len(channelNames), len(inputDocs)))
+	for _, doc := range docsToWrite {
+		perWriterDocCounter := doc["per_writer_doc_counter"].(int)
+		channelIndex := channelToDocMapping[perWriterDocCounter]
+		channelName := channelNames[channelIndex]
+		doc["channels"] = []string{channelName}
 	}
-	if len(channelNames) == 0 {
-		panic(fmt.Sprintf("Cannot call assignDocsToChannels with empty channelNames"))
-	}
-
-	for docNum, inputDoc := range inputDocs {
-		chanIndex := docNum % len(channelNames)
-		channelName := channelNames[chanIndex]
-		inputDoc["channels"] = []string{channelName}
-		docs = append(docs, inputDoc)
-	}
-
-	return docs
 
 }
 
@@ -46,11 +36,11 @@ func createDocsToWrite(writerUsername string, docIdOffset, numDocs, docSizeBytes
 		perWriterDocCounter := docIdOffset + docNum
 
 		d = map[string]interface{}{}
-
 		// Create a unique document id
 		if docIdSuffix != "" {
 			d["_id"] = fmt.Sprintf("%d-%s", perWriterDocCounter, writerUsername)
 		}
+		d["per_writer_doc_counter"] = perWriterDocCounter
 		d["bodysize"] = docSizeBytes
 		d["created_at"] = time.Now().Format(time.RFC3339Nano)
 		docs = append(docs, Document(d))
@@ -149,6 +139,8 @@ func feedDocsToWriter(writer *Writer, wls WriteLoadSpec, approxDocsPerWriter int
 
 	logger.Debug("Feeding docs to writer", "writer", writer.UserCred.Username)
 
+	channelToDocMapping := getChannelToDocMapping(approxDocsPerWriter, channelNames)
+
 	docIdOffset := 0
 
 	// loop over approxDocsPerWriter and push batchSize docs until
@@ -166,7 +158,11 @@ func feedDocsToWriter(writer *Writer, wls WriteLoadSpec, approxDocsPerWriter int
 		)
 
 		// Assign Docs to Channels (adds doc["channels"] field to each doc)
-		_ = assignDocsToChannels(channelNames, docsToWrite)
+		assignDocsToChannels(
+			docsToWrite,
+			channelToDocMapping,
+			channelNames,
+		)
 
 		writer.AddToDataStore(docsToWrite)
 
@@ -182,5 +178,79 @@ func feedDocsToWriter(writer *Writer, wls WriteLoadSpec, approxDocsPerWriter int
 	writer.AddToDataStore([]Document{d})
 
 	return nil
+
+}
+
+// This assigns each doc in entire docset to a channel index (index into channels names slice)
+// in an efficient manner.  The length of the returned slice is equal to the number
+// of docs in the docset, and contains the index of the channel the doc belongs in
+// (docs can only be in exactly one channel)
+func getChannelToDocMapping(approxDocsPerWriter int, channelNames []string) []uint16 {
+
+	// Prevent integer overflow on the uint16 based channel indexes
+	if len(channelNames) > 65535 {
+		panic(fmt.Sprintf("Does not support this many channels"))
+	}
+
+	// Make sure number docs divide into channels evenly
+	remainder := approxDocsPerWriter % len(channelNames)
+	if remainder != 0 {
+		panic(fmt.Sprintf("Numdocs (%d) does not divide into num channels evenly (%d)", approxDocsPerWriter, len(channelNames)))
+	}
+
+	desiredNumDocsPerChannel := approxDocsPerWriter / len(channelNames)
+	logger.Debug(fmt.Sprintf("Desired num docs per channel: %d", desiredNumDocsPerChannel))
+
+	docsPerChannel := map[int]int{}
+
+	channelToDocMapping := make([]uint16, approxDocsPerWriter)
+
+	for docIndex := 0; docIndex < approxDocsPerWriter; docIndex += 1 {
+
+		foundChannel := false
+		chanIndex := -1
+
+		for {
+
+			chanIndex = rand.Intn(len(channelNames))
+
+			numDocsInChannelSoFar := docsPerChannel[chanIndex]
+
+			if numDocsInChannelSoFar > desiredNumDocsPerChannel {
+				panic(fmt.Sprintf("Added too many docs to channel"))
+			}
+			if numDocsInChannelSoFar == desiredNumDocsPerChannel {
+				// lets try a different channel
+				continue
+			}
+
+			docsPerChannel[chanIndex] = numDocsInChannelSoFar + 1
+
+			foundChannel = true
+
+			// Since we got a channel, we're done
+			break
+
+		}
+
+		// Should never happen, but just in case we can't find a channel
+		// to assign doc to, panic
+		if !foundChannel {
+			panic(fmt.Sprintf("Could not assign doc to channel"))
+		}
+
+		channelToDocMapping[docIndex] = uint16(chanIndex)
+
+	}
+
+	// Verify each channel has expected number of docs
+	logger.Debug(fmt.Sprintf("docsPerChannel: %v", docsPerChannel))
+	for chanIndex, numDocs := range docsPerChannel {
+		if numDocs != desiredNumDocsPerChannel {
+			panic(fmt.Sprintf("Channel %s has %d docs, but should have %d docs", channelNames[chanIndex], numDocs, desiredNumDocsPerChannel))
+		}
+	}
+
+	return channelToDocMapping
 
 }

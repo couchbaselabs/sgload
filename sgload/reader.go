@@ -132,12 +132,6 @@ func (r *Reader) Run() {
 			logger.Error("Error calling pullMoreDocs", "agent.ID", r.ID, "since", since, "err", err)
 			panic(fmt.Sprintf("Error calling pullMoreDocs: %v", err))
 		}
-		since = result.since
-
-		err = storeLatestDocRev(latestDocIdRevs, result)
-		if err != nil {
-			panic(fmt.Sprintf("Error geting the latest docs and revisions: %v", err))
-		}
 
 		if len(result.uniqueDocIds) > 0 {
 			logger.Debug(
@@ -152,7 +146,19 @@ func (r *Reader) Run() {
 				r.NumDocsExpected,
 				"numRevGenerationsExpected",
 				r.NumRevGenerationsExpected,
+				"req since",
+				since,
+				"new since",
+				result.since,
 			)
+		}
+
+		// Increment the since so that it's used on the next changes feed request
+		since = result.since
+
+		err = storeLatestDocRev(latestDocIdRevs, result)
+		if err != nil {
+			panic(fmt.Sprintf("Error geting the latest docs and revisions: %v", err))
 		}
 
 	}
