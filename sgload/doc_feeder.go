@@ -181,6 +181,10 @@ func feedDocsToWriter(writer *Writer, wls WriteLoadSpec, approxDocsPerWriter int
 
 }
 
+// This assigns each doc in entire docset to a channel index (index into channels names slice)
+// in an efficient manner.  The length of the returned slice is equal to the number
+// of docs in the docset, and contains the index of the channel the doc belongs in
+// (docs can only be in exactly one channel)
 func getChannelToDocMapping(approxDocsPerWriter int, channelNames []string) []uint16 {
 
 	// Prevent integer overflow on the uint16 based channel indexes
@@ -202,9 +206,6 @@ func getChannelToDocMapping(approxDocsPerWriter int, channelNames []string) []ui
 	channelToDocMapping := make([]uint16, approxDocsPerWriter)
 
 	for docIndex := 0; docIndex < approxDocsPerWriter; docIndex += 1 {
-
-		// old way, was too predictable
-		// chanIndex := docIndex % len(channelNames)
 
 		foundChannel := false
 		chanIndex := -1
