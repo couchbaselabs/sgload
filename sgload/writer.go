@@ -110,6 +110,7 @@ func (w *Writer) Run() {
 }
 
 func (w *Writer) createWriterSGUserIfNeeded() {
+	defer globalProgressStats.Add("NumWriterUsers", 1)
 	w.createSGUserIfNeeded([]string{"*"})
 }
 
