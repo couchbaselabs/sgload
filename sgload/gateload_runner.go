@@ -214,6 +214,10 @@ func (glr GateLoadRunner) startWriters(waitForAllSGUsersCreated *sync.WaitGroup,
 	// Create a wait group to see when all the writer goroutines have finished
 	wg := sync.WaitGroup{}
 
+	globalProgressStats.Add("TotalNumWriterUsers", int64(glr.WriteLoadSpec.NumWriters))
+	globalProgressStats.Add("NumWriterUsers", 0)
+
+
 	// Create writer goroutines
 	writers, err := glr.createWriters(&wg, waitForAllSGUsersCreated)
 	if err != nil {
@@ -237,6 +241,9 @@ func (glr GateLoadRunner) startWriters(waitForAllSGUsersCreated *sync.WaitGroup,
 func (glr GateLoadRunner) startReaders(waitForAllSGUsersCreated *sync.WaitGroup) (*sync.WaitGroup, error) {
 
 	wg := sync.WaitGroup{}
+
+	globalProgressStats.Add("TotalNumReaderUsers", int64(glr.ReadLoadSpec.NumReaders))
+	globalProgressStats.Add("NumReaderUsers", 0)
 
 	// Create reader goroutines
 	readers, err := glr.createReaders(&wg, waitForAllSGUsersCreated)

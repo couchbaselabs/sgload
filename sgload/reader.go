@@ -166,6 +166,7 @@ func (r *Reader) Run() {
 }
 
 func (r *Reader) createReaderSGUserIfNeeded() {
+	defer globalProgressStats.Add("NumReaderUsers", 1)
 	r.createSGUserIfNeeded(r.SGChannels)
 }
 
