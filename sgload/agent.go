@@ -64,11 +64,15 @@ func (a *Agent) createSGUserIfNeeded(channels []string) {
 
 	a.CreatedSGUser = true
 
+	logger.Info("Done Creating SG user", "username", a.UserCred.Username, "channels", channels)
+
 	a.AllSGUsersCreated.Done()
 
 }
 
 func (a *Agent) waitUntilAllSGUsersCreated() {
+	logger.Info("Wait until all SG users created", "username", a.Username)
+	defer logger.Info("Done waiting until all SG users created", "username", a.Username)
 	a.AllSGUsersCreated.Wait()
 }
 
