@@ -81,6 +81,13 @@ func initSgHttpClientOnce(statsdClient g2s.Statter) {
 		sgClient.RetryMax = 10
 		sgClient.HTTPClient.Transport = transportWithConnPool(1000)
 
+		// Set a long timeout on HTTP requests in case there are cases where _changes
+		// feeds are "stuck" indefinitely.  With this change, if that happens, the test
+		// will at least make progress, but there will be very long round trip times.
+		// See https://github.com/couchbaselabs/sgload/issues/56#issuecomment-273855696
+		sgClient.HTTPClient.Timeout = time.Duration(5) * time.Minute
+
+
 	}
 
 	initializeSgHttpClientOnce.Do(doOnceFunc)
