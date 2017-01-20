@@ -56,7 +56,7 @@ func (a *Agent) createSGUserIfNeeded(channels []string) {
 
 	}
 
-	logger.Info("Creating SG user", "username", a.UserCred.Username, "channels", channels)
+	logger.Debug("Creating SG user", "username", a.UserCred.Username, "channels", channels)
 
 	if err := a.DataStore.CreateUser(a.UserCred, channels); err != nil {
 		panic(fmt.Sprintf("Error creating user in datastore.  User: %v, Err: %v", a.UserCred, err))
@@ -64,15 +64,15 @@ func (a *Agent) createSGUserIfNeeded(channels []string) {
 
 	a.CreatedSGUser = true
 
-	logger.Info("Done Creating SG user", "username", a.UserCred.Username, "channels", channels)
+	logger.Debug("Done Creating SG user", "username", a.UserCred.Username, "channels", channels)
 
 	a.AllSGUsersCreated.Done()
 
 }
 
 func (a *Agent) waitUntilAllSGUsersCreated() {
-	logger.Info("Wait until all SG users created", "username", a.Username)
-	defer logger.Info("Done waiting until all SG users created", "username", a.Username)
+	logger.Debug("Wait until all SG users created", "username", a.Username)
+	defer logger.Info("Agent is starting after waiting for all SG users to be added", "username", a.Username)
 	a.AllSGUsersCreated.Wait()
 }
 

@@ -159,7 +159,7 @@ func (u *Updater) Run() {
 		}
 
 		// Push the update
-		logger.Info("Updater performUpdate", "agent.ID", u.ID, "docbatch", len(docBatch))
+		logger.Debug("Updater performUpdate", "agent.ID", u.ID, "docbatch", len(docBatch))
 		docRevPairsUpdated, err := u.performUpdate(docBatch)
 		if err != nil {
 			panic(fmt.Sprintf("Error performing update: %v", err))
@@ -360,7 +360,7 @@ func (u Updater) LookupCurrentRevisions(docsToLookup []Document) ([]sgreplicate.
 	bulkGetRequest := sgreplicate.BulkGetRequest{}
 	bulkGetRequestDocs := []sgreplicate.DocumentRevisionPair{}
 	for _, docToLookup := range docsToLookup {
-		logger.Info("LookupCurrentRevisions", "docToLookup", fmt.Sprintf("%+v", docToLookup.Id()))
+		logger.Debug("LookupCurrentRevisions", "docToLookup", fmt.Sprintf("%+v", docToLookup.Id()))
 		docRevPair := sgreplicate.DocumentRevisionPair{}
 		docRevPair.Id = docToLookup["_id"].(string)
 		bulkGetRequestDocs = append(bulkGetRequestDocs, docRevPair)
