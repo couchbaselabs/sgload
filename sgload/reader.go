@@ -242,19 +242,36 @@ func (r *Reader) pullMoreDocs(since Sincer) (pullMoreDocsResult, error) {
 
 	// Create a retry sleeper which controls how many times to retry
 	// and how long to wait in between retries
-	numRetries := 10
+	maxRetries := 10
+	numRetries := 0
 	sleepMsBetweenRetry := 500
-	retrySleeper := CreateDoublingSleeperFunc(numRetries, sleepMsBetweenRetry)
+	retrySleeper := CreateDoublingSleeperFunc(maxRetries, sleepMsBetweenRetry)
 
 	// Create retry worker that knows how to do actual work
 	retryWorker := func() (shouldRetry bool, err error, value interface{}) {
 
+		numRetries += 1
+
 		result := pullMoreDocsResult{}
 
-		changes, newSince, err := r.DataStore.Changes(since, CHANGES_LIMIT, r.feedType)
-		if err != nil {
-			logger.Warn("Error getting changes.  Retrying.", "error", err, "agent.ID", r.ID)
-			return true, err, result
+		changes, newSince, changesErr := r.DataStore.Changes(since, CHANGES_LIMIT, r.feedType)
+		if changesErr != nil {
+			logger.Warn("Error getting changes.  Retrying.",
+				"url",
+				"since",
+				since,
+				"feedtype",
+				r.feedType,
+				"limit",
+				CHANGES_LIMIT,
+				"agent.ID",
+				r.ID,
+				"numRetries",
+				numRetries,
+				"error",
+				changesErr,
+			)
+			return true, changesErr, result
 		}
 
 		if len(changes.Results) == 0 {
@@ -270,15 +287,15 @@ func (r *Reader) pullMoreDocs(since Sincer) (pullMoreDocsResult, error) {
 		// since they are user docs and we don't care about them
 		changes = stripUserDocChanges(changes)
 
-		bulkGetRequest, uniqueDocIds, err := createBulkGetRequest(changes)
-		if err != nil {
+		bulkGetRequest, uniqueDocIds, bulkGetErr := createBulkGetRequest(changes)
+		if bulkGetErr != nil {
 			logger.Warn("Error creating bulk get request from _changes result.  Retrying", "reader", r.Agent.ID, "err", err)
 			return true, nil, result
 		}
 
-		docs, err := r.DataStore.BulkGetDocuments(bulkGetRequest)
-		if err != nil {
-			return false, err, result
+		docs, bulkDocsErr := r.DataStore.BulkGetDocuments(bulkGetRequest)
+		if bulkDocsErr != nil {
+			return false, bulkDocsErr, result
 		}
 		if len(docs) != len(bulkGetRequest.Docs) {
 			return false, fmt.Errorf("Expected %d docs, got %d", len(bulkGetRequest.Docs), len(docs)), result

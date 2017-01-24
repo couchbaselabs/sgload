@@ -207,11 +207,11 @@ func (s SGDataStore) sgAdminURL() (string, error) {
 
 }
 
-func (s SGDataStore) Changes(sinceVal Sincer, limit int, feedType ChangesFeedType) (changes sgreplicate.Changes, newSinceVal Sincer, err error) {
+func (s SGDataStore) changesFeedUrl(sinceVal Sincer, limit int, feedType ChangesFeedType) (string, error) {
 
 	changesFeedEndpoint, err := addEndpointToUrl(s.SyncGatewayUrl, "_changes")
 	if err != nil {
-		return sgreplicate.Changes{}, sinceVal, err
+		return "", err
 	}
 
 	changesFeedParams := NewChangesFeedParams(sinceVal, limit, feedType)
@@ -221,6 +221,17 @@ func (s SGDataStore) Changes(sinceVal Sincer, limit int, feedType ChangesFeedTyp
 		changesFeedEndpoint,
 		changesFeedParams,
 	)
+
+	return changesFeedUrl, nil
+
+}
+
+func (s SGDataStore) Changes(sinceVal Sincer, limit int, feedType ChangesFeedType) (changes sgreplicate.Changes, newSinceVal Sincer, err error) {
+
+	changesFeedUrl, err := s.changesFeedUrl(sinceVal, limit, feedType)
+	if err != nil {
+		return sgreplicate.Changes{}, sinceVal, err
+	}
 
 	req, err := retryablehttp.NewRequest("GET", changesFeedUrl, nil)
 	s.addAuthIfNeeded(req)
