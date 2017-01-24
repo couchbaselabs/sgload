@@ -257,7 +257,6 @@ func (r *Reader) pullMoreDocs(since Sincer) (pullMoreDocsResult, error) {
 		changes, newSince, changesErr := r.DataStore.Changes(since, CHANGES_LIMIT, r.feedType)
 		if changesErr != nil {
 			logger.Warn("Error getting changes.  Retrying.",
-				"url",
 				"since",
 				since,
 				"feedtype",
