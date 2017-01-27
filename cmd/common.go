@@ -15,7 +15,7 @@ const (
 	NUM_WRITERS_CMD_DESC    = "The number of unique users that will write documents.  Each writer runs concurrently in it's own goroutine"
 
 	WRITER_DELAY_CMD_NAME    = "writerdelayms"
-	WRITER_DELAY_CMD_DEFAULT = 0
+	WRITER_DELAY_CMD_DEFAULT = 10000
 	WRITER_DELAY_CMD_DESC    = "How long writers should wait in between writes.  The time take to do the previous write will be subtracted out of the delay.  If the time taken for previous write is longer than the delay, the writer will not wait"
 
 	CREATE_WRITERS_CMD_NAME    = "createwriters"
