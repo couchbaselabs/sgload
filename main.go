@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	_ "expvar"
+	_ "net/http/pprof"
 
 	"github.com/couchbaselabs/sgload/cmd"
 	"github.com/couchbaselabs/sgload/sgload"
