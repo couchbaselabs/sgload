@@ -56,15 +56,13 @@ func (a *Agent) createSGUserIfNeeded(channels []string) {
 
 	}
 
-	logger.Debug("Creating SG user", "username", a.UserCred.Username, "channels", channels)
-
 	if err := a.DataStore.CreateUser(a.UserCred, channels); err != nil {
 		panic(fmt.Sprintf("Error creating user in datastore.  User: %v, Err: %v", a.UserCred, err))
 	}
 
 	a.CreatedSGUser = true
 
-	logger.Debug("Done Creating SG user", "username", a.UserCred.Username, "channels", channels)
+	logger.Info("Created SG user", "username", a.UserCred.Username, "channels", channels)
 
 	a.AllSGUsersCreated.Done()
 
