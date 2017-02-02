@@ -33,6 +33,7 @@ var gateloadCmd = &cobra.Command{
 		sgload.SetLogLevel(loadSpec.LogLevel)
 
 		delayBetweenWrites := time.Millisecond * time.Duration(*glWriterDelayMs)
+		delayBetweenUpdates := time.Millisecond * time.Duration(*glWriterDelayMs)
 
 		writeLoadSpec := sgload.WriteLoadSpec{
 			LoadSpec:           loadSpec,
@@ -51,9 +52,10 @@ var gateloadCmd = &cobra.Command{
 		}
 
 		updateLoadSpec := sgload.UpdateLoadSpec{
-			LoadSpec:         loadSpec,
-			NumUpdatesPerDoc: *glNumRevsPerDoc,
-			NumUpdaters:      *glNumUpdaters,
+			LoadSpec:            loadSpec,
+			NumUpdatesPerDoc:    *glNumRevsPerDoc,
+			NumUpdaters:         *glNumUpdaters,
+			DelayBetweenUpdates: delayBetweenUpdates,
 		}
 
 		gateLoadSpec := sgload.GateLoadSpec{

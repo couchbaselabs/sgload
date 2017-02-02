@@ -1,12 +1,17 @@
 package sgload
 
-import "log"
+import (
+	"log"
+	"time"
+)
 
 type UpdateLoadSpec struct {
 	LoadSpec
-	NumUpdatesPerDoc int // The total number of revisions to add per doc
-	NumRevsPerUpdate int // The number of revisions to add per update
-	NumUpdaters      int // The number of updater goroutines
+	NumUpdatesPerDoc    int           // The total number of revisions to add per doc
+	NumRevsPerUpdate    int           // The number of revisions to add per update
+	NumUpdaters         int           // The number of updater goroutines
+	DelayBetweenUpdates time.Duration // Delay between updates (subtracting out the time they are blocked during write)
+
 }
 
 func (uls UpdateLoadSpec) Validate() error {

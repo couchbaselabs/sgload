@@ -1,6 +1,8 @@
 package sgload
 
-import "sync"
+import (
+	"sync"
+)
 
 type UpdateLoadRunner struct {
 	LoadRunner
@@ -32,6 +34,7 @@ func (ulr UpdateLoadRunner) createUpdaters(wg *sync.WaitGroup, userCreds []UserC
 			ulr.UpdateLoadSpec.DocSizeBytes,
 			ulr.UpdateLoadSpec.NumRevsPerUpdate,
 			docsToUpdate,
+			ulr.UpdateLoadSpec.DelayBetweenUpdates,
 		)
 		updater.SetStatsdClient(ulr.StatsdClient)
 		updater.SetCreateUserSemaphore(createUserSemaphore)

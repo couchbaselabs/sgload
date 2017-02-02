@@ -8,11 +8,12 @@ import (
 )
 
 type UpdaterSpec struct {
-	NumUpdatesPerDocRequired int // The number of updates this updater is supposed to do for each doc.
-	NumUniqueDocsPerUpdater  int // The number of unique docs this updater is tasked to update.
-	BatchSize                int // How many docs to update per bulk_docs request
-	RevsPerUpdate            int // How many revisions to include in each document update
-	DocSizeBytes             int // The doc size in bytes to use when generating update docs
+	NumUpdatesPerDocRequired int           // The number of updates this updater is supposed to do for each doc.
+	NumUniqueDocsPerUpdater  int           // The number of unique docs this updater is tasked to update.
+	BatchSize                int           // How many docs to update per bulk_docs request
+	RevsPerUpdate            int           // How many revisions to include in each document update
+	DocSizeBytes             int           // The doc size in bytes to use when generating update docs
+	DelayBetweenUpdates      time.Duration // Delay between updates (subtracting out the time they are blocked during write)
 }
 
 type Updater struct {
@@ -30,7 +31,7 @@ type DocUpdateStatus struct {
 	DocumentMetadata DocumentMetadata
 }
 
-func NewUpdater(agentSpec AgentSpec, numUniqueDocsPerUpdater, numUpdatesPerDoc, batchsize, docSizeBytes int, revsPerUpdate int, docsToUpdate <-chan []DocumentMetadata) *Updater {
+func NewUpdater(agentSpec AgentSpec, numUniqueDocsPerUpdater, numUpdatesPerDoc, batchsize, docSizeBytes int, revsPerUpdate int, docsToUpdate <-chan []DocumentMetadata, delayBetweenUpdates time.Duration) *Updater {
 
 	updater := &Updater{
 		Agent: Agent{
@@ -42,6 +43,7 @@ func NewUpdater(agentSpec AgentSpec, numUniqueDocsPerUpdater, numUpdatesPerDoc, 
 			RevsPerUpdate:            revsPerUpdate,
 			NumUniqueDocsPerUpdater:  numUniqueDocsPerUpdater,
 			DocSizeBytes:             docSizeBytes,
+			DelayBetweenUpdates:      delayBetweenUpdates,
 		},
 		DocsToUpdate:      docsToUpdate,
 		DocUpdateStatuses: map[string]DocUpdateStatus{},
@@ -159,11 +161,13 @@ func (u *Updater) Run() {
 		}
 
 		// Push the update
+		timeBeforeUpdate := time.Now()
 		logger.Debug("Updater performUpdate", "agent.ID", u.ID, "docbatch", len(docBatch))
 		docRevPairsUpdated, err := u.performUpdate(docBatch)
 		if err != nil {
 			panic(fmt.Sprintf("Error performing update: %v", err))
 		}
+		timeBlockedDuringUpdate := time.Since(timeBeforeUpdate)
 
 		u.updateDocStatuses(docRevPairsUpdated)
 
@@ -180,6 +184,8 @@ func (u *Updater) Run() {
 			"numExpectedUpdatesPending",
 			numExpectedUpdatesPending,
 		)
+
+		u.maybeDelayBetweenUpdates(timeBlockedDuringUpdate)
 
 	}
 
@@ -393,4 +399,13 @@ func (u *Updater) generateDocUpdate(docRevPair DocumentMetadata) Document {
 	doc["channels"] = docRevPair.Channels
 
 	return Document(doc)
+}
+
+func (u *Updater) maybeDelayBetweenUpdates(timeBlockedDuringUpdate time.Duration) {
+
+	timeToSleep := u.UpdaterSpec.DelayBetweenUpdates - timeBlockedDuringUpdate
+	if timeToSleep > time.Duration(0) {
+		time.Sleep(timeToSleep)
+	}
+
 }
