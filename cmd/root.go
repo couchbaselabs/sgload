@@ -14,6 +14,7 @@ var (
 	sgAdminPort           *int
 	mockDataStore         *bool
 	statsdEndpoint        *string
+	statsdPrefix          *string
 	statsdEnabled         *bool
 	testSessionID         *string
 	numChannels           *int
@@ -73,6 +74,12 @@ func init() {
 		"statsdendpoint",
 		"localhost:8125",
 		"The statds endpoint to push stats to via UDP.  If non-existent, will not break anything.",
+	)
+
+	statsdPrefix = RootCmd.PersistentFlags().String(
+		"statsdprefix",
+		"",
+		"The statds prefix to use, for example an api token for a hosted statsd service.",
 	)
 
 	statsdEnabled = RootCmd.PersistentFlags().Bool(

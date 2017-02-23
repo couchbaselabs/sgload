@@ -19,7 +19,7 @@ import (
 
 	sgreplicate "github.com/couchbaselabs/sg-replicate"
 	"github.com/hashicorp/go-retryablehttp"
-	"github.com/peterbourgon/g2s"
+	"github.com/FranGM/g2s"
 )
 
 var (

@@ -15,6 +15,7 @@ type LoadSpec struct {
 	MockDataStore         bool      // If true, will use a MockDataStore instead of a real sync gateway
 	StatsdEnabled         bool      // If true, will push stats to StatsdEndpoint
 	StatsdEndpoint        string    // The endpoint of the statds server, eg localhost:8125
+	StatsdPrefix          string    // The metrics prefix to use (for example, some hosted statsd services require a token)
 	TestSessionID         string    // A unique identifier for this test session.  It's used for creating channel names and possibly more
 	BatchSize             int       // How many docs to read (bulk_get) or write (bulk_docs) in bulk
 	NumChannels           int       // How many channels to create/use during this test

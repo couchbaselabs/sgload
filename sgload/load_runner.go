@@ -3,7 +3,8 @@ package sgload
 import (
 	"fmt"
 
-	"github.com/peterbourgon/g2s"
+	"github.com/FranGM/g2s"
+	"log"
 )
 
 type LoadRunner struct {
@@ -19,7 +20,12 @@ func (lr *LoadRunner) CreateStatsdClient() {
 	if lr.LoadSpec.StatsdEnabled {
 		// statsClient *should* be safe to be shared among multiple
 		// goroutines, based on fact that connection returned from Dial
-		statsdClient, err = g2s.Dial("udp", lr.LoadSpec.StatsdEndpoint)
+		if (lr.LoadSpec.StatsdPrefix != "") {
+			statsdClient, err = g2s.DialWithPrefix("udp", lr.LoadSpec.StatsdEndpoint, lr.LoadSpec.StatsdPrefix)
+		} else {
+			statsdClient, err = g2s.Dial("udp", lr.LoadSpec.StatsdEndpoint)
+		}
+
 		if err != nil {
 			panic("Couldn't connect to statsd!")
 		}

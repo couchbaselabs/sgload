@@ -59,6 +59,7 @@ func createLoadSpecFromArgs() sgload.LoadSpec {
 		MockDataStore:         *mockDataStore,
 		StatsdEnabled:         *statsdEnabled,
 		StatsdEndpoint:        *statsdEndpoint,
+		StatsdPrefix:          *statsdPrefix,
 		TestSessionID:         *testSessionID,
 		BatchSize:             *batchSize,
 		NumChannels:           *numChannels,
