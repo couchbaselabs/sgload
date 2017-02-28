@@ -3,7 +3,7 @@ package sgload
 import (
 	"fmt"
 
-	"github.com/FranGM/g2s"
+	"github.com/peterbourgon/g2s"
 )
 
 type LoadRunner struct {

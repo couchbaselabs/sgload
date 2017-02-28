@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/abiosoft/semaphore"
-	"github.com/FranGM/g2s"
+	"github.com/peterbourgon/g2s"
 )
 
 var (
