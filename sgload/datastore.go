@@ -41,15 +41,37 @@ func (u UserCred) Empty() bool {
 type Document map[string]interface{}
 
 func (d Document) Id() string {
-	return d["_id"].(string)
+	rawId, ok := d["_id"]
+	if !ok {
+		return ""
+	}
+	return rawId.(string)
+}
+
+func (d Document) SetId(id string) {
+	d["_id"] = id
 }
 
 func (d Document) Revision() string {
-	return d["_rev"].(string)
+	rawRev, ok := d["_rev"]
+	if !ok {
+		return ""
+	}
+	return rawRev.(string)
 }
 
 func (d Document) SetRevision(revision string) {
 	d["_rev"] = revision
+}
+
+func (d Document) GetBodySizeBytes() (docSizeBytes int) {
+	docSizeBytes = 1024
+	bodySize, ok := d["bodysize"]
+	if !ok {
+		return docSizeBytes
+	}
+	docSizeBytes = bodySize.(int)
+	return docSizeBytes
 }
 
 // Standard CouchDB encoding of a revision list: digests without numeric generation prefixes go in
@@ -68,6 +90,18 @@ func (d Document) Copy() Document {
 	}
 	return doc
 }
+
+func DocumentFromSGReplicateDocument(sgrDoc sgreplicate.Document) Document {
+	doc := Document{}
+	doc.SetId(sgrDoc.Body["_id"].(string))
+	doc.SetRevision(sgrDoc.Body["_rev"].(string))
+	return doc
+}
+
+func (d Document) SetChannels(channels []string) {
+	d["channels"] = channels
+}
+
 
 type Change interface{} // TODO: spec this out further
 

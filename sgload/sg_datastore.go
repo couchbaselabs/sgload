@@ -464,8 +464,7 @@ func splitSucceededAndFailed(bulkDocsResponse []DocumentMetadata) (successful []
 
 func (s SGDataStore) addDocBodies(docs []Document) {
 	for _, doc := range docs {
-		docSizeBytes := doc["bodysize"].(int)
-		doc["body"] = createBodyContentAsMapWithSize(docSizeBytes)
+		doc["body"] = createBodyContentAsMapWithSize(doc.GetBodySizeBytes())
 	}
 }
 
@@ -480,6 +479,7 @@ func (s SGDataStore) BulkGetDocuments(r sgreplicate.BulkGetRequest) ([]sgreplica
 
 	bulkGetEndpoint = fmt.Sprintf(
 		"%s?revs=true&attachments=true",
+		//"%s?revs=true&attachments=true&revs_limit=2",  // Temporarily set revs_limit lower, trying to repro CBSE-3574
 		bulkGetEndpoint,
 	)
 
@@ -613,6 +613,10 @@ func (s SGDataStore) addAuthIfNeeded(req *retryablehttp.Request) {
 
 func (s SGDataStore) pushTimingStat(key string, delta time.Duration) {
 
+	if s.StatsdClient == nil {
+		return
+	}
+
 	logger.Debug(
 		fmt.Sprintf("Statsd timing stat for %s", key),
 		"delta",
@@ -627,6 +631,10 @@ func (s SGDataStore) pushTimingStat(key string, delta time.Duration) {
 }
 
 func (s SGDataStore) pushCounter(key string, n int) {
+
+	if s.StatsdClient == nil {
+		return
+	}
 
 	logger.Debug(
 		fmt.Sprintf("Statsd counter for %s", key),
@@ -691,7 +699,10 @@ func transportWithConnPool(numConnections int) *http.Transport {
 // Given a slice of documents, find the channels the doc belongs to
 func findChannelsForDoc(docs []Document, docId string) []string {
 	doc := findDoc(docs, docId)
-	return doc.channelNames()
+	if doc != nil {
+		return doc.channelNames()
+	}
+	return []string{}
 }
 
 func findDoc(docs []Document, docId string) Document {

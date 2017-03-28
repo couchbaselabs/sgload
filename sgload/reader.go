@@ -430,6 +430,11 @@ func CreateDoublingSleeperFunc(maxNumAttempts, initialTimeToSleepMs int) RetrySl
 
 }
 
+// TODO: storing every single docid is relatively expensive:
+//
+//     flat  flat%   sum%        cum   cum%
+// 1476.59MB 44.86% 44.86%  1477.09MB 44.87%  encoding/json.(*decodeState).literalStore
+// 1047.14MB 31.81% 76.67%  1048.14MB 31.84%  github.com/couchbaselabs/sgload/sgload.storeLatestDocRev
 func storeLatestDocRev(latestDocIdRevs map[string]int, r pullMoreDocsResult) error {
 
 	for docId, docRevPair := range r.uniqueDocIds {
