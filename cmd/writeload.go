@@ -5,6 +5,7 @@ import (
 
 	"github.com/couchbaselabs/sgload/sgload"
 	"github.com/spf13/cobra"
+	"time"
 )
 
 var (
@@ -26,10 +27,13 @@ var writeloadCmd = &cobra.Command{
 		loadSpec := createLoadSpecFromArgs()
 		sgload.SetLogLevel(loadSpec.LogLevel)
 
+		delayBetweenWrites := time.Millisecond * time.Duration(*writerDelayMs)
+
 		writeLoadSpec := sgload.WriteLoadSpec{
 			LoadSpec:      loadSpec,
 			NumWriters:    *numWriters,
 			CreateWriters: *createWriters,
+			DelayBetweenWrites: delayBetweenWrites,
 		}
 		if err := writeLoadSpec.Validate(); err != nil {
 
