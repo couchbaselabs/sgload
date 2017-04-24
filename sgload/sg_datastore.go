@@ -479,7 +479,6 @@ func (s SGDataStore) BulkGetDocuments(r sgreplicate.BulkGetRequest) ([]sgreplica
 
 	bulkGetEndpoint = fmt.Sprintf(
 		"%s?revs=true&attachments=true",
-		//"%s?revs=true&attachments=true&revs_limit=2",  // Temporarily set revs_limit lower, trying to repro CBSE-3574
 		bulkGetEndpoint,
 	)
 
