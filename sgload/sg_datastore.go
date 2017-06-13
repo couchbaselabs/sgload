@@ -87,7 +87,6 @@ func initSgHttpClientOnce(statsdClient g2s.Statter) {
 		// See https://github.com/couchbaselabs/sgload/issues/56#issuecomment-273855696
 		sgClient.HTTPClient.Timeout = time.Duration(5) * time.Minute
 
-
 	}
 
 	initializeSgHttpClientOnce.Do(doOnceFunc)
@@ -268,14 +267,121 @@ func (s SGDataStore) Changes(sinceVal Sincer, limit int, feedType ChangesFeedTyp
 	return changes, lastSequenceSincer, nil
 }
 
-// Bulk create a set of documents in Sync Gateway
+// Create or update a single document with attachment data
+func (s SGDataStore) CreateDocumentWithAttachment(doc Document, attachSizeBytes int, newEdits bool) (DocumentMetadata, error) {
+
+	return DocumentMetadata{}, nil
+}
+
+// Create or update a single document, possibly with attachment data
+func (s SGDataStore) CreateDocument(doc Document, attachSizeBytes int, newEdits bool) (DocumentMetadata, error) {
+
+	// TODO: re-enable when working
+	//if attachSizeBytes > 0 {
+	//	return s.CreateDocumentWithAttachment(doc, attachSizeBytes, newEdits)
+	//}
+
+	newEditsStr := "false"
+	if newEdits {
+		newEditsStr = "true"
+	}
+
+	putDocEndpoint, err := addEndpointToUrl(s.SyncGatewayUrl, doc.Id())
+	if err != nil {
+		return DocumentMetadata{}, err
+	}
+
+	putDocEndpoint = putDocEndpoint + fmt.Sprintf("?new_edits=%s", newEditsStr)
+
+	doc["body"] = createBodyContentAsMapWithSize(doc.GetBodySizeBytes())
+
+	docBytes, err := json.Marshal(doc)
+	if err != nil {
+		return DocumentMetadata{}, err
+	}
+
+	reader, err := s.getReaderFromDocBytes(docBytes)
+	if err != nil {
+		return DocumentMetadata{}, err
+	}
+
+	req, err := retryablehttp.NewRequest("PUT", putDocEndpoint, reader)
+	s.addAuthIfNeeded(req)
+
+	req.Header.Set("Content-Type", "application/json")
+	if s.CompressionEnabled {
+		req.Header.Set("Content-Encoding", "gzip")
+	}
+
+	client := getHttpClient()
+
+	// Do the POST request
+	startTime := time.Now()
+	resp, err := client.Do(req)
+	if err != nil {
+		return DocumentMetadata{}, err
+	}
+	defer resp.Body.Close()
+
+	// Update stats
+	s.pushTimingStat("create_document", time.Since(startTime))
+
+	// Verify expected status code
+	if resp.StatusCode < 200 || resp.StatusCode > 201 {
+		return DocumentMetadata{}, fmt.Errorf("Unexpected response status for POST request: %d", resp.StatusCode)
+	}
+
+	putResponse := struct {
+		Id       string `json:"id"`
+		Revision string `json:"rev"`
+		Ok       bool   `json:"ok"`
+	}{}
+
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return DocumentMetadata{}, err
+	}
+
+	// Decode the response and extract value to return to caller
+	if err := json.Unmarshal(bodyBytes, &putResponse); err != nil {
+		return DocumentMetadata{}, err
+	}
+
+	docRevPair := sgreplicate.DocumentRevisionPair{
+		Id:       putResponse.Id,
+		Revision: putResponse.Revision,
+	}
+
+	if !putResponse.Ok {
+		docRevPair.Error = "Got OK=false response to PUT"
+	}
+
+	docAndMeta := DocumentMetadata{
+		DocumentRevisionPair: docRevPair,
+		Channels:             doc.channelNames(),
+	}
+
+	return docAndMeta, nil
+
+}
+
+// Bulk create/update a set of documents in Sync Gateway
 func (s SGDataStore) BulkCreateDocuments(docs []Document, newEdits bool) ([]DocumentMetadata, error) {
+
+	fmt.Printf("BulkCreateDocuments() called.  numdocs: %v\n", len(docs))
 
 	defer s.pushCounter("create_document_counter", len(docs))
 
 	// Set the "created_at" timestamp which is used to calculate the
 	// gateload roundtrip time
 	updateCreatedAtTimestamp(docs)
+
+	// If there's only a single document (batchsize=1), then use a different code path in order to possibly add attachments
+	if len(docs) == 1 {
+		attachSizeBytes := 1024 // TODO: this will be a CLI param, hardcode for dev purposes
+		docmeta, err := s.CreateDocument(docs[0], attachSizeBytes, newEdits)
+		return []DocumentMetadata{docmeta}, err
+	}
 
 	documentsAndMetadata := []DocumentMetadata{}
 
@@ -295,23 +401,10 @@ func (s SGDataStore) BulkCreateDocuments(docs []Document, newEdits bool) ([]Docu
 	if err != nil {
 		return documentsAndMetadata, err
 	}
-	var reader *bytes.Reader
-	if s.CompressionEnabled {
-		buf := &bytes.Buffer{}
-		gzipWriter := gzip.NewWriter(buf)
-		if _, err := gzipWriter.Write(docBytes); err != nil {
-			return documentsAndMetadata, err
-		}
-		if err = gzipWriter.Close(); err != nil {
-			return documentsAndMetadata, err
-		}
-		compressedBytes, err := ioutil.ReadAll(buf)
-		if err != nil {
-			return documentsAndMetadata, err
-		}
-		reader = bytes.NewReader(compressedBytes)
-	} else {
-		reader = bytes.NewReader(docBytes)
+
+	reader, err := s.getReaderFromDocBytes(docBytes)
+	if err != nil {
+		return documentsAndMetadata, err
 	}
 
 	req, err := retryablehttp.NewRequest("POST", bulkDocsEndpoint, reader)
@@ -324,6 +417,7 @@ func (s SGDataStore) BulkCreateDocuments(docs []Document, newEdits bool) ([]Docu
 
 	client := getHttpClient()
 
+	// Do the POST request
 	startTime := time.Now()
 	resp, err := client.Do(req)
 	if err != nil {
@@ -331,11 +425,15 @@ func (s SGDataStore) BulkCreateDocuments(docs []Document, newEdits bool) ([]Docu
 	}
 	defer resp.Body.Close()
 
+	// Update stats
 	s.pushTimingStat("create_document", timeDeltaPerDocument(len(docs), time.Since(startTime)))
+
+	// Verify expected status code
 	if resp.StatusCode < 200 || resp.StatusCode > 201 {
 		return documentsAndMetadata, fmt.Errorf("Unexpected response status for POST request: %d", resp.StatusCode)
 	}
 
+	// Decode the response and extract value to return to caller
 	decoder := json.NewDecoder(resp.Body)
 	bulkDocsResponse := []sgreplicate.DocumentRevisionPair{}
 	if err = decoder.Decode(&bulkDocsResponse); err != nil {
@@ -646,6 +744,29 @@ func (s SGDataStore) pushCounter(key string, n int) {
 		key,
 		n,
 	)
+}
+
+// Get *bytes.Reader from the raw bytes, possibly compressed
+func (s SGDataStore) getReaderFromDocBytes(docBytes []byte) (*bytes.Reader, error) {
+	var reader *bytes.Reader
+	if s.CompressionEnabled {
+		buf := &bytes.Buffer{}
+		gzipWriter := gzip.NewWriter(buf)
+		if _, err := gzipWriter.Write(docBytes); err != nil {
+			return nil, err
+		}
+		if err := gzipWriter.Close(); err != nil {
+			return nil, err
+		}
+		compressedBytes, err := ioutil.ReadAll(buf)
+		if err != nil {
+			return nil, err
+		}
+		reader = bytes.NewReader(compressedBytes)
+	} else {
+		reader = bytes.NewReader(docBytes)
+	}
+	return reader, nil
 }
 
 func splitHostPortWrapper(host string) (string, string, error) {
