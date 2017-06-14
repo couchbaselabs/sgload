@@ -22,6 +22,7 @@ type AgentSpec struct {
 	CreateDataStoreUser     bool            // Whether this writer must first create a user on the DataStore service, ot just assume it already exists
 	DataStore               DataStore       // The target data store where docs will be written
 	BatchSize               int             // bulk_get or bulk_docs batch size
+	AttachSizeBytes         int             // If > 0, and BatchSize == 1, then it will add attachments of this size during doc creates/updates.
 	ExpvarProgressEnabled   bool            // Whether to publish reader/writer/updater progress to expvars
 	MaxConcurrentCreateUser int             // The maximum number of concurrent outstanding createuser requests.  0 means no maximum
 	AllSGUsersCreated       *sync.WaitGroup // Wait Group to allow waiting until all SG users created before applying load

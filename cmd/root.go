@@ -21,6 +21,7 @@ var (
 	numDocs               *int
 	docSizeBytes          *int
 	batchSize             *int
+	attachSizeBytes       *int
 	compressionEnabled    *bool
 	expvarProgressEnabled *bool
 	logLevelStr           *string
@@ -118,6 +119,12 @@ func init() {
 		"batchsize",
 		1,
 		"The batch size that will be used for writing docs via bulk_docs endpoint",
+	)
+
+	attachSizeBytes = RootCmd.PersistentFlags().Int(
+		"attachsizebytes",
+		0,
+		"The size of the attachment to add in bytes (creates/updates).  Only takes effect if batchsize == 1",
 	)
 
 	compressionEnabled = RootCmd.PersistentFlags().Bool(

@@ -37,3 +37,8 @@ func (m MockDataStore) Changes(sinceVal Sincer, limit int, feedType ChangesFeedT
 func (m MockDataStore) BulkGetDocuments(r sgreplicate.BulkGetRequest) ([]sgreplicate.Document, error) {
 	return nil, nil
 }
+
+func (m MockDataStore) CreateDocument(doc Document, attachSizeBytes int, newEdits bool) (DocumentMetadata, error) {
+	return DocumentMetadata{}, nil
+}
+

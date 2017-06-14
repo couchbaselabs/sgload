@@ -20,6 +20,8 @@ import (
 	sgreplicate "github.com/couchbaselabs/sg-replicate"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/peterbourgon/g2s"
+	"mime/multipart"
+	"net/textproto"
 )
 
 var (
@@ -86,7 +88,6 @@ func initSgHttpClientOnce(statsdClient g2s.Statter) {
 		// will at least make progress, but there will be very long round trip times.
 		// See https://github.com/couchbaselabs/sgload/issues/56#issuecomment-273855696
 		sgClient.HTTPClient.Timeout = time.Duration(5) * time.Minute
-
 
 	}
 
@@ -268,8 +269,228 @@ func (s SGDataStore) Changes(sinceVal Sincer, limit int, feedType ChangesFeedTyp
 	return changes, lastSequenceSincer, nil
 }
 
-// Bulk create a set of documents in Sync Gateway
+// The SG response to a PUT request
+type putResponse struct {
+	Id       string `json:"id"`
+	Revision string `json:"rev"`
+	Ok       bool   `json:"ok"`
+}
+
+// Create or update a single document with attachment data
+func (s SGDataStore) CreateDocument(doc Document, attachSizeBytes int, newEdits bool) (DocumentMetadata, error) {
+
+	if attachSizeBytes <= 0 {
+		return s.CreateDocumentNoAttachment(doc, newEdits)
+	}
+
+	newEditsStr := "false"
+	if newEdits {
+		newEditsStr = "true"
+	}
+
+	putDocEndpoint, err := addEndpointToUrl(s.SyncGatewayUrl, doc.Id())
+	if err != nil {
+		return DocumentMetadata{}, err
+	}
+
+	putDocEndpoint = putDocEndpoint + fmt.Sprintf("?new_edits=%s", newEditsStr)
+
+	attachmentContentType := "text/html"
+	attachmentName := "my_attachment"
+	attachmentContent := doc.GenerateHtmlAttachmentContent(attachSizeBytes)
+
+	doc["body"] = createBodyContentAsMapWithSize(doc.GetBodySizeBytes())
+	doc.GenerateAndAddAttachmentMeta(attachmentName, attachmentContentType, attachmentContent)
+
+	docBytes, err := json.Marshal(doc)
+	if err != nil {
+		return DocumentMetadata{}, err
+	}
+
+	// Write doc json part of multipart
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	mimeHeader := textproto.MIMEHeader{}
+	mimeHeader.Set("Content-Type", "application/json")
+
+
+	part, err := writer.CreatePart(mimeHeader)
+	if err != nil {
+		return DocumentMetadata{}, err
+	}
+
+	_, err = part.Write(docBytes)
+	if err != nil {
+		return DocumentMetadata{}, err
+	}
+
+	// add all attachments
+	partHeaders := textproto.MIMEHeader{}
+	partHeaders.Set("Content-Type", attachmentContentType)
+	partHeaders.Set("Content-Disposition", attachmentName)
+	partAttach, err := writer.CreatePart(partHeaders)
+	if err != nil {
+		return DocumentMetadata{}, err
+	}
+	_, err = partAttach.Write(attachmentContent)
+	if err != nil {
+		return DocumentMetadata{}, err
+	}
+
+	err = writer.Close()
+	if err != nil {
+		return DocumentMetadata{}, err
+	}
+
+	// Create request from multipart body
+	req, err := retryablehttp.NewRequest("PUT", putDocEndpoint, bytes.NewReader(body.Bytes()))
+	if err != nil {
+		return DocumentMetadata{}, err
+	}
+
+	s.addAuthIfNeeded(req)
+
+	contentType := fmt.Sprintf("multipart/related; boundary=%q", writer.Boundary())
+	req.Header.Set("Content-Type", contentType)
+
+	client := getHttpClient()
+
+	// Do the HTTP request
+	startTime := time.Now()
+	resp, err := client.Do(req)
+	if err != nil {
+		return DocumentMetadata{}, err
+	}
+	defer resp.Body.Close()
+
+	// Update stats
+	s.pushTimingStat("create_document", time.Since(startTime))
+
+	// Verify expected status code
+	if resp.StatusCode < 200 || resp.StatusCode > 201 {
+		return DocumentMetadata{}, fmt.Errorf("Unexpected response status for POST request: %d", resp.StatusCode)
+	}
+
+	putResponse := putResponse{}
+
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return DocumentMetadata{}, err
+	}
+
+	// Decode the response and extract value to return to caller
+	if err := json.Unmarshal(bodyBytes, &putResponse); err != nil {
+		return DocumentMetadata{}, err
+	}
+
+	docRevPair := sgreplicate.DocumentRevisionPair{
+		Id:       putResponse.Id,
+		Revision: putResponse.Revision,
+	}
+
+	if !putResponse.Ok {
+		docRevPair.Error = "Got OK=false response to PUT"
+	}
+
+	docAndMeta := DocumentMetadata{
+		DocumentRevisionPair: docRevPair,
+		Channels:             doc.channelNames(),
+	}
+
+	return docAndMeta, nil
+
+}
+
+// Create or update a single document
+func (s SGDataStore) CreateDocumentNoAttachment(doc Document, newEdits bool) (DocumentMetadata, error) {
+
+	newEditsStr := "false"
+	if newEdits {
+		newEditsStr = "true"
+	}
+
+	putDocEndpoint, err := addEndpointToUrl(s.SyncGatewayUrl, doc.Id())
+	if err != nil {
+		return DocumentMetadata{}, err
+	}
+
+	putDocEndpoint = putDocEndpoint + fmt.Sprintf("?new_edits=%s", newEditsStr)
+
+	doc["body"] = createBodyContentAsMapWithSize(doc.GetBodySizeBytes())
+
+	docBytes, err := json.Marshal(doc)
+	if err != nil {
+		return DocumentMetadata{}, err
+	}
+
+	reader, err := s.getReaderFromDocBytes(docBytes)
+	if err != nil {
+		return DocumentMetadata{}, err
+	}
+
+	req, err := retryablehttp.NewRequest("PUT", putDocEndpoint, reader)
+	s.addAuthIfNeeded(req)
+
+	req.Header.Set("Content-Type", "application/json")
+	if s.CompressionEnabled {
+		req.Header.Set("Content-Encoding", "gzip")
+	}
+
+	client := getHttpClient()
+
+	// Do the HTTP request
+	startTime := time.Now()
+	resp, err := client.Do(req)
+	if err != nil {
+		return DocumentMetadata{}, err
+	}
+	defer resp.Body.Close()
+
+	// Update stats
+	s.pushTimingStat("create_document", time.Since(startTime))
+
+	// Verify expected status code
+	if resp.StatusCode < 200 || resp.StatusCode > 201 {
+		return DocumentMetadata{}, fmt.Errorf("Unexpected response status for POST request: %d", resp.StatusCode)
+	}
+
+	putResponse := putResponse{}
+
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return DocumentMetadata{}, err
+	}
+
+	// Decode the response and extract value to return to caller
+	if err := json.Unmarshal(bodyBytes, &putResponse); err != nil {
+		return DocumentMetadata{}, err
+	}
+
+	docRevPair := sgreplicate.DocumentRevisionPair{
+		Id:       putResponse.Id,
+		Revision: putResponse.Revision,
+	}
+
+	if !putResponse.Ok {
+		docRevPair.Error = "Got OK=false response to PUT"
+	}
+
+	docAndMeta := DocumentMetadata{
+		DocumentRevisionPair: docRevPair,
+		Channels:             doc.channelNames(),
+	}
+
+	return docAndMeta, nil
+
+}
+
+
+// Bulk create/update a set of documents in Sync Gateway
 func (s SGDataStore) BulkCreateDocuments(docs []Document, newEdits bool) ([]DocumentMetadata, error) {
+
+	fmt.Printf("BulkCreateDocuments() called.  numdocs: %v\n", len(docs))
 
 	defer s.pushCounter("create_document_counter", len(docs))
 
@@ -295,23 +516,10 @@ func (s SGDataStore) BulkCreateDocuments(docs []Document, newEdits bool) ([]Docu
 	if err != nil {
 		return documentsAndMetadata, err
 	}
-	var reader *bytes.Reader
-	if s.CompressionEnabled {
-		buf := &bytes.Buffer{}
-		gzipWriter := gzip.NewWriter(buf)
-		if _, err := gzipWriter.Write(docBytes); err != nil {
-			return documentsAndMetadata, err
-		}
-		if err = gzipWriter.Close(); err != nil {
-			return documentsAndMetadata, err
-		}
-		compressedBytes, err := ioutil.ReadAll(buf)
-		if err != nil {
-			return documentsAndMetadata, err
-		}
-		reader = bytes.NewReader(compressedBytes)
-	} else {
-		reader = bytes.NewReader(docBytes)
+
+	reader, err := s.getReaderFromDocBytes(docBytes)
+	if err != nil {
+		return documentsAndMetadata, err
 	}
 
 	req, err := retryablehttp.NewRequest("POST", bulkDocsEndpoint, reader)
@@ -324,6 +532,7 @@ func (s SGDataStore) BulkCreateDocuments(docs []Document, newEdits bool) ([]Docu
 
 	client := getHttpClient()
 
+	// Do the POST request
 	startTime := time.Now()
 	resp, err := client.Do(req)
 	if err != nil {
@@ -331,11 +540,15 @@ func (s SGDataStore) BulkCreateDocuments(docs []Document, newEdits bool) ([]Docu
 	}
 	defer resp.Body.Close()
 
+	// Update stats
 	s.pushTimingStat("create_document", timeDeltaPerDocument(len(docs), time.Since(startTime)))
+
+	// Verify expected status code
 	if resp.StatusCode < 200 || resp.StatusCode > 201 {
 		return documentsAndMetadata, fmt.Errorf("Unexpected response status for POST request: %d", resp.StatusCode)
 	}
 
+	// Decode the response and extract value to return to caller
 	decoder := json.NewDecoder(resp.Body)
 	bulkDocsResponse := []sgreplicate.DocumentRevisionPair{}
 	if err = decoder.Decode(&bulkDocsResponse); err != nil {
@@ -646,6 +859,29 @@ func (s SGDataStore) pushCounter(key string, n int) {
 		key,
 		n,
 	)
+}
+
+// Get *bytes.Reader from the raw bytes, possibly compressed
+func (s SGDataStore) getReaderFromDocBytes(docBytes []byte) (*bytes.Reader, error) {
+	var reader *bytes.Reader
+	if s.CompressionEnabled {
+		buf := &bytes.Buffer{}
+		gzipWriter := gzip.NewWriter(buf)
+		if _, err := gzipWriter.Write(docBytes); err != nil {
+			return nil, err
+		}
+		if err := gzipWriter.Close(); err != nil {
+			return nil, err
+		}
+		compressedBytes, err := ioutil.ReadAll(buf)
+		if err != nil {
+			return nil, err
+		}
+		reader = bytes.NewReader(compressedBytes)
+	} else {
+		reader = bytes.NewReader(docBytes)
+	}
+	return reader, nil
 }
 
 func splitHostPortWrapper(host string) (string, string, error) {

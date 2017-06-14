@@ -4,14 +4,19 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
-
+	"crypto/sha1"
+	"encoding/base64"
 	sgreplicate "github.com/couchbaselabs/sg-replicate"
+	"crypto/rand"
 )
 
 type DataStore interface {
 
 	// Creates a new user in the data store (admin port)
 	CreateUser(u UserCred, channelNames []string) error
+
+	// Create a single document, possibly with attachment if attachSizeBytes > 0
+	CreateDocument(doc Document, attachSizeBytes int, newEdits bool) (DocumentMetadata, error)
 
 	// Bulk creates a set of documents in the data store
 	BulkCreateDocuments(d []Document, newEdits bool) ([]DocumentMetadata, error)
@@ -60,6 +65,45 @@ func (d Document) Revision() string {
 	return rawRev.(string)
 }
 
+type AttachmentMeta struct {
+	Follows     bool   `json:"follows"`
+	ContentType string `json:"content_type"`
+	Length      int    `json:"length"`
+	Digest      string `json:"digest"`
+}
+
+// Generate an attachment approximately with size specified in approxAttachSizeBytes
+func (d Document) GenerateHtmlAttachmentContent(approxAttachSizeBytes int) []byte {
+	b := make([]byte, approxAttachSizeBytes)
+	if _, err := rand.Read(b); err != nil {
+		panic(err)
+	}
+	s := fmt.Sprintf("%X", b)
+	return []byte(s)
+}
+
+func (d Document) GenerateAndAddAttachmentMeta(name, contentType string, attachmentContent []byte) {
+
+	attachment := AttachmentMeta{
+		Follows:     true,
+		ContentType: contentType,
+		Length:      len(attachmentContent),
+		Digest:      sha1DigestKey(attachmentContent),
+	}
+
+	allAttachments := map[string]interface{}{}
+	allAttachments[name] = attachment
+
+	d["_attachments"] = allAttachments
+
+}
+
+func sha1DigestKey(data []byte) string {
+	digester := sha1.New()
+	digester.Write(data)
+	return "sha1-" + base64.StdEncoding.EncodeToString(digester.Sum(nil))
+}
+
 func (d Document) SetRevision(revision string) {
 	d["_rev"] = revision
 }
@@ -101,7 +145,6 @@ func DocumentFromSGReplicateDocument(sgrDoc sgreplicate.Document) Document {
 func (d Document) SetChannels(channels []string) {
 	d["channels"] = channels
 }
-
 
 type Change interface{} // TODO: spec this out further
 

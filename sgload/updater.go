@@ -352,12 +352,20 @@ func (u *Updater) performUpdate(docRevPairs []DocumentMetadata) ([]DocumentMetad
 		bulkDocs = append(bulkDocs, doc)
 	}
 
-	updatedDocs, err := u.DataStore.BulkCreateDocumentsRetry(bulkDocs, false)
-	if err != nil {
-		return updatedDocs, err
+	var updatedDocs []DocumentMetadata
+	var updatedDoc DocumentMetadata
+	var err error
+
+	switch len(bulkDocs) {
+	case 1:
+		doc := bulkDocs[0]
+		updatedDoc, err = u.DataStore.CreateDocument(doc, u.AttachSizeBytes, false)
+		updatedDocs = []DocumentMetadata{ updatedDoc }
+	default:
+		updatedDocs, err = u.DataStore.BulkCreateDocumentsRetry(bulkDocs, false)
 	}
 
-	return updatedDocs, nil
+	return updatedDocs, err
 }
 
 func (u Updater) LookupCurrentRevisions(docsToLookup []Document) ([]sgreplicate.DocumentRevisionPair, error) {

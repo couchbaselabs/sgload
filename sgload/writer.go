@@ -39,6 +39,7 @@ func NewWriter(agentSpec AgentSpec, spec WriterSpec) *Writer {
 	return writer
 }
 
+
 func (w *Writer) Run() {
 
 	defer w.FinishedWg.Done()
@@ -66,11 +67,14 @@ func (w *Writer) Run() {
 				}
 
 				timeBeforeWrite := time.Now()
-				docRevPairs, err := w.DataStore.BulkCreateDocumentsRetry([]Document{doc}, true)
+
+				docRevPair, err := w.DataStore.CreateDocument(doc, w.AttachSizeBytes, true)
 				if err != nil {
 					panic(fmt.Sprintf("Error creating doc in datastore.  Doc: %v, Err: %v", doc, err))
 				}
 				timeBlockedDuringWrite = time.Since(timeBeforeWrite)
+				docRevPairs := []DocumentMetadata{docRevPair}
+
 				w.notifyDocsPushed(docRevPairs)
 				numDocsPushed += len(docRevPairs)
 
