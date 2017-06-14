@@ -17,6 +17,7 @@ type LoadSpec struct {
 	StatsdEndpoint        string    // The endpoint of the statds server, eg localhost:8125
 	StatsdPrefix          string    // The metrics prefix to use (for example, some hosted statsd services require a token)
 	TestSessionID         string    // A unique identifier for this test session.  It's used for creating channel names and possibly more
+	AttachSizeBytes       int       // If > 0, and BatchSize == 1, then it will add attachments of this size during doc creates/updates.
 	BatchSize             int       // How many docs to read (bulk_get) or write (bulk_docs) in bulk
 	NumChannels           int       // How many channels to create/use during this test
 	DocSizeBytes          int       // Doc size in bytes to create during this test

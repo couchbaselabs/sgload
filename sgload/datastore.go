@@ -16,11 +16,8 @@ type DataStore interface {
 	// Creates a new user in the data store (admin port)
 	CreateUser(u UserCred, channelNames []string) error
 
-	// Create a single document
-	CreateDocument(d Document, newEdits bool) (DocumentMetadata, error)
-
-	// Create a single document with attachment
-	CreateDocumentWithAttachment(doc Document, attachSizeBytes int, newEdits bool) (DocumentMetadata, error)
+	// Create a single document, possibly with attachment if attachSizeBytes > 0
+	CreateDocument(doc Document, attachSizeBytes int, newEdits bool) (DocumentMetadata, error)
 
 	// Bulk creates a set of documents in the data store
 	BulkCreateDocuments(d []Document, newEdits bool) ([]DocumentMetadata, error)

@@ -38,11 +38,7 @@ func (m MockDataStore) BulkGetDocuments(r sgreplicate.BulkGetRequest) ([]sgrepli
 	return nil, nil
 }
 
-func (m MockDataStore) CreateDocument(d Document, newEdits bool) (DocumentMetadata, error) {
-	return DocumentMetadata{}, nil
-}
-
-func (m MockDataStore) CreateDocumentWithAttachment(doc Document, attachSizeBytes int, newEdits bool) (DocumentMetadata, error) {
+func (m MockDataStore) CreateDocument(doc Document, attachSizeBytes int, newEdits bool) (DocumentMetadata, error) {
 	return DocumentMetadata{}, nil
 }
 

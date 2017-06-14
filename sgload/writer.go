@@ -68,7 +68,7 @@ func (w *Writer) Run() {
 
 				timeBeforeWrite := time.Now()
 
-				docRevPair, err := w.DataStore.CreateDocument(doc, true)
+				docRevPair, err := w.DataStore.CreateDocument(doc, w.AttachSizeBytes, true)
 				if err != nil {
 					panic(fmt.Sprintf("Error creating doc in datastore.  Doc: %v, Err: %v", doc, err))
 				}

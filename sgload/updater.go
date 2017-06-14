@@ -359,7 +359,7 @@ func (u *Updater) performUpdate(docRevPairs []DocumentMetadata) ([]DocumentMetad
 	switch len(bulkDocs) {
 	case 1:
 		doc := bulkDocs[0]
-		updatedDoc, err = u.DataStore.CreateDocument(doc, false)
+		updatedDoc, err = u.DataStore.CreateDocument(doc, u.AttachSizeBytes, false)
 		updatedDocs = []DocumentMetadata{ updatedDoc }
 	default:
 		updatedDocs, err = u.DataStore.BulkCreateDocumentsRetry(bulkDocs, false)

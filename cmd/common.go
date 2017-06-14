@@ -61,6 +61,7 @@ func createLoadSpecFromArgs() sgload.LoadSpec {
 		StatsdEndpoint:        *statsdEndpoint,
 		StatsdPrefix:          *statsdPrefix,
 		TestSessionID:         *testSessionID,
+		AttachSizeBytes:       *attachSizeBytes,
 		BatchSize:             *batchSize,
 		NumChannels:           *numChannels,
 		DocSizeBytes:          *docSizeBytes,

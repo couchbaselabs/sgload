@@ -115,6 +115,7 @@ func (wlr WriteLoadRunner) createWriters(wg, AllSGUsersCreated *sync.WaitGroup) 
 				ExpvarProgressEnabled:   wlr.LoadRunner.LoadSpec.ExpvarProgressEnabled,
 				MaxConcurrentCreateUser: maxConcurrentCreateUser,
 				AllSGUsersCreated:       AllSGUsersCreated,
+				AttachSizeBytes:         wlr.LoadSpec.AttachSizeBytes,
 			},
 			writerSpec,
 		)

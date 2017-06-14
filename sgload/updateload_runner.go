@@ -27,6 +27,7 @@ func (ulr UpdateLoadRunner) createUpdaters(wg *sync.WaitGroup, userCreds []UserC
 				DataStore:               dataStore,
 				ExpvarProgressEnabled:   ulr.LoadRunner.LoadSpec.ExpvarProgressEnabled,
 				MaxConcurrentCreateUser: maxConcurrentCreateUser,
+				AttachSizeBytes:         ulr.LoadSpec.AttachSizeBytes,
 			},
 			numUniqueDocsPerUpdater,
 			ulr.UpdateLoadSpec.NumUpdatesPerDoc,

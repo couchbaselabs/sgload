@@ -277,7 +277,11 @@ type putResponse struct {
 }
 
 // Create or update a single document with attachment data
-func (s SGDataStore) CreateDocumentWithAttachment(doc Document, attachSizeBytes int, newEdits bool) (DocumentMetadata, error) {
+func (s SGDataStore) CreateDocument(doc Document, attachSizeBytes int, newEdits bool) (DocumentMetadata, error) {
+
+	if attachSizeBytes <= 0 {
+		return s.CreateDocumentNoAttachment(doc, newEdits)
+	}
 
 	newEditsStr := "false"
 	if newEdits {
@@ -400,7 +404,7 @@ func (s SGDataStore) CreateDocumentWithAttachment(doc Document, attachSizeBytes 
 }
 
 // Create or update a single document
-func (s SGDataStore) CreateDocument(doc Document, newEdits bool) (DocumentMetadata, error) {
+func (s SGDataStore) CreateDocumentNoAttachment(doc Document, newEdits bool) (DocumentMetadata, error) {
 
 	newEditsStr := "false"
 	if newEdits {
@@ -493,12 +497,6 @@ func (s SGDataStore) BulkCreateDocuments(docs []Document, newEdits bool) ([]Docu
 	// Set the "created_at" timestamp which is used to calculate the
 	// gateload roundtrip time
 	updateCreatedAtTimestamp(docs)
-
-	//// If there's only a single document (batchsize=1), then use a different code path
-	if len(docs) == 1 {
-		docmeta, err := s.CreateDocument(docs[0], newEdits)
-		return []DocumentMetadata{docmeta}, err
-	}
 
 	documentsAndMetadata := []DocumentMetadata{}
 
