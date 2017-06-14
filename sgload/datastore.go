@@ -4,11 +4,10 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
-
-	"bytes"
 	"crypto/sha1"
 	"encoding/base64"
 	sgreplicate "github.com/couchbaselabs/sg-replicate"
+	"crypto/rand"
 )
 
 type DataStore interface {
@@ -75,13 +74,12 @@ type AttachmentMeta struct {
 
 // Generate an attachment approximately with size specified in approxAttachSizeBytes
 func (d Document) GenerateHtmlAttachmentContent(approxAttachSizeBytes int) []byte {
-	buffer := bytes.Buffer{}
-	buffer.WriteString("<h1>")
-	for i := 0; i < approxAttachSizeBytes; i++ {
-		buffer.WriteString("a")
+	b := make([]byte, approxAttachSizeBytes)
+	if _, err := rand.Read(b); err != nil {
+		panic(err)
 	}
-	buffer.WriteString("</h1>")
-	return buffer.Bytes()
+	s := fmt.Sprintf("%X", b)
+	return []byte(s)
 }
 
 func (d Document) GenerateAndAddAttachmentMeta(name, contentType string, attachmentContent []byte) {
