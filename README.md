@@ -62,7 +62,7 @@ Notes:
 
 ## Supported scenarios
 
-* Gatealod (writer + updater + reader) -- this is the primary scenario
+* Gateload (writer + updater + reader) -- this is the primary scenario
 * Writeload -- only do writes
 * Readload -- only do reads
 
