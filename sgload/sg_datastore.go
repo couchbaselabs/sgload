@@ -51,7 +51,7 @@ func initSgHttpClientOnce(statsdClient g2s.Statter) {
 		// failures.  In that case, a different mechanism must be
 		// used since the retryablehttp only retries 5xx statuses
 		logHook := func(
-			ignoredLogger *log.Logger,
+			ignoredLogger retryablehttp.Logger,
 			req *http.Request,
 			numAttempts int) {
 
