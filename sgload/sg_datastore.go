@@ -51,7 +51,7 @@ func initSgHttpClientOnce(statsdClient g2s.Statter) {
 		// failures.  In that case, a different mechanism must be
 		// used since the retryablehttp only retries 5xx statuses
 		logHook := func(
-			ignoredLogger *log.Logger,
+			ignoredLogger retryablehttp.Logger,
 			req *http.Request,
 			numAttempts int) {
 
@@ -724,8 +724,7 @@ func (s SGDataStore) BulkGetDocuments(r sgreplicate.BulkGetRequest) ([]sgreplica
 	// Parse the response and make sure that we got all the docs we requested
 
 	// Logger function that ignores any logging from the ReadBulkGetResponse method
-	loggerFunc := func(key string, format string, args ...interface{}) {}
-	documents, err := sgreplicate.ReadBulkGetResponse(resp, loggerFunc)
+	documents, err := sgreplicate.ReadBulkGetResponse(resp, sgreplicate.Replication{})
 
 	if len(documents) != len(r.Docs) {
 		for i, doc := range r.Docs {
