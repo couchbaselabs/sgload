@@ -66,9 +66,5 @@ func (ls *LoadSpec) generateUserCreds(numUsers int, usernamePrefix string) []Use
 }
 
 func NewUuid() string {
-	u4, err := uuid.NewV4()
-	if err != nil {
-		panic(fmt.Sprintf("Error creating new UUID: %v", err))
-	}
-	return fmt.Sprintf("%s", u4)
+	return uuid.NewV4().String()
 }
